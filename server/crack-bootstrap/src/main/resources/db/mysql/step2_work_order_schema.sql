@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS work_order (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_code VARCHAR(50) NOT NULL UNIQUE,
+    source_type VARCHAR(30) NOT NULL,
+    detection_task_id BIGINT NULL,
+    detection_item_id BIGINT NULL,
+    title VARCHAR(200) NOT NULL,
+    damage_type VARCHAR(30) NOT NULL,
+    severity_level VARCHAR(20) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    department_code VARCHAR(50) NULL,
+    assignee VARCHAR(100) NULL,
+    status VARCHAR(30) NOT NULL,
+    evidence_url VARCHAR(500) NULL,
+    description VARCHAR(500) NULL,
+    due_at DATETIME NULL,
+    accepted_at DATETIME NULL,
+    finished_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    CONSTRAINT fk_work_order_detection_task FOREIGN KEY (detection_task_id) REFERENCES detection_task(id) ON DELETE SET NULL,
+    INDEX idx_work_order_status_created_at (status, created_at),
+    INDEX idx_work_order_department_status (department_code, status),
+    INDEX idx_work_order_assignee_status (assignee, status)
+);
+
+CREATE TABLE IF NOT EXISTS work_order_flow (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    work_order_id BIGINT NOT NULL,
+    from_status VARCHAR(30) NULL,
+    to_status VARCHAR(30) NOT NULL,
+    operation_type VARCHAR(50) NOT NULL,
+    operator_name VARCHAR(100) NULL,
+    target_department_code VARCHAR(50) NULL,
+    target_assignee VARCHAR(100) NULL,
+    remark VARCHAR(500) NULL,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_work_order_flow_work_order FOREIGN KEY (work_order_id) REFERENCES work_order(id) ON DELETE CASCADE,
+    INDEX idx_work_order_flow_work_order_created_at (work_order_id, created_at)
+);

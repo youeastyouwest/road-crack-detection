@@ -44,6 +44,7 @@ data/processed/
 .env
 .env.local
 .env.*.local
+server/crack-bootstrap/src/main/resources/application-local.yml
 *.key
 *.pem
 credentials.json
@@ -74,3 +75,12 @@ frames/
 # === 项目文档（非代码）===
 *.pptx
 *.docx
+
+# === Maven / Java build outputs ===
+target/
+**/target/
+*.jar
+*.class
+
+# === Additional local temp directories ===
+tmp/

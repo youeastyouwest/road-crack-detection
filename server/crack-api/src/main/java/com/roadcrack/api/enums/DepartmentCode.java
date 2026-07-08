@@ -1,0 +1,7 @@
+package com.roadcrack.api.enums;
+
+public enum DepartmentCode {
+    ROAD_ADMIN,
+    SANITATION,
+    TRAFFIC_POLICE
+}

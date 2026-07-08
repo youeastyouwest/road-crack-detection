@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: road-crack-backend
+  datasource:
+    url: ${DB_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
+  sql:
+    init:
+      mode: ${DB_INIT_MODE:never}
+      schema-locations:
+        - classpath:db/mysql/step0_auth_schema.sql
+        - classpath:db/mysql/step1_detection_schema.sql
+        - classpath:db/mysql/step2_work_order_schema.sql
+        - classpath:db/mysql/step3_maintenance_report_schema.sql
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+crack:
+  persistence:
+    mode: ${CRACK_PERSISTENCE_MODE:memory}
+  algorithm:
+    mock-enabled: true
+    base-url: http://localhost:5000
+
+jwt:
+  secret: ${JWT_SECRET:road-crack-detection-default-secret-key-please-change}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+security:
+  login:
+    max-fail-count: ${LOGIN_MAX_FAIL_COUNT:5}
+    lock-duration: ${LOGIN_LOCK_DURATION:15}

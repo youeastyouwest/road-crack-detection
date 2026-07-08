@@ -1,0 +1,10 @@
+package com.roadcrack.api.enums;
+
+public enum WorkOrderStatus {
+    PENDING_ASSIGNMENT,
+    ASSIGNED,
+    IN_PROGRESS,
+    COMPLETED,
+    CLOSED,
+    CANCELLED
+}
