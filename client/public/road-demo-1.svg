@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#3a3f47"/>
+  <rect x="0" y="180" width="800" height="240" fill="#555a62"/>
+  <rect x="0" y="290" width="800" height="4" fill="#ffd700" opacity="0.7"/>
+  <rect x="0" y="310" width="800" height="4" fill="#ffd700" opacity="0.7"/>
+  <path d="M50 240 Q200 245 400 250 Q600 255 750 240" stroke="#1a1c20" stroke-width="8" fill="none"/>
+  <path d="M400 250 Q400 270 395 290" stroke="#1a1c20" stroke-width="3" fill="none"/>
+  <rect x="580" y="10" width="210" height="140" rx="8" fill="rgba(0,0,0,0.7)"/>
+  <text x="595" y="35" fill="#ef4444" font-size="14" font-weight="bold">DETECTION RESULT</text>
+  <text x="595" y="60" fill="#fff" font-size="11">TRANSVERSE_CRACK</text>
+  <text x="595" y="80" fill="#9ca3af" font-size="10">Severity: HIGH</text>
+  <text x="595" y="100" fill="#9ca3af" font-size="10">Confidence: 92%</text>
+  <text x="595" y="120" fill="#9ca3af" font-size="10">Length: 320mm</text>
+</svg>

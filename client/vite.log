@@ -1,0 +1,146 @@
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m473[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m20:52:17[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/layout/AdminLayout.vue[22m
+[2m20:52:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/layout/AdminLayout.vue[22m
+[2m20:53:27[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/detection-tasks?page=1&size=5[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:53:28[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/detection-tasks?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:53:30[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/work-orders?page=1&size=10[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:53:32[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/maintenance-reports?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:53:34[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/maintenance-reports?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:53:37[22m [31m[1m[vite][22m[39m [31mInternal server error: Invalid end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/road-crack-detection/client/src/views/system/UserManagement.vue[39m:34:3
+[33m  32 |        </div>
+  33 |      </div>
+  34 |    </div>
+     |     ^
+  35 |  
+  36 |  <script setup lang="ts">[39m
+      at createCompilerError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3014:5)
+      at Object.onclosetag (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2391:9)
+      at Tokenizer.stateInClosingTagName (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3053:13)
+      at Object.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\road-crack-detection\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at transformMain (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:2421:34)
+[2m20:53:44[22m [31m[1m[vite][22m[39m [31mInternal server error: Invalid end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/road-crack-detection/client/src/views/system/UserManagement.vue[39m:34:3
+[33m  32 |        </div>
+  33 |      </div>
+  34 |    </div>
+     |     ^
+  35 |  
+  36 |  <script setup lang="ts">[39m
+      at createCompilerError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3014:5)
+      at Object.onclosetag (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2391:9)
+      at Tokenizer.stateInClosingTagName (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3053:13)
+      at Object.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\road-crack-detection\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at transformMain (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:2421:34)
+[2m20:55:19[22m [31m[1m[vite][22m[39m [31mInternal server error: Element is missing end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/road-crack-detection/client/src/views/system/UserManagement.vue[39m:1:2
+[33m  1  |  ﻿<template>
+     |    ^
+  2  |        <!-- Create/Edit User Modal -->
+  3  |      <div v-if="showCreate" class="modal-overlay" @click.self="showCreate=false">[39m
+      at createCompilerError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3014:5)
+      at Object.onend (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2616:7)
+      at Tokenizer.finish (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1246:14)
+      at Tokenizer.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1224:10)
+      at Object.baseParse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3053:13)
+      at Object.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\road-crack-detection\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at handleHotUpdate (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:2198:26)
+[2m20:57:12[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:57:14[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m20:57:49[22m [31m[1m[vite][22m[39m [31mInternal server error: Invalid end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/road-crack-detection/client/src/views/system/DepartmentManagement.vue[39m:94:1
+[33m  92 |    </div>
+  93 |  </template>
+  94 |  </template>
+     |   ^
+  95 |  
+  96 |  <script setup lang="ts">[39m
+      at createCompilerError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3014:5)
+      at Object.onclosetag (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2391:9)
+      at Tokenizer.stateInClosingTagName (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (D:\road-crack-detection\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3053:13)
+      at Object.parse (D:\road-crack-detection\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\road-crack-detection\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at transformMain (file:///D:/road-crack-detection/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:2421:34)
+[2m20:58:23[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:01:13[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:01:13[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:01:22[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:02:17[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:02:17[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:02:27[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/system-config[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:02:54[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/user/page?page=1&size=20[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m21:02:54[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/auth/login[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
