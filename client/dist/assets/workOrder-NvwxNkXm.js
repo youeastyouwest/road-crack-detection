@@ -1,1 +1,0 @@
-import{M as t}from"./index-zmSooqNy.js";const s={create(r){return t.post("/work-orders",r)},list(r){return t.get("/work-orders",{params:r})},get(r){return t.get(`/work-orders/${r}`)},assign(r,e){return t.put(`/work-orders/${r}/assign`,e)},updateStatus(r,e){return t.put(`/work-orders/${r}/status`,e)},cancel(r,e){return t.put(`/work-orders/${r}/cancel`,e)}};export{s as w};

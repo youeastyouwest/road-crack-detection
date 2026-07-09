@@ -1,1 +1,0 @@
-import{M as e}from"./index-zmSooqNy.js";const r={create(t){return e.post("/detection-tasks",t)},execute(t){return e.post(`/detection-tasks/${t}/execute`)},list(t){return e.get("/detection-tasks",{params:t})},get(t){return e.get(`/detection-tasks/${t}`)},getResult(t){return e.get(`/detection-tasks/${t}/result`)},remove(t){return e.delete(`/detection-tasks/${t}`)}};export{r as d};
