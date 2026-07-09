@@ -90,12 +90,20 @@ public class DetectionTaskAggregate {
         return fileName;
     }
 
+    public String getTaskCode() {
+        return taskCode;
+    }
+
     public String getFileUrl() {
         return fileUrl;
     }
 
     public String getLocation() {
         return location;
+    }
+
+    public String getRemark() {
+        return remark;
     }
 
     public String getSubmittedBy() {

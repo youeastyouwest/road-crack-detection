@@ -26,11 +26,15 @@ import com.roadcrack.dao.mapper.DetectionResultItemMapper;
 import com.roadcrack.dao.mapper.DetectionResultMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
 import com.roadcrack.service.client.AlgorithmClient;
+import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.DetectionTaskService;
 import com.roadcrack.service.service.WorkOrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.task.TaskExecutor;
@@ -53,6 +57,8 @@ import java.util.stream.Collectors;
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class DbDetectionTaskService implements DetectionTaskService {
 
+    private static final Logger log = LoggerFactory.getLogger(DbDetectionTaskService.class);
+    private static final String MODULE_DETECTION_TASK = "DETECTION_TASK";
     private static final String DEFAULT_SUBMITTED_BY = "admin";
     private static final String DEFAULT_MEDIA_TYPE = "IMAGE";
     private static final DateTimeFormatter CODE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -63,6 +69,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
     private final DetectionResultItemMapper detectionResultItemMapper;
     private final AlgorithmClient algorithmClient;
     private final WorkOrderService workOrderService;
+    private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final TaskExecutor detectionTaskExecutor;
 
@@ -72,6 +79,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
                                   DetectionResultItemMapper detectionResultItemMapper,
                                   AlgorithmClient algorithmClient,
                                   WorkOrderService workOrderService,
+                                  AuditLogService auditLogService,
                                   RealtimeMessagePublisher realtimeMessagePublisher,
                                   @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor) {
         this.detectionTaskMapper = detectionTaskMapper;
@@ -80,6 +88,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
         this.detectionResultItemMapper = detectionResultItemMapper;
         this.algorithmClient = algorithmClient;
         this.workOrderService = workOrderService;
+        this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
     }
@@ -108,6 +117,19 @@ public class DbDetectionTaskService implements DetectionTaskService {
         mediaEntity.setCapturedAt(now);
         mediaEntity.setCreatedAt(now);
         detectionMediaMapper.insert(mediaEntity);
+        log.info("Detection task created in db: taskId={}, taskCode={}, sourceType={}, fileName={}, location={}",
+                entity.getId(),
+                entity.getTaskCode(),
+                entity.getSourceType(),
+                mediaEntity.getFileName(),
+                entity.getLocation());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_DETECTION_TASK,
+                        "CREATE",
+                        "Created detection task " + entity.getTaskCode())
+                .setUsername(entity.getSubmittedBy())
+                .setParams(buildTaskParams(entity.getId(), entity.getTaskCode(), mediaEntity.getFileName(), entity.getLocation()))
+                .setCreateTime(now));
 
         return toTaskResponse(entity, mediaEntity, null);
     }
@@ -133,6 +155,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 .set(DetectionTaskEntity::getUpdatedAt, now));
 
         publishProgress(taskId, DetectionTaskStatus.PROCESSING, 5, "任务已进入检测队列");
+        log.info("Detection task queued in db: taskId={}, taskCode={}", taskId, taskEntity.getTaskCode());
         detectionTaskExecutor.execute(() -> processTask(taskId));
     }
 
@@ -211,6 +234,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
     }
 
     private void processTask(Long taskId) {
+        long startTime = System.currentTimeMillis();
         try {
             DetectionTaskEntity taskEntity = getRequiredTask(taskId);
             DetectionMediaEntity mediaEntity = getFirstMedia(taskId);
@@ -227,6 +251,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
             );
 
             publishProgress(taskId, DetectionTaskStatus.PROCESSING, 25, "图像分析开始执行");
+            log.info("Detection task started in db: taskId={}, taskCode={}", taskId, taskEntity.getTaskCode());
             DetectionAnalysisResult analysisResult = algorithmClient.analyze(aggregate);
             publishProgress(taskId, DetectionTaskStatus.PROCESSING, 70, "图像分析完成，正在生成检测结果");
 
@@ -234,10 +259,40 @@ public class DbDetectionTaskService implements DetectionTaskService {
             persistSuccessfulResult(taskEntity, mediaEntity, analysisResult, generatedWorkOrderId);
 
             DetectionResultResponse result = getResult(taskId);
+            log.info("Detection task completed in db: taskId={}, taskCode={}, itemCount={}, generatedWorkOrderId={}, durationMs={}",
+                    taskId,
+                    taskEntity.getTaskCode(),
+                    analysisResult.items().size(),
+                    generatedWorkOrderId,
+                    System.currentTimeMillis() - startTime);
+            auditLogService.record(AuditLogRecord.success(
+                            MODULE_DETECTION_TASK,
+                            "COMPLETE",
+                            "Completed detection task " + taskEntity.getTaskCode())
+                    .setUsername(aggregate.getSubmittedBy())
+                    .setParams(buildCompletionParams(
+                            taskId,
+                            taskEntity.getTaskCode(),
+                            analysisResult.items().size(),
+                            generatedWorkOrderId))
+                    .setCostTime(System.currentTimeMillis() - startTime));
             publishProgress(taskId, DetectionTaskStatus.COMPLETED, 100, "检测任务已完成");
             realtimeMessagePublisher.publishDetectionResult(taskId, result);
         } catch (Exception exception) {
             markTaskFailed(taskId, exception.getMessage());
+            log.error("Detection task failed in db: taskId={}, durationMs={}",
+                    taskId,
+                    System.currentTimeMillis() - startTime,
+                    exception);
+            DetectionTaskEntity failedTask = detectionTaskMapper.selectById(taskId);
+            auditLogService.record(AuditLogRecord.failure(
+                            MODULE_DETECTION_TASK,
+                            "FAIL",
+                            "Detection task failed: " + resolveTaskCode(taskId, failedTask),
+                            exception.getMessage())
+                    .setUsername(failedTask == null ? DEFAULT_SUBMITTED_BY : failedTask.getSubmittedBy())
+                    .setParams(buildFailureParams(taskId, failedTask))
+                    .setCostTime(System.currentTimeMillis() - startTime));
             publishProgress(taskId, DetectionTaskStatus.FAILED, 100, "检测失败: " + exception.getMessage());
             realtimeMessagePublisher.publishAlert(new AlertMessageResponse(
                     "DETECTION_FAILED",
@@ -317,6 +372,11 @@ public class DbDetectionTaskService implements DetectionTaskService {
         if (topItem == null) {
             return null;
         }
+        log.info("Creating work order from detection task in db: taskId={}, taskCode={}, damageType={}, severity={}",
+                taskEntity.getId(),
+                taskEntity.getTaskCode(),
+                topItem.damageType(),
+                topItem.severityLevel());
         WorkOrderResponse workOrder = workOrderService.createFromDetection(
                 taskEntity.getId(),
                 topItem.damageType(),
@@ -452,6 +512,36 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 taskId,
                 new DetectionProgressMessage(taskId, status, progress, message, LocalDateTime.now())
         );
+    }
+
+    private String buildTaskParams(Long taskId, String taskCode, String fileName, String location) {
+        return "taskId=" + taskId
+                + ", taskCode=" + taskCode
+                + ", fileName=" + safeValue(fileName)
+                + ", location=" + safeValue(location);
+    }
+
+    private String buildCompletionParams(Long taskId, String taskCode, int itemCount, Long generatedWorkOrderId) {
+        return "taskId=" + taskId
+                + ", taskCode=" + taskCode
+                + ", itemCount=" + itemCount
+                + ", generatedWorkOrderId=" + (generatedWorkOrderId == null ? "null" : generatedWorkOrderId);
+    }
+
+    private String buildFailureParams(Long taskId, DetectionTaskEntity taskEntity) {
+        return "taskId=" + taskId
+                + ", taskCode=" + resolveTaskCode(taskId, taskEntity)
+                + ", location=" + safeValue(taskEntity == null ? null : taskEntity.getLocation());
+    }
+
+    private String resolveTaskCode(Long taskId, DetectionTaskEntity taskEntity) {
+        return taskEntity == null || taskEntity.getTaskCode() == null
+                ? "TASK-" + taskId
+                : taskEntity.getTaskCode();
+    }
+
+    private String safeValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 
     private String buildCode(LocalDate date) {

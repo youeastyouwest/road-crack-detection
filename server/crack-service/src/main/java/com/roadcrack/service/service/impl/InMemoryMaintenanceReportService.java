@@ -7,9 +7,13 @@ import com.roadcrack.api.response.workorder.WorkOrderResponse;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.model.MaintenanceReportAggregate;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.MaintenanceReportService;
 import com.roadcrack.service.service.WorkOrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -25,13 +29,18 @@ import java.util.concurrent.atomic.AtomicLong;
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryMaintenanceReportService implements MaintenanceReportService {
 
+    private static final Logger log = LoggerFactory.getLogger(InMemoryMaintenanceReportService.class);
+    private static final String MODULE_MAINTENANCE_REPORT = "MAINTENANCE_REPORT";
     private static final DateTimeFormatter CODE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final AtomicLong idGenerator = new AtomicLong(1);
     private final Map<Long, MaintenanceReportAggregate> store = new ConcurrentHashMap<>();
+    private final AuditLogService auditLogService;
     private final WorkOrderService workOrderService;
 
-    public InMemoryMaintenanceReportService(WorkOrderService workOrderService) {
+    public InMemoryMaintenanceReportService(AuditLogService auditLogService,
+                                            WorkOrderService workOrderService) {
+        this.auditLogService = auditLogService;
         this.workOrderService = workOrderService;
     }
 
@@ -58,6 +67,18 @@ public class InMemoryMaintenanceReportService implements MaintenanceReportServic
         );
         store.put(id, aggregate);
         workOrderService.closeByReport(request.workOrderId(), "维修报告已上传，工单自动关闭");
+        log.info("Maintenance report created in memory: reportId={}, reportCode={}, workOrderId={}, executor={}",
+                aggregate.getId(),
+                aggregate.getReportCode(),
+                aggregate.getWorkOrderId(),
+                aggregate.getExecutor());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_MAINTENANCE_REPORT,
+                        "CREATE",
+                        "Created maintenance report " + aggregate.getReportCode())
+                .setUsername(aggregate.getExecutor())
+                .setParams(buildCreateParams(aggregate))
+                .setCreateTime(now));
         return aggregate.toResponse();
     }
 
@@ -97,5 +118,16 @@ public class InMemoryMaintenanceReportService implements MaintenanceReportServic
 
     private String buildCode(long id, LocalDate date) {
         return "MR-" + date.format(CODE_DATE_FORMATTER) + "-" + String.format("%06d", id);
+    }
+
+    private String buildCreateParams(MaintenanceReportAggregate aggregate) {
+        return "reportId=" + aggregate.getId()
+                + ", reportCode=" + aggregate.getReportCode()
+                + ", workOrderId=" + aggregate.getWorkOrderId()
+                + ", executor=" + safeValue(aggregate.getExecutor());
+    }
+
+    private String safeValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 }

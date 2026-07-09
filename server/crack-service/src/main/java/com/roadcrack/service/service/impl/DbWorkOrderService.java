@@ -19,8 +19,12 @@ import com.roadcrack.dao.entity.WorkOrderEntity;
 import com.roadcrack.dao.entity.WorkOrderFlowEntity;
 import com.roadcrack.dao.mapper.WorkOrderFlowMapper;
 import com.roadcrack.dao.mapper.WorkOrderMapper;
+import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.WorkOrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +43,8 @@ import java.util.stream.Collectors;
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class DbWorkOrderService implements WorkOrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(DbWorkOrderService.class);
+    private static final String MODULE_WORK_ORDER = "WORK_ORDER";
     private static final String SOURCE_MANUAL = "MANUAL";
     private static final String SOURCE_AUTO = "AUTO";
     private static final String DEFAULT_OPERATOR = "system";
@@ -46,13 +52,16 @@ public class DbWorkOrderService implements WorkOrderService {
 
     private final WorkOrderMapper workOrderMapper;
     private final WorkOrderFlowMapper workOrderFlowMapper;
+    private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
 
     public DbWorkOrderService(WorkOrderMapper workOrderMapper,
                               WorkOrderFlowMapper workOrderFlowMapper,
+                              AuditLogService auditLogService,
                               RealtimeMessagePublisher realtimeMessagePublisher) {
         this.workOrderMapper = workOrderMapper;
         this.workOrderFlowMapper = workOrderFlowMapper;
+        this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
     }
 
@@ -155,6 +164,18 @@ public class DbWorkOrderService implements WorkOrderService {
                 "assigned to " + request.assignee(),
                 now);
 
+        log.info("Work order assigned in db: workOrderId={}, workOrderCode={}, department={}, assignee={}",
+                entity.getId(),
+                entity.getWorkOrderCode(),
+                request.departmentCode(),
+                request.assignee());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "ASSIGN",
+                        "Assigned work order " + entity.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildAssignParams(entity, request))
+                .setCreateTime(now));
         return publishAndReturn(entity.getId());
     }
 
@@ -199,6 +220,19 @@ public class DbWorkOrderService implements WorkOrderService {
                 request.note(),
                 now);
 
+        log.info("Work order status updated in db: workOrderId={}, workOrderCode={}, fromStatus={}, toStatus={}, note={}",
+                entity.getId(),
+                entity.getWorkOrderCode(),
+                currentStatus,
+                targetStatus,
+                request.note());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "STATUS_CHANGE",
+                        "Updated work order status for " + entity.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildStatusChangeParams(entity, currentStatus, targetStatus, request.note()))
+                .setCreateTime(now));
         return publishAndReturn(entity.getId());
     }
 
@@ -226,6 +260,18 @@ public class DbWorkOrderService implements WorkOrderService {
                 request.reason(),
                 now);
 
+        log.info("Work order cancelled in db: workOrderId={}, workOrderCode={}, fromStatus={}, reason={}",
+                entity.getId(),
+                entity.getWorkOrderCode(),
+                currentStatus,
+                request.reason());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "CANCEL",
+                        "Cancelled work order " + entity.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildCancelParams(entity, currentStatus, request.reason()))
+                .setCreateTime(now));
         return publishAndReturn(entity.getId());
     }
 
@@ -253,6 +299,17 @@ public class DbWorkOrderService implements WorkOrderService {
                 note,
                 now);
 
+        log.info("Work order closed by report in db: workOrderId={}, workOrderCode={}, note={}",
+                entity.getId(),
+                entity.getWorkOrderCode(),
+                note);
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "CLOSE",
+                        "Closed work order " + entity.getWorkOrderCode() + " by maintenance report")
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildCloseParams(entity, currentStatus, note))
+                .setCreateTime(now));
         publishAndReturn(entity.getId());
     }
 
@@ -286,6 +343,21 @@ public class DbWorkOrderService implements WorkOrderService {
                 sourceType.equals(SOURCE_AUTO) ? "generated from detection task" : "work order created",
                 now);
 
+        log.info("Work order created in db: workOrderId={}, workOrderCode={}, sourceType={}, detectionTaskId={}, damageType={}, severity={}, department={}",
+                entity.getId(),
+                entity.getWorkOrderCode(),
+                sourceType,
+                entity.getDetectionTaskId(),
+                entity.getDamageType(),
+                entity.getSeverityLevel(),
+                entity.getDepartmentCode());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "CREATE",
+                        "Created work order " + entity.getWorkOrderCode())
+                .setUsername(operatorName)
+                .setParams(buildCreateParams(entity, sourceType))
+                .setCreateTime(now));
         return publishAndReturn(entity.getId());
     }
 
@@ -410,5 +482,49 @@ public class DbWorkOrderService implements WorkOrderService {
             case ROAD_SPILL -> DepartmentCode.SANITATION;
             case MARKING_DAMAGE, CRACK, POTHOLE, UNKNOWN -> DepartmentCode.ROAD_ADMIN;
         };
+    }
+
+    private String buildCreateParams(WorkOrderEntity entity, String sourceType) {
+        return "workOrderId=" + entity.getId()
+                + ", workOrderCode=" + entity.getWorkOrderCode()
+                + ", sourceType=" + sourceType
+                + ", detectionTaskId=" + entity.getDetectionTaskId()
+                + ", department=" + safeValue(entity.getDepartmentCode());
+    }
+
+    private String buildAssignParams(WorkOrderEntity entity, AssignWorkOrderRequest request) {
+        return "workOrderId=" + entity.getId()
+                + ", workOrderCode=" + entity.getWorkOrderCode()
+                + ", department=" + request.departmentCode()
+                + ", assignee=" + safeValue(request.assignee());
+    }
+
+    private String buildStatusChangeParams(WorkOrderEntity entity,
+                                           WorkOrderStatus currentStatus,
+                                           WorkOrderStatus targetStatus,
+                                           String note) {
+        return "workOrderId=" + entity.getId()
+                + ", workOrderCode=" + entity.getWorkOrderCode()
+                + ", fromStatus=" + currentStatus
+                + ", toStatus=" + targetStatus
+                + ", note=" + safeValue(note);
+    }
+
+    private String buildCancelParams(WorkOrderEntity entity, WorkOrderStatus currentStatus, String reason) {
+        return "workOrderId=" + entity.getId()
+                + ", workOrderCode=" + entity.getWorkOrderCode()
+                + ", fromStatus=" + currentStatus
+                + ", reason=" + safeValue(reason);
+    }
+
+    private String buildCloseParams(WorkOrderEntity entity, WorkOrderStatus currentStatus, String note) {
+        return "workOrderId=" + entity.getId()
+                + ", workOrderCode=" + entity.getWorkOrderCode()
+                + ", fromStatus=" + currentStatus
+                + ", note=" + safeValue(note);
+    }
+
+    private String safeValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 }

@@ -14,14 +14,18 @@ import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
 import com.roadcrack.service.client.AlgorithmClient;
+import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.DetectionTaskService;
 import com.roadcrack.service.service.WorkOrderService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.task.TaskExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -37,6 +41,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryDetectionTaskService implements DetectionTaskService {
 
+    private static final Logger log = LoggerFactory.getLogger(InMemoryDetectionTaskService.class);
+    private static final String MODULE_DETECTION_TASK = "DETECTION_TASK";
     private static final String DEFAULT_SUBMITTED_BY = "admin";
     private static final DateTimeFormatter CODE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
@@ -44,15 +50,18 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
     private final Map<Long, DetectionTaskAggregate> store = new ConcurrentHashMap<>();
     private final AlgorithmClient algorithmClient;
     private final WorkOrderService workOrderService;
+    private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final TaskExecutor detectionTaskExecutor;
 
     public InMemoryDetectionTaskService(AlgorithmClient algorithmClient,
                                         WorkOrderService workOrderService,
+                                        AuditLogService auditLogService,
                                         RealtimeMessagePublisher realtimeMessagePublisher,
                                         @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor) {
         this.algorithmClient = algorithmClient;
         this.workOrderService = workOrderService;
+        this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
     }
@@ -73,6 +82,23 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
                 now
         );
         store.put(id, aggregate);
+        log.info("Detection task created in memory: taskId={}, taskCode={}, sourceType={}, fileName={}, location={}",
+                aggregate.getId(),
+                aggregate.getTaskCode(),
+                aggregate.getDataSourceType(),
+                aggregate.getFileName(),
+                aggregate.getLocation());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_DETECTION_TASK,
+                        "CREATE",
+                        "Created detection task " + aggregate.getTaskCode())
+                .setUsername(aggregate.getSubmittedBy())
+                .setParams(buildTaskParams(
+                        aggregate.getId(),
+                        aggregate.getTaskCode(),
+                        aggregate.getFileName(),
+                        aggregate.getLocation()))
+                .setCreateTime(now));
         return aggregate.toResponse();
     }
 
@@ -87,6 +113,7 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
         }
 
         aggregate.markProcessing();
+        log.info("Detection task queued in memory: taskId={}, taskCode={}", aggregate.getId(), aggregate.getTaskCode());
         publishProgress(taskId, DetectionTaskStatus.PROCESSING, 5, "任务已进入检测队列");
         detectionTaskExecutor.execute(() -> processTask(aggregate));
     }
@@ -134,7 +161,9 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
 
     private void processTask(DetectionTaskAggregate aggregate) {
         Long taskId = aggregate.getId();
+        long startTime = System.currentTimeMillis();
         try {
+            log.info("Detection task started in memory: taskId={}, taskCode={}", taskId, aggregate.getTaskCode());
             publishProgress(taskId, DetectionTaskStatus.PROCESSING, 25, "图像分析开始执行");
             DetectionAnalysisResult analysisResult = algorithmClient.analyze(aggregate);
             publishProgress(taskId, DetectionTaskStatus.PROCESSING, 70, "图像分析完成，正在生成检测结果");
@@ -149,10 +178,40 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
             );
 
             aggregate.markCompleted(result);
+            log.info("Detection task completed in memory: taskId={}, taskCode={}, itemCount={}, generatedWorkOrderId={}, durationMs={}",
+                    taskId,
+                    aggregate.getTaskCode(),
+                    analysisResult.items().size(),
+                    generatedWorkOrderId,
+                    System.currentTimeMillis() - startTime);
+            auditLogService.record(AuditLogRecord.success(
+                            MODULE_DETECTION_TASK,
+                            "COMPLETE",
+                            "Completed detection task " + aggregate.getTaskCode())
+                    .setUsername(aggregate.getSubmittedBy())
+                    .setParams(buildCompletionParams(
+                            taskId,
+                            aggregate.getTaskCode(),
+                            analysisResult.items().size(),
+                            generatedWorkOrderId))
+                    .setCostTime(System.currentTimeMillis() - startTime));
             publishProgress(taskId, DetectionTaskStatus.COMPLETED, 100, "检测任务已完成");
             realtimeMessagePublisher.publishDetectionResult(taskId, result);
         } catch (Exception exception) {
             aggregate.markFailed(exception.getMessage());
+            log.error("Detection task failed in memory: taskId={}, taskCode={}, durationMs={}",
+                    taskId,
+                    aggregate.getTaskCode(),
+                    System.currentTimeMillis() - startTime,
+                    exception);
+            auditLogService.record(AuditLogRecord.failure(
+                            MODULE_DETECTION_TASK,
+                            "FAIL",
+                            "Detection task failed: " + aggregate.getTaskCode(),
+                            exception.getMessage())
+                    .setUsername(aggregate.getSubmittedBy())
+                    .setParams(buildFailureParams(taskId, aggregate.getTaskCode(), aggregate.getLocation()))
+                    .setCostTime(System.currentTimeMillis() - startTime));
             publishProgress(taskId, DetectionTaskStatus.FAILED, 100, "检测失败: " + exception.getMessage());
             realtimeMessagePublisher.publishAlert(new AlertMessageResponse(
                     "DETECTION_FAILED",
@@ -179,6 +238,11 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
             return null;
         }
 
+        log.info("Creating work order from detection task in memory: taskId={}, taskCode={}, damageType={}, severity={}",
+                taskId,
+                aggregate.getTaskCode(),
+                topItem.damageType(),
+                topItem.severityLevel());
         WorkOrderResponse workOrder = workOrderService.createFromDetection(
                 taskId,
                 topItem.damageType(),
@@ -202,6 +266,26 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
                 taskId,
                 new DetectionProgressMessage(taskId, status, progress, message, LocalDateTime.now())
         );
+    }
+
+    private String buildTaskParams(Long taskId, String taskCode, String fileName, String location) {
+        return "taskId=" + taskId
+                + ", taskCode=" + taskCode
+                + ", fileName=" + safeValue(fileName)
+                + ", location=" + safeValue(location);
+    }
+
+    private String buildCompletionParams(Long taskId, String taskCode, int itemCount, Long generatedWorkOrderId) {
+        return "taskId=" + taskId
+                + ", taskCode=" + taskCode
+                + ", itemCount=" + itemCount
+                + ", generatedWorkOrderId=" + (generatedWorkOrderId == null ? "null" : generatedWorkOrderId);
+    }
+
+    private String buildFailureParams(Long taskId, String taskCode, String location) {
+        return "taskId=" + taskId
+                + ", taskCode=" + safeValue(taskCode)
+                + ", location=" + safeValue(location);
     }
 
     private DetectionTaskAggregate getRequired(Long taskId) {
@@ -228,5 +312,9 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
 
     private String buildCode(long id, LocalDate date) {
         return "DT-" + date.format(CODE_DATE_FORMATTER) + "-" + String.format("%06d", id);
+    }
+
+    private String safeValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 }

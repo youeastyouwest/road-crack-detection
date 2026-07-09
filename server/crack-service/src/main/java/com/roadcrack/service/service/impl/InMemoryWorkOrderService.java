@@ -12,9 +12,13 @@ import com.roadcrack.api.response.workorder.WorkOrderResponse;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.model.WorkOrderAggregate;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.WorkOrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -31,13 +35,19 @@ import java.util.concurrent.atomic.AtomicLong;
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryWorkOrderService implements WorkOrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(InMemoryWorkOrderService.class);
+    private static final String MODULE_WORK_ORDER = "WORK_ORDER";
+    private static final String DEFAULT_OPERATOR = "system";
     private static final DateTimeFormatter CODE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final AtomicLong idGenerator = new AtomicLong(1);
     private final Map<Long, WorkOrderAggregate> store = new ConcurrentHashMap<>();
+    private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
 
-    public InMemoryWorkOrderService(RealtimeMessagePublisher realtimeMessagePublisher) {
+    public InMemoryWorkOrderService(AuditLogService auditLogService,
+                                    RealtimeMessagePublisher realtimeMessagePublisher) {
+        this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
     }
 
@@ -60,6 +70,20 @@ public class InMemoryWorkOrderService implements WorkOrderService {
                 now
         );
         store.put(id, aggregate);
+        log.info("Work order created in memory: workOrderId={}, workOrderCode={}, detectionTaskId={}, damageType={}, severity={}, department={}",
+                aggregate.getId(),
+                aggregate.getWorkOrderCode(),
+                aggregate.getDetectionTaskId(),
+                aggregate.getDamageType(),
+                aggregate.getSeverityLevel(),
+                aggregate.getDepartmentCode());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "CREATE",
+                        "Created work order " + aggregate.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildCreateParams(aggregate))
+                .setCreateTime(now));
         return publishAndReturn(aggregate);
     }
 
@@ -110,6 +134,18 @@ public class InMemoryWorkOrderService implements WorkOrderService {
     public WorkOrderResponse assignWorkOrder(Long workOrderId, AssignWorkOrderRequest request) {
         WorkOrderAggregate aggregate = getRequired(workOrderId);
         aggregate.assign(request.departmentCode(), request.assignee());
+        log.info("Work order assigned in memory: workOrderId={}, workOrderCode={}, department={}, assignee={}",
+                aggregate.getId(),
+                aggregate.getWorkOrderCode(),
+                request.departmentCode(),
+                request.assignee());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "ASSIGN",
+                        "Assigned work order " + aggregate.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildAssignParams(aggregate, request))
+                .setCreateTime(LocalDateTime.now()));
         return publishAndReturn(aggregate);
     }
 
@@ -117,6 +153,18 @@ public class InMemoryWorkOrderService implements WorkOrderService {
     public WorkOrderResponse updateStatus(Long workOrderId, UpdateWorkOrderStatusRequest request) {
         WorkOrderAggregate aggregate = getRequired(workOrderId);
         aggregate.updateStatus(request.status(), request.note());
+        log.info("Work order status updated in memory: workOrderId={}, workOrderCode={}, status={}, note={}",
+                aggregate.getId(),
+                aggregate.getWorkOrderCode(),
+                request.status(),
+                request.note());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "STATUS_CHANGE",
+                        "Updated work order status for " + aggregate.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildStatusChangeParams(aggregate, request))
+                .setCreateTime(LocalDateTime.now()));
         return publishAndReturn(aggregate);
     }
 
@@ -124,6 +172,17 @@ public class InMemoryWorkOrderService implements WorkOrderService {
     public WorkOrderResponse cancelWorkOrder(Long workOrderId, CancelWorkOrderRequest request) {
         WorkOrderAggregate aggregate = getRequired(workOrderId);
         aggregate.cancel(request.reason());
+        log.info("Work order cancelled in memory: workOrderId={}, workOrderCode={}, reason={}",
+                aggregate.getId(),
+                aggregate.getWorkOrderCode(),
+                request.reason());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "CANCEL",
+                        "Cancelled work order " + aggregate.getWorkOrderCode())
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildCancelParams(aggregate, request.reason()))
+                .setCreateTime(LocalDateTime.now()));
         return publishAndReturn(aggregate);
     }
 
@@ -131,6 +190,17 @@ public class InMemoryWorkOrderService implements WorkOrderService {
     public void closeByReport(Long workOrderId, String note) {
         WorkOrderAggregate aggregate = getRequired(workOrderId);
         aggregate.closeByReport(note);
+        log.info("Work order closed by report in memory: workOrderId={}, workOrderCode={}, note={}",
+                aggregate.getId(),
+                aggregate.getWorkOrderCode(),
+                note);
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_WORK_ORDER,
+                        "CLOSE",
+                        "Closed work order " + aggregate.getWorkOrderCode() + " by maintenance report")
+                .setUsername(DEFAULT_OPERATOR)
+                .setParams(buildCloseParams(aggregate, note))
+                .setCreateTime(LocalDateTime.now()));
         publishAndReturn(aggregate);
     }
 
@@ -179,5 +249,42 @@ public class InMemoryWorkOrderService implements WorkOrderService {
             case ROAD_SPILL -> DepartmentCode.SANITATION;
             case MARKING_DAMAGE, CRACK, POTHOLE, UNKNOWN -> DepartmentCode.ROAD_ADMIN;
         };
+    }
+
+    private String buildCreateParams(WorkOrderAggregate aggregate) {
+        return "workOrderId=" + aggregate.getId()
+                + ", workOrderCode=" + aggregate.getWorkOrderCode()
+                + ", detectionTaskId=" + aggregate.getDetectionTaskId()
+                + ", department=" + aggregate.getDepartmentCode();
+    }
+
+    private String buildAssignParams(WorkOrderAggregate aggregate, AssignWorkOrderRequest request) {
+        return "workOrderId=" + aggregate.getId()
+                + ", workOrderCode=" + aggregate.getWorkOrderCode()
+                + ", department=" + request.departmentCode()
+                + ", assignee=" + safeValue(request.assignee());
+    }
+
+    private String buildStatusChangeParams(WorkOrderAggregate aggregate, UpdateWorkOrderStatusRequest request) {
+        return "workOrderId=" + aggregate.getId()
+                + ", workOrderCode=" + aggregate.getWorkOrderCode()
+                + ", status=" + request.status()
+                + ", note=" + safeValue(request.note());
+    }
+
+    private String buildCancelParams(WorkOrderAggregate aggregate, String reason) {
+        return "workOrderId=" + aggregate.getId()
+                + ", workOrderCode=" + aggregate.getWorkOrderCode()
+                + ", reason=" + safeValue(reason);
+    }
+
+    private String buildCloseParams(WorkOrderAggregate aggregate, String note) {
+        return "workOrderId=" + aggregate.getId()
+                + ", workOrderCode=" + aggregate.getWorkOrderCode()
+                + ", note=" + safeValue(note);
+    }
+
+    private String safeValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 }

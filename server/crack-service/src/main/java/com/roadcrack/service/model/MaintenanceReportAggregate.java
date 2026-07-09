@@ -47,6 +47,14 @@ public class MaintenanceReportAggregate {
         return executor;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public String getReportCode() {
+        return reportCode;
+    }
+
     public MaintenanceReportResponse toResponse() {
         return new MaintenanceReportResponse(
                 id,

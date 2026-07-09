@@ -144,6 +144,14 @@ public class WorkOrderAggregate {
         return id;
     }
 
+    public String getWorkOrderCode() {
+        return workOrderCode;
+    }
+
+    public Long getDetectionTaskId() {
+        return detectionTaskId;
+    }
+
     public DamageType getDamageType() {
         return damageType;
     }

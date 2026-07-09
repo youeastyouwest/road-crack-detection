@@ -110,28 +110,8 @@ SELECT 'Admin', 'ROLE_ADMIN', 'System administrator'
 WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_ADMIN');
 
 INSERT INTO role (name, code, description)
-SELECT 'Inspector', 'ROLE_INSPECTOR', 'Detection operator'
-WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_INSPECTOR');
-
-INSERT INTO role (name, code, description)
-SELECT 'Reviewer', 'ROLE_REVIEWER', 'Detection reviewer'
-WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_REVIEWER');
-
-INSERT INTO role (name, code, description)
 SELECT 'Dispatcher', 'ROLE_DISPATCHER', 'Work order dispatcher'
 WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_DISPATCHER');
-
-INSERT INTO role (name, code, description)
-SELECT 'Road Admin', 'ROLE_ROAD_ADMIN', 'Road department administrator'
-WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_ROAD_ADMIN');
-
-INSERT INTO role (name, code, description)
-SELECT 'Sanitation Admin', 'ROLE_SANIT_ADMIN', 'Sanitation department administrator'
-WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_SANIT_ADMIN');
-
-INSERT INTO role (name, code, description)
-SELECT 'Traffic Admin', 'ROLE_TRAFFIC_ADMIN', 'Traffic department administrator'
-WHERE NOT EXISTS (SELECT 1 FROM role WHERE code = 'ROLE_TRAFFIC_ADMIN');
 
 INSERT INTO role (name, code, description)
 SELECT 'Maintainer', 'ROLE_MAINTAINER', 'Maintenance operator'
@@ -153,4 +133,42 @@ WHERE u.username = 'admin'
   AND NOT EXISTS (
       SELECT 1 FROM user_role ur
       WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+INSERT INTO user_role (user_id, role_id)
+SELECT DISTINCT ur.user_id, dispatcher_role.id
+FROM user_role ur
+JOIN role legacy_role ON legacy_role.id = ur.role_id
+JOIN role dispatcher_role ON dispatcher_role.code = 'ROLE_DISPATCHER'
+WHERE legacy_role.code IN (
+      'ROLE_INSPECTOR',
+      'ROLE_REVIEWER',
+      'ROLE_ROAD_ADMIN',
+      'ROLE_SANIT_ADMIN',
+      'ROLE_TRAFFIC_ADMIN'
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM user_role existing
+      WHERE existing.user_id = ur.user_id
+        AND existing.role_id = dispatcher_role.id
+  );
+
+DELETE ur
+FROM user_role ur
+JOIN role legacy_role ON legacy_role.id = ur.role_id
+WHERE legacy_role.code IN (
+      'ROLE_INSPECTOR',
+      'ROLE_REVIEWER',
+      'ROLE_ROAD_ADMIN',
+      'ROLE_SANIT_ADMIN',
+      'ROLE_TRAFFIC_ADMIN'
+  );
+
+DELETE FROM role
+WHERE code IN (
+      'ROLE_INSPECTOR',
+      'ROLE_REVIEWER',
+      'ROLE_ROAD_ADMIN',
+      'ROLE_SANIT_ADMIN',
+      'ROLE_TRAFFIC_ADMIN'
   );

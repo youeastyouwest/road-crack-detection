@@ -46,7 +46,10 @@ crack:
     mode: ${CRACK_PERSISTENCE_MODE:memory}
   algorithm:
     mock-enabled: true
-    base-url: http://localhost:5000
+    base-url: http://localhost:8000
+    analyze-path: /detect/base64
+    connect-timeout-millis: 3000
+    read-timeout-millis: 15000
 
 jwt:
   secret: ${JWT_SECRET:road-crack-detection-default-secret-key-please-change}

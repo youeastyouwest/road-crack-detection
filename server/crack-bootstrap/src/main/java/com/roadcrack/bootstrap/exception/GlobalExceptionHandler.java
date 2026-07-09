@@ -5,6 +5,8 @@ import com.roadcrack.common.model.ApiResponse;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.ResultCode;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -23,8 +25,13 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(BusinessException.class)
     public ApiResponse<Void> handleBusinessException(BusinessException exception) {
+        log.warn("Business exception captured: code={}, message={}",
+                exception.getCode(),
+                exception.getMessage());
         ResultCode resultCode = exception.getResultCode();
         return resultCode != null
                 ? ApiResponse.failure(resultCode, exception.getMessage())
@@ -108,6 +115,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleUnexpectedException(Exception exception) {
+        log.error("Unexpected exception captured", exception);
         return ApiResponse.failure(ResultCode.INTERNAL_ERROR, exception.getMessage());
     }
 }

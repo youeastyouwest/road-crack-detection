@@ -11,8 +11,12 @@ import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
 import com.roadcrack.dao.entity.MaintenanceReportEntity;
 import com.roadcrack.dao.mapper.MaintenanceReportMapper;
+import com.roadcrack.service.model.AuditLogRecord;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.MaintenanceReportService;
 import com.roadcrack.service.service.WorkOrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +29,20 @@ import java.time.format.DateTimeFormatter;
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class DbMaintenanceReportService implements MaintenanceReportService {
 
+    private static final Logger log = LoggerFactory.getLogger(DbMaintenanceReportService.class);
+    private static final String MODULE_MAINTENANCE_REPORT = "MAINTENANCE_REPORT";
     private static final DateTimeFormatter CODE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final MaintenanceReportMapper maintenanceReportMapper;
     private final WorkOrderService workOrderService;
+    private final AuditLogService auditLogService;
 
     public DbMaintenanceReportService(MaintenanceReportMapper maintenanceReportMapper,
-                                      WorkOrderService workOrderService) {
+                                      WorkOrderService workOrderService,
+                                      AuditLogService auditLogService) {
         this.maintenanceReportMapper = maintenanceReportMapper;
         this.workOrderService = workOrderService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -59,6 +68,18 @@ public class DbMaintenanceReportService implements MaintenanceReportService {
         maintenanceReportMapper.insert(entity);
 
         workOrderService.closeByReport(request.workOrderId(), "maintenance report submitted, work order closed");
+        log.info("Maintenance report created in db: reportId={}, reportCode={}, workOrderId={}, executor={}",
+                entity.getId(),
+                entity.getReportCode(),
+                entity.getWorkOrderId(),
+                entity.getExecutor());
+        auditLogService.record(AuditLogRecord.success(
+                        MODULE_MAINTENANCE_REPORT,
+                        "CREATE",
+                        "Created maintenance report " + entity.getReportCode())
+                .setUsername(entity.getExecutor())
+                .setParams(buildCreateParams(entity))
+                .setCreateTime(now));
         return toResponse(entity);
     }
 
@@ -111,5 +132,16 @@ public class DbMaintenanceReportService implements MaintenanceReportService {
                 .ge(MaintenanceReportEntity::getCreatedAt, date.atStartOfDay())
                 .lt(MaintenanceReportEntity::getCreatedAt, date.plusDays(1).atStartOfDay()));
         return "MR-" + date.format(CODE_DATE_FORMATTER) + "-" + String.format("%06d", count + 1);
+    }
+
+    private String buildCreateParams(MaintenanceReportEntity entity) {
+        return "reportId=" + entity.getId()
+                + ", reportCode=" + entity.getReportCode()
+                + ", workOrderId=" + entity.getWorkOrderId()
+                + ", executor=" + safeValue(entity.getExecutor());
+    }
+
+    private String safeValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 }

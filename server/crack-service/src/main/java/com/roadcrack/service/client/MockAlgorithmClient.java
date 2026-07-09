@@ -6,12 +6,14 @@ import com.roadcrack.api.response.detection.BoundingBoxResponse;
 import com.roadcrack.api.response.detection.DetectionItemResponse;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@ConditionalOnProperty(name = "crack.algorithm.mock-enabled", havingValue = "true", matchIfMissing = true)
 public class MockAlgorithmClient implements AlgorithmClient {
 
     @Override
