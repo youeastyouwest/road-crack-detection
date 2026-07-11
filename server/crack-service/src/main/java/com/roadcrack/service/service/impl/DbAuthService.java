@@ -1,5 +1,7 @@
 package com.roadcrack.service.service.impl;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.roadcrack.api.request.auth.ChangePasswordRequest;
 import com.roadcrack.api.request.auth.LoginRequest;
@@ -21,7 +23,6 @@ import com.roadcrack.service.service.AuthService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -34,8 +35,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
-public class DbAuthService implements AuthService {
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")public class DbAuthService implements AuthService {
 
     private static final int REGISTER_CODE_TYPE = 1;
     private static final int RESET_PASSWORD_CODE_TYPE = 2;

@@ -16,9 +16,7 @@ const routes: RouteRecordRaw[] = [
     redirect: "/dashboard",
     meta: { requiresAuth: true },
     children: [
-      // ═══════════════════════════════════════════
-      //  CORE USE CASES — shared by ALL roles
-      // ═══════════════════════════════════════════
+      // ===== CORE USE CASES - shared by ALL roles =====
       {
         path: "dashboard",
         name: "Dashboard",
@@ -50,9 +48,13 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "AI 助手", icon: "ChatDotSquare" },
       },
 
-      // ═══════════════════════════════════════════
-      //  ADMIN-ONLY routes
-      // ═══════════════════════════════════════════
+      // ===== ADMIN-ONLY routes =====
+      {
+        path: "map-view",
+        name: "MapView",
+        component: () => import("@/views/map/MapView.vue"),
+        meta: { title: "地图点位", icon: "MapLocation", roles: [RoleCode.ADMIN] },
+      },
       {
         path: "data-screen",
         name: "DataScreen",
@@ -87,7 +89,7 @@ const routes: RouteRecordRaw[] = [
         path: "reports",
         name: "MaintenanceReport",
         component: () => import("@/views/report/MaintenanceReport.vue"),
-        meta: { title: "维修报告审核", icon: "EditPen", roles: [RoleCode.ADMIN] },
+        meta: { title: "维修报告", icon: "EditPen", roles: [RoleCode.ADMIN] },
       },
       {
         path: "analysis-report",
@@ -99,7 +101,7 @@ const routes: RouteRecordRaw[] = [
         path: "alerts",
         name: "AlertManagement",
         component: () => import("@/views/alert/AlertManagement.vue"),
-        meta: { title: "告警管理", icon: "WarningFilled", roles: [RoleCode.ADMIN] },
+        meta: { title: "预警管理", icon: "WarningFilled", roles: [RoleCode.ADMIN] },
       },
       // Admin system management
       {
@@ -115,16 +117,16 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "部门管理", icon: "OfficeBuilding", roles: [RoleCode.ADMIN] },
       },
       {
-        path: "role-permission",
-        name: "RolePermission",
+        path: "role-management",
+        name: "RoleManagement",
         component: () => import("@/views/system/RolePermission.vue"),
-        meta: { title: "角色权限", icon: "Setting", roles: [RoleCode.ADMIN] },
+        meta: { title: "角色权限", icon: "Avatar", roles: [RoleCode.ADMIN] },
       },
       {
         path: "audit-log",
         name: "AuditLog",
         component: () => import("@/views/system/AuditLog.vue"),
-        meta: { title: "操作日志", icon: "Clock", roles: [RoleCode.ADMIN] },
+        meta: { title: "审计日志", icon: "Document", roles: [RoleCode.ADMIN] },
       },
       {
         path: "system-config",
@@ -133,9 +135,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "系统配置", icon: "Tools", roles: [RoleCode.ADMIN] },
       },
 
-      // ═══════════════════════════════════════════
-      //  DEPT ADMIN routes (ROAD_ADMIN / SANIT_ADMIN / TRAFFIC_ADMIN)
-      // ═══════════════════════════════════════════
+      // ===== DEPT ADMIN routes =====
       {
         path: "dept-orders",
         name: "DeptOrders",
@@ -149,9 +149,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "分配维修工", icon: "UserFilled", roles: DEPT_ADMIN_ROLES },
       },
 
-      // ═══════════════════════════════════════════
-      //  MAINTAINER routes
-      // ═══════════════════════════════════════════
+      // ===== MAINTAINER routes =====
       {
         path: "my-work-orders",
         name: "MyWorkOrders",
@@ -165,9 +163,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "提交维修报告", icon: "EditPen", roles: [RoleCode.MAINTAINER] },
       },
 
-      // ═══════════════════════════════════════════
-      //  CROWDSOURCE routes
-      // ═══════════════════════════════════════════
+      // ===== CROWDSOURCE routes =====
       {
         path: "crowd-report",
         name: "CrowdReport",
@@ -181,9 +177,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "上报记录", icon: "List", roles: [RoleCode.CROWDSOURCE] },
       },
 
-      // ═══════════════════════════════════════════
-      //  SHARED
-      // ═══════════════════════════════════════════
+      // ===== SHARED =====
       {
         path: "user-profile",
         name: "UserProfile",

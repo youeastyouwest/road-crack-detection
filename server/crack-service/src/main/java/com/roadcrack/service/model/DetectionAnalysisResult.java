@@ -6,6 +6,10 @@ import java.util.List;
 
 public record DetectionAnalysisResult(
         String summary,
-        List<DetectionItemResponse> items
+        List<DetectionItemResponse> items,
+        String imageBase64
 ) {
+        public DetectionAnalysisResult(String summary, List<DetectionItemResponse> items) {
+                this(summary, items, null);
+        }
 }

@@ -1,4 +1,6 @@
-package com.roadcrack.service.service.impl;
+
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,7 +13,6 @@ import com.roadcrack.dao.entity.UserRoleEntity;
 import com.roadcrack.dao.mapper.UserMapper;
 import com.roadcrack.dao.mapper.UserRoleMapper;
 import com.roadcrack.service.service.UserService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
-public class DbUserService implements UserService {
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")public class DbUserService implements UserService {
 
     private static final String DEFAULT_PASSWORD = "123456";
 

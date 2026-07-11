@@ -145,7 +145,8 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
                     analysisResult.summary(),
                     analysisResult.items(),
                     generatedWorkOrderId,
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    analysisResult.imageBase64()
             );
 
             aggregate.markCompleted(result);

@@ -1,20 +1,20 @@
-import http from "./index"
-import type { ApiResponse, StatisticsSummary, StatisticsTrend, CrackTypeDistribution } from "@/types"
+﻿import http from "./index"
+import type { ApiResponse, DashboardStatsResponse, TrendStatsItem, CrackTypeStatItem, SeverityStatItem, DeptWorkloadItem } from "@/types"
 
 export const statisticsApi = {
   getDashboard() {
-    return http.get<ApiResponse<StatisticsSummary>>("/statistics/dashboard")
+    return http.get<ApiResponse<DashboardStatsResponse>>("/statistics/dashboard")
   },
-  getTrend() {
-    return http.get<ApiResponse<StatisticsTrend[]>>("/statistics/trend")
+  getTrend(days?: number) {
+    return http.get<ApiResponse<TrendStatsItem[]>>("/statistics/trend", { params: { days: days || 30 } })
   },
   getCrackType() {
-    return http.get<ApiResponse<CrackTypeDistribution[]>>("/statistics/crack-type")
+    return http.get<ApiResponse<CrackTypeStatItem[]>>("/statistics/crack-type")
   },
   getSeverity() {
-    return http.get<ApiResponse<{ level: string; count: number; percentage: number }[]>>("/statistics/severity")
+    return http.get<ApiResponse<SeverityStatItem[]>>("/statistics/severity")
   },
   getDepartmentWorkload() {
-    return http.get<ApiResponse<{ deptName: string; total: number; completed: number; pending: number }[]>>("/statistics/department-workload")
+    return http.get<ApiResponse<DeptWorkloadItem[]>>("/statistics/department-workload")
   },
 }

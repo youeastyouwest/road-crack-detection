@@ -372,7 +372,8 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 resultEntity.getSummary(),
                 items,
                 resultEntity.getGeneratedWorkOrderId(),
-                resultEntity.getCompletedAt()
+                resultEntity.getCompletedAt(),
+                null
         );
     }
 

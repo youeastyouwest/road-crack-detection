@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="dr">
     <div class="dr-top">
       <div class="dr-top-left">
@@ -12,11 +12,11 @@
     <div class="dr-cats">
       <button v-for="c in categories" :key="c.key" :class="['cat-btn', { active: activeCat === c.key }]" @click="activeCat = c.key">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <rect v-if="c.key==='IMAGE'" x="3" y="3" width="18" height="18" rx="2"/>
-          <circle v-if="c.key==='IMAGE'" cx="8.5" cy="8.5" r="1.5"/>
-          <path v-if="c.key==='IMAGE'" d="M21 15l-5-5L5 21"/>
-          <polygon v-if="c.key==='VIDEO'" points="23 7 16 12 23 17 23 7"/>
-          <rect v-if="c.key==='VIDEO'" x="1" y="5" width="15" height="14" rx="2"/>
+          <rect v-if="c.key==='MANUAL_IMAGE'" x="3" y="3" width="18" height="18" rx="2"/>
+          <circle v-if="c.key==='MANUAL_IMAGE'" cx="8.5" cy="8.5" r="1.5"/>
+          <path v-if="c.key==='MANUAL_IMAGE'" d="M21 15l-5-5L5 21"/>
+          <polygon v-if="c.key==='MANUAL_VIDEO'" points="23 7 16 12 23 17 23 7"/>
+          <rect v-if="c.key==='MANUAL_VIDEO'" x="1" y="5" width="15" height="14" rx="2"/>
         </svg>
         {{ c.label }}
         <span class="cat-count">{{ c.count }}</span>
@@ -41,13 +41,13 @@
     <div v-else class="dr-list">
       <div v-for="t in filteredTasks" :key="t.id" class="dr-card" @click="viewResult(t)">
         <div class="dr-thumb">
-          <img v-if="t.dataSourceType==='IMAGE'" :src="t.fileUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNNjAgMTAwIFEyMDAgOTAgMzQwIDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCAxNDAgUTIyMCAxMzAgMzMwIDE0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTAgMTgwIFExODAgMTcwIDM1MCAxODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSIzIiBmaWxsPSIjZGMyNjI2Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM1IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzNSIgcj0iMiIgZmlsbD0iI2Y1OWUwYiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6YGT6Lev6KOC57yd5qOA5rWLPC90ZXh0Pjwvc3ZnPg=='" class="dr-thumb-img" @error="imgLoadError($event)" />
+          <img v-if="t.dataSourceType==='MANUAL_IMAGE'" :src="t.fileUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNNjAgMTAwIFEyMDAgOTAgMzQwIDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCAxNDAgUTIyMCAxMzAgMzMwIDE0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTAgMTgwIFExODAgMTcwIDM1MCAxODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSIzIiBmaWxsPSIjZGMyNjI2Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM1IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzNSIgcj0iMiIgZmlsbD0iI2Y1OWUwYiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6YGT6Lev6KOC57yd5qOA5rWLPC90ZXh0Pjwvc3ZnPg=='" class="dr-thumb-img" @error="imgLoadError($event)" />
           <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         </div>
         <div class="dr-card-content">
         <div class="dr-card-top">
           <span class="dr-code">{{ t.taskCode }}</span>
-          <span class="dr-type-tag">{{ {IMAGE:'图片检测',VIDEO:'视频检测',CROWD_SOURCE:'众包数据'}[t.dataSourceType] || t.dataSourceType }}</span>
+          <span class="dr-type-tag">{{ {MANUAL_IMAGE:'图片检测',MANUAL_VIDEO:'视频检测',DRONE_VIDEO:'无人机',CROWD_SOURCE:'众包'}[t.dataSourceType] || t.dataSourceType }}</span>
         </div>
         <div class="dr-card-body">
           <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ t.location || '未填写' }}</div>
@@ -86,10 +86,11 @@
               </div>
             </div>
             <!-- File Preview -->
-            <div v-if="modalTask?.fileUrl" class="res-file-preview">
-              <img v-if="modalTask?.dataSourceType==='IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" />
-              <video v-else :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
-              <div class="res-file-name">{{ modalTask.fileName }}</div>
+            <div v-if="resultData?.imageBase64 || modalTask?.fileUrl" class="res-file-preview">
+              <img v-if="resultData?.imageBase64" :src="'data:image/jpeg;base64,' + resultData.imageBase64" class="res-preview-img" alt="Detection Result" />
+              <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" />
+              <video v-else-if="modalTask?.dataSourceType==='MANUAL_VIDEO'" :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
+              <div class="res-file-name">{{ modalTask.fileName || (resultData.items?.length || 0) + ' 项检测' }}</div>
             </div>
             <div class="res-items">
               <div v-for="(item, i) in resultData.items" :key="i" class="res-item">
@@ -143,15 +144,15 @@ function imgLoadError(e: Event) {
 const authStore = useAuthStore()
 const tasks = ref<DetectionTaskResponse[]>([])
 const loading = ref(false)
-const activeCat = ref("IMAGE")
+const activeCat = ref("MANUAL_IMAGE")
 const activeSev = ref("")
 
 const categories = computed(() => {
-  const img = tasks.value.filter(t => t.dataSourceType === "IMAGE").length
-  const vid = tasks.value.filter(t => t.dataSourceType === "VIDEO").length
+  const img = tasks.value.filter(t => t.dataSourceType === "MANUAL_IMAGE").length
+  const vid = tasks.value.filter(t => t.dataSourceType === "MANUAL_VIDEO").length
   return [
-    { key: "IMAGE", label: "图片检测", count: img },
-    { key: "VIDEO", label: "视频检测", count: vid },
+    { key: "MANUAL_IMAGE", label: "图片检测", count: img },
+    { key: "MANUAL_VIDEO", label: "视频检测", count: vid },
   ]
 })
 

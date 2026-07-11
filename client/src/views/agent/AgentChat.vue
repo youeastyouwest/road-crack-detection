@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from "vue"
+import { agentApi } from "@/api/agent"
 import { ElMessage } from "element-plus"
 
 const msgRef = ref()
@@ -87,25 +88,22 @@ const replies: Record<string, string> = {
   "高优先级工单": "🚨 <strong>高优先级工单（8 个）</strong><br>1. G102 K15+300 纵向裂缝（严重）<br>2. G101 K12+500 横向裂缝（严重）<br>3. G103 K17+200 网状裂缝（严重）<br>4. G105 K22+100 路面抛洒（中等）"
 }
 
-function send() {
+async function send() {
   const text = input.value.trim()
   if (!text || typing.value) return
   messages.value.push({ role: "user", content: text, time: getTime() })
   input.value = ""
   scrollBottom()
   typing.value = true
-
-  const suggestions = ["今日病害统计","生成检测周报","裂缝趋势预测","高优先级工单"].map(s => "&bull; '" + s + "'").join("<br>")
-  const fallback = "收到您的问题：<strong>" + text + "</strong><br><br>您可以通过以下快捷查询快速获取信息：<br>" + suggestions
-
-  setTimeout(() => {
-    const reply = replies[text] || fallback
-    // Show "generate report" button for data-related responses
-    const showGenerate = reply.includes("📊") || reply.includes("📄") || reply.includes("📈")
-    messages.value.push({ role: "ai", content: reply, time: getTime(), showGenerate })
-    typing.value = false
-    scrollBottom()
-  }, 1000)
+  try {
+    const res = await agentApi.chat({ message: text })
+    const data = res.data.data
+    messages.value.push({ role: "ai", content: data.answer || "暂无回复", time: getTime(), dataSource: data.dataSource || "ai" })
+  } catch {
+    messages.value.push({ role: "ai", content: "AI服务暂时不可用，请稍后重试。", time: getTime(), dataSource: "error" })
+  }
+  typing.value = false
+  scrollBottom()
 }
 
 function generateReport(msg: any) {

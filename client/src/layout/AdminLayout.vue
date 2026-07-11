@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="admin-layout">
     <aside class="sidebar" :class="{ collapsed: appStore.sidebarCollapsed }">
       <div class="sidebar-head">
@@ -87,7 +87,7 @@ const adminNav: NavGroup[] = [
   { label: "系统管理", items: [
     { path: "/user-management", title: "用户管理", icon: "UserFilled" },
     { path: "/department-management", title: "部门管理", icon: "OfficeBuilding" },
-    { path: "/role-permission", title: "角色权限", icon: "Setting" },
+    { path: "/role-management", title: "角色权限", icon: "Setting" },
     { path: "/audit-log", title: "操作日志", icon: "Clock" },
     { path: "/system-config", title: "系统配置", icon: "Tools" },
     { path: "/user-profile", title: "个人中心", icon: "User" },
@@ -179,3 +179,4 @@ function handleLogout() {
 .content-area { flex:1; height:100vh; overflow-y:auto; background:#f8f9fc; }
 .content-inner { max-width:1440px; margin:0 auto; padding:24px; }
 </style>
+

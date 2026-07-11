@@ -1,17 +1,15 @@
 ﻿// === Enums ===
 export enum DamageType {
-  TRANSVERSE_CRACK = "TRANSVERSE_CRACK",
-  LONGITUDINAL_CRACK = "LONGITUDINAL_CRACK",
-  NET_CRACK = "NET_CRACK",
-  POTHOLE = "POTHOLE",
+  CRACK = "CRACK",
   MARKING_DAMAGE = "MARKING_DAMAGE",
   ROAD_SPILL = "ROAD_SPILL",
-  OTHER = "OTHER",
+  POTHOLE = "POTHOLE",
+  UNKNOWN = "UNKNOWN",
 }
 export enum SeverityLevel { LOW = "LOW", MEDIUM = "MEDIUM", HIGH = "HIGH" }
-export enum DataSourceType { IMAGE = "IMAGE", VIDEO = "VIDEO", CROWD_SOURCE = "CROWD_SOURCE" }
+export enum DataSourceType { DRONE_VIDEO = "DRONE_VIDEO", MANUAL_IMAGE = "MANUAL_IMAGE", MANUAL_VIDEO = "MANUAL_VIDEO", CROWD_SOURCE = "CROWD_SOURCE" }
 export enum DetectionTaskStatus { PENDING = "PENDING", PROCESSING = "PROCESSING", COMPLETED = "COMPLETED", FAILED = "FAILED" }
-export enum WorkOrderStatus { PENDING = "PENDING", ASSIGNED = "ASSIGNED", IN_PROGRESS = "IN_PROGRESS", COMPLETED = "COMPLETED", CANCELLED = "CANCELLED" }
+export enum WorkOrderStatus { PENDING_ASSIGNMENT = "PENDING_ASSIGNMENT", ASSIGNED = "ASSIGNED", IN_PROGRESS = "IN_PROGRESS", COMPLETED = "COMPLETED", CLOSED = "CLOSED", CANCELLED = "CANCELLED" }
 export enum DepartmentCode { ROAD_ADMIN = "ROAD_ADMIN", SANITATION = "SANITATION", TRAFFIC_POLICE = "TRAFFIC_POLICE" }
 
 // === Backend Role Codes (6 roles) ===
@@ -39,29 +37,45 @@ export interface ResetPasswordRequest { email: string; newPassword: string; code
 export interface UserEntity { id?: number; username: string; password?: string; realName: string; email?: string; phone?: string; deptId?: number; deptName?: string; avatar?: string; status: number; lastLoginAt?: string; lastLoginIp?: string; createdAt?: string; updatedAt?: string }
 export interface UserDetailResponse { user: UserEntity; roles: string[]; roleIds?: number[] }
 export interface UserPageQuery { page?: number; size?: number; username?: string; realName?: string; status?: number; deptId?: number }
-export interface CreateDetectionTaskRequest { roadSegmentId?: number; roadName?: string; location?: string; dataSourceType: DataSourceType; files?: string[]; images?: string[]; description?: string; submittedBy?: string }
-export interface DetectionTaskResponse { id: number; taskCode?: string; roadName?: string; roadSegmentName?: string; location?: string; dataSourceType: DataSourceType; status: DetectionTaskStatus; crackCount?: number; severityLevel?: string; submittedBy?: string; description?: string; failureReason?: string; createdAt: string; updatedAt?: string; completedAt?: string }
-export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string }
-export interface DetectionItemResponse { damageType: DamageType; severityLevel: SeverityLevel; confidence: number; boundingBox?: BoundingBoxResponse; lng?: number; lat?: number; lengthMm?: number; widthMm?: number; areaMm2?: number; snapshotUrl?: string; suggestion?: string }
+export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; result?: DetectionResultResponse }
+export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string }
+export interface DetectionItemResponse { damageType: string; severityLevel: string; confidence: number; boundingBox?: BoundingBoxResponse; suggestion?: string }
 export interface BoundingBoxResponse { x: number; y: number; width: number; height: number }
 export interface DetectionProgressMessage { type: string; taskId: number; status: DetectionTaskStatus; progress: number; message: string; timestamp: string }
-export interface CreateWorkOrderRequest { detectionTaskId: number; roadSegmentId?: number; title: string; damageType: DamageType; severityLevel: SeverityLevel; location?: string; departmentCode: DepartmentCode; assignee?: string; description?: string; deadline?: string }
-export interface WorkOrderResponse { id: number; workOrderCode?: string; title: string; roadName?: string; location?: string; damageType?: DamageType; severityLevel?: SeverityLevel; departmentCode?: string; assignee?: string; status: WorkOrderStatus; description?: string; deadline?: string; dueAt?: string; acceptedAt?: string; finishedAt?: string; createdAt: string; updatedAt?: string }
-export interface AssignWorkOrderRequest { assignee: string; note?: string }
-export interface UpdateWorkOrderStatusRequest { status: WorkOrderStatus; note?: string }
+export interface CreateWorkOrderRequest { detectionTaskId: number; title: string; damageType: DamageType; severityLevel: SeverityLevel; location: string; departmentCode: DepartmentCode; evidenceUrl?: string; description?: string }
+export interface WorkOrderResponse { id: number; workOrderCode?: string; detectionTaskId?: number; title: string; damageType?: string; severityLevel?: string; location?: string; departmentCode?: string; assignee?: string; status: WorkOrderStatus; evidenceUrl?: string; description?: string; dueAt?: string; createdAt: string; updatedAt?: string; statusLogs?: WorkOrderStatusLogResponse[] }
+export interface WorkOrderStatusLogResponse { fromStatus?: string; toStatus: string; note?: string; operatedAt: string }
+export interface AssignWorkOrderRequest { departmentCode: DepartmentCode; assignee: string }
+export interface UpdateWorkOrderStatusRequest { status: string; note?: string }
 export interface CancelWorkOrderRequest { reason: string }
 export interface DepartmentEntity { id?: number; name: string; code: string; parentId?: number; description?: string; status: number; children?: DepartmentEntity[] }
 export interface RoleEntity { id?: number; name: string; code: string; status: number; description?: string }
 export interface CreateMaintenanceReportRequest { workOrderId: number; executor: string; beforeImageUrl?: string; afterImageUrl?: string; materials?: string; description?: string; finishedAt: string }
-export interface MaintenanceReportResponse { id: number; reportCode?: string; workOrderId: number; workOrderTitle?: string; roadName?: string; repairMethod?: string; executor: string; beforeImageUrl?: string; afterImageUrl?: string; materials?: string; description?: string; status?: string; finishedAt: string; createdAt: string }
+export interface MaintenanceReportResponse { id: number; reportCode?: string; workOrderId: number; executor: string; beforeImageUrl?: string; afterImageUrl?: string; materials?: string; description?: string; finishedAt: string; createdAt: string }
 export interface AlertMessageResponse { type: string; level: string; taskId?: number; title?: string; message: string; timestamp: string }
-export interface StatisticsSummary { totalRoads: number; monitoredRoads: number; detectionToday: number; pendingAlerts: number; totalCracksDetected: number; totalWorkOrders: number }
-export interface StatisticsTrend { date: string; count: number }
-export interface CrackTypeDistribution { type: string; count: number; percentage: number }
-export interface SeverityDistribution { level: string; count: number; percentage: number }
-export interface DepartmentWorkload { deptName: string; total: number; completed: number; pending: number }
-export interface RoadHealthScore { roadName: string; score: number; trend: string }
-export interface AlertRecord { id: number; type: string; level: string; roadName?: string; location?: string; title?: string; description?: string; status: string; createdAt: string; resolvedAt?: string }
-export interface RoadEntity { id: number; name: string; code: string; length?: number; lanes?: number; surfaceType?: string; status: string; lastInspection?: string; createdAt?: string }
-export interface SystemConfigResponse { siteName: string; logo: string; detectionInterval: number; alertThreshold: number; maintenanceNotify: boolean; dataRetentionDays: number; maxUploadSize: number; allowRegister: boolean; emailNotify: boolean; smsNotify: boolean; darkMode: boolean; language: string }
-export interface AuditLogResponse { id: number; username: string; action: string; module: string; ip: string; duration: number; status: string; createdAt: string }
+export interface DashboardStatsResponse { totalRoads?: number; monitoredRoads?: number; detectionToday?: number; pendingAlerts?: number; totalCracksDetected?: number; totalWorkOrders?: number; [key: string]: any }
+export interface TrendStatsItem { date: string; count: number }
+export interface CrackTypeStatItem { type: string; count: number; percentage: number }
+export interface SeverityStatItem { level: string; count: number; percentage: number }
+export interface DeptWorkloadItem { deptName: string; total: number; completed: number; pending: number }
+export interface AlertResponse { id: number; alertCode?: string; alertType: string; alertLevel: string; title: string; content?: string; damageType?: string; location?: string; workOrderId?: number; detectionTaskId?: number; status: string; handledBy?: string; handledAt?: string; handleRemark?: string; createdAt: string }
+export interface CrowdReportResponse { id: number; reportCode?: string; reporterName: string; reporterPhone: string; location: string; lng?: number; lat?: number; damageType: string; severityLevel: string; description?: string; imageUrl?: string; status: string; remark?: string; reviewedBy?: string; reviewedAt?: string; detectionTaskId?: number; workOrderId?: number; createdAt: string; updatedAt?: string }
+export interface MapMarkerResponse { id: number; longitude: number; latitude: number; damageType: string; severity: string; roadName?: string; status: string; taskId?: number; address?: string }
+export interface MapMarkerDetailResponse { id: number; longitude: number; latitude: number; damageType: string; severity: string; roadName?: string; description?: string; status: string; roadSegment?: string; departmentName?: string; distance?: string; confidence?: number; detectedAt?: string; imageUrls?: string[]; workOrderStatus?: string }
+export interface MapStatisticsResponse { totalMarkers: number; newMarkers: number; repairedCount: number; pendingRepair: number; highSeverityCount: number; mediumSeverityCount: number; lowSeverityCount: number }
+export interface MapTrendPointResponse { date: string; count: number; repairedCount: number }
+export interface MapDamageTypeRatioResponse { damageType: string; count: number; ratio: number }
+export interface RoadResponse { id: number; roadCode?: string; roadName: string; roadGrade?: string; district?: string; startPoint?: string; endPoint?: string; lengthKm?: number; laneCount?: number; surfaceType?: string; builtYear?: number; lastMaintained?: string; healthScore?: number; damageLevel?: string; latestDetectionAt?: string; totalDetectionCount?: number; currentDamageCount?: number; departmentCode?: string; status: string; remark?: string; createdAt: string }
+export interface RoadHealthArchiveResponse { id: number; roadId: number; road?: RoadResponse; archiveDate: string; healthScore?: number; damageLevel?: string; totalDetectionCount?: number; totalDamageCount?: number; crackCount?: number; potholeCount?: number; markingDamageCount?: number; roadSpillCount?: number; unknownCount?: number; severityLowCount?: number; severityMediumCount?: number; severityHighCount?: number; evaluation?: string; suggestion?: string; createdAt: string; updatedAt?: string }
+export interface RoadHealthArchiveDashboardResponse { totalRoads: number; archivedRoads: number; averageHealthScore: number; healthyRoads: number; subHealthyRoads: number; unhealthyRoads: number }
+export interface FileUploadResponse { url: string; originalName: string; size: number; contentType: string }
+export interface AgentChatResponse { sessionId: string; question?: string; answer: string; dataSource?: string; timestamp: number }
+export interface AgentDetectImageResponse { taskId?: string; hasCrack: boolean; numDetections: number; crackTypes?: string[]; detectionData?: any; resultImageBase64?: string; advice?: string; dataSource?: string; generatedWorkOrderId?: number; workOrderStatus?: string; dispatchedDepartment?: string; dispatchedAssignee?: string; timestamp: number }
+export interface AgentReportResponse { reportId: string; reportType?: string; title?: string; summary?: string; content?: string; keyStats?: Record<string, any>; suggestions?: string[]; timestamp: number }
+export interface AuditLogResponse { id?: number; username?: string; action?: string; module?: string; ip?: string; duration?: number; status?: string; createdAt?: string; [key: string]: any }
+export interface CreateCrowdReportRequest { reporterName?: string; reporterPhone?: string; location: string; lng?: number; lat?: number; damageType?: string; severityLevel?: string; description?: string; imageUrl: string }
+export interface ReviewCrowdReportRequest { action: string; remark?: string }
+export interface CreateDetectionTaskSubmitRequest { dataSourceType: DataSourceType; location: string; fileName?: string; fileUrl?: string; remark?: string }
+export interface GenerateArchiveRequest { roadId: number; archiveDate: string }
+export interface GenerateReportRequest { reportType: string; roadSection?: string; startTime?: string; endTime?: string }
+

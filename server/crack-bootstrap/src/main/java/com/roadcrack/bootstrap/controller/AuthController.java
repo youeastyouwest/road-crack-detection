@@ -9,7 +9,6 @@ import com.roadcrack.common.model.ApiResponse;
 import com.roadcrack.service.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class AuthController {
 
     private final AuthService authService;

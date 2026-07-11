@@ -1,10 +1,5 @@
 ﻿import http from "./index"
-import type {
-  ApiResponse,
-  PageResponse,
-  MaintenanceReportResponse,
-  CreateMaintenanceReportRequest,
-} from "@/types"
+import type { ApiResponse, PageResponse, MaintenanceReportResponse, CreateMaintenanceReportRequest } from "@/types"
 
 export const reportApi = {
   create(data: CreateMaintenanceReportRequest) {
@@ -14,6 +9,6 @@ export const reportApi = {
     return http.get<ApiResponse<PageResponse<MaintenanceReportResponse>>>("/maintenance-reports", { params })
   },
   get(reportId: number) {
-    return http.get<ApiResponse<MaintenanceReportResponse>>(`/maintenance-reports/${reportId}`)
+    return http.get<ApiResponse<MaintenanceReportResponse>>("/maintenance-reports/" + reportId)
   },
 }

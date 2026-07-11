@@ -1,0 +1,25 @@
+-- 道路健康档案表
+CREATE TABLE IF NOT EXISTS `road_health_archive` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    `road_id` BIGINT NOT NULL COMMENT '道路ID',
+    `archive_date` DATE NOT NULL COMMENT '档案日期',
+    `health_score` DECIMAL(5,2) DEFAULT 100.00 COMMENT '健康评分(0-100)',
+    `damage_level` VARCHAR(16) DEFAULT 'LOW' COMMENT '病害等级：LOW/MEDIUM/HIGH',
+    `total_detection_count` INT DEFAULT 0 COMMENT '累计检测次数',
+    `total_damage_count` INT DEFAULT 0 COMMENT '累计病害数',
+    `crack_count` INT DEFAULT 0 COMMENT '裂缝数量',
+    `pothole_count` INT DEFAULT 0 COMMENT '坑槽数量',
+    `marking_damage_count` INT DEFAULT 0 COMMENT '标志线损坏数量',
+    `road_spill_count` INT DEFAULT 0 COMMENT '路面抛洒数量',
+    `unknown_count` INT DEFAULT 0 COMMENT '未知病害数量',
+    `severity_low_count` INT DEFAULT 0 COMMENT '轻度病害数量',
+    `severity_medium_count` INT DEFAULT 0 COMMENT '中度病害数量',
+    `severity_high_count` INT DEFAULT 0 COMMENT '重度病害数量',
+    `evaluation` VARCHAR(500) COMMENT '评估结论',
+    `suggestion` VARCHAR(1000) COMMENT '养护建议',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX `idx_road_id_archive_date` (`road_id`, `archive_date`),
+    INDEX `idx_damage_level` (`damage_level`),
+    CONSTRAINT `fk_health_archive_road` FOREIGN KEY (`road_id`) REFERENCES `road` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='道路健康档案表';

@@ -1,4 +1,6 @@
-package com.roadcrack.service.service.impl;
+
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.roadcrack.common.model.BusinessException;
@@ -8,14 +10,12 @@ import com.roadcrack.dao.entity.UserEntity;
 import com.roadcrack.dao.mapper.DepartmentMapper;
 import com.roadcrack.dao.mapper.UserMapper;
 import com.roadcrack.service.service.DepartmentService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
-public class DbDepartmentService implements DepartmentService {
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")public class DbDepartmentService implements DepartmentService {
 
     private final DepartmentMapper departmentMapper;
     private final UserMapper userMapper;

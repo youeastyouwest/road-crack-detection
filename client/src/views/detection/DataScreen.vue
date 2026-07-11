@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="ds-container">
     <div class="ds-map-area">
       <div class="ds-float-stats">
@@ -26,18 +26,18 @@
       </div>
       <div ref="mapContainer" class="ds-map"></div>
       <div v-if="selectedDisease" class="ds-popup">
-        <div class="ds-popup-head"><span>病害详情</span><button @click="selectedDisease = null">x</button></div>
+        <div class="ds-popup-head"><span>病害详情</span><span style="font-size:11px;color:#64748b;font-weight:400">{{ (selectedDisease as any)?._roadName || (selectedDisease as any)?.location || "" }}</span><button @click="selectedDisease = null">x</button></div>
         <div class="ds-popup-body">
-          <div class="ds-popup-img"><svg width="100%" height="100" viewBox="0 0 200 100" fill="none"><rect width="200" height="100" rx="6" fill="#eef2ff"/><text x="100" y="45" text-anchor="middle" fill="#4361ee" font-size="12" font-weight="600">病害标注示意图</text><text x="100" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">（此处展示 AI 识别分割掩码）</text></svg></div>
+          <div v-if="(selectedDisease as any)?._loading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div><div v-else class="ds-popup-img"><svg width="100%" height="100" viewBox="0 0 200 100" fill="none"><rect width="200" height="100" rx="6" fill="#eef2ff"/><text x="100" y="45" text-anchor="middle" fill="#4361ee" font-size="12" font-weight="600">病害标注示意图</text><text x="100" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">（此处展示 AI 识别分割掩码）</text></svg></div>
           <div class="ds-popup-info">
             <div class="ds-popup-row"><span class="ds-popup-label">病害类型</span><strong>{{ selectedDisease.type }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">严重等级</span><strong><span class="ds-sev-dot" :style="{background: severityColor(selectedDisease.severity)}"></span>{{ selectedDisease.severity }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">检测时间</span><strong>{{ selectedDisease.time }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">位置</span><strong>{{ selectedDisease.location }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">道路</span><strong>{{ selectedDisease.location }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">置信度</span><strong class="ds-conf">{{ selectedDisease.confidence }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">病害尺寸</span><strong class="ds-order">{{ selectedDisease.size || '--' }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">工单编号</span><strong>{{ selectedDisease.orderId || '未生成' }}</strong></div>
-            <div class="ds-popup-row"><span>养护建议</span><strong style="font-size:11px;color:#64748b;text-align:right">建议一周内安排局部修补，防止裂缝扩展</strong></div>
+            <div class="ds-popup-row"><span>养护建议</span><strong style="font-size:11px;color:#64748b;text-align:right">{{ (selectedDisease as any)?._suggestion || "建议尽快安排修复处理" }}</strong></div>
           </div>
         </div>
         <div class="ds-popup-foot">
@@ -124,6 +124,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from "vue"
+import { detectionApi, statisticsApi } from "@/api"
 import * as echarts from "echarts"
 
 declare global {
@@ -143,16 +144,21 @@ const filterDate = ref("")
 const filterStatus = ref("")
 const searchQuery = ref("")
 const layers = ref([
-  { id: "crack", label: "裂缝", color: "#ef4444", count: 1258, visible: true },
+  { id: "crack", label: "裂缝", color: "#ef4444", count: 0, visible: true },
   { id: "repair", label: "修复", color: "#10b981", count: 892, visible: true },
-  { id: "alert", label: "告警", color: "#f59e0b", count: 378, visible: true },
+  { id: "alert", label: "告警", color: "#f59e0b", count: 0, visible: true },
 ])
 const selectedDisease = ref(null)
-const currentPoints = ref(3256)
+const currentPoints = ref(0)
 const maxPoints = ref(5000)
 const chatMessages = ref([{ role: "ai", text: "您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。" }])
 const chatInput = ref("")
 const chatTyping = ref(false)
+const diseaseMarkers = ref<any[]>([])
+const diseaseList = ref<any[]>([])
+const mapMarkers: any[] = []
+let geocoder: any = null
+const realStats = ref<any>(null)
 const chatMsgRef = ref()
 const trendChartRef = ref()
 const pieChartRef = ref()
@@ -174,9 +180,9 @@ const avatarSrc = computed(() => "/avatar-agent.png")
 
 const trendOption = computed(() => ({
   grid: { left: 30, right: 8, top: 10, bottom: 20 },
-  xAxis: { type: "category", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: ["一", "二", "三", "四", "五", "六", "日"], axisLabel: { fontSize: 10, color: "#94a3b8" }, axisLine: { show: false }, axisTick: { show: false } },
+  xAxis: { type: "category", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], axisLabel: { fontSize: 10, color: "#94a3b8" }, axisLine: { show: false }, axisTick: { show: false } },
   yAxis: { type: "value", splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } }, axisLabel: { fontSize: 9, color: "#94a3b8" }, min: 0 },
-  series: [{ type: "line", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [42, 38, 55, 48, 62, 45, 51], smooth: true, lineStyle: { color: "#4361ee", width: 2 }, itemStyle: { color: "#4361ee" }, areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(67,97,238,0.25)" }, { offset: 1, color: "rgba(67,97,238,0.04)" }] } }, symbol: "circle", symbolSize: 5 }],
+  series: [{ type: "line", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], smooth: true, lineStyle: { color: "#4361ee", width: 2 }, itemStyle: { color: "#4361ee" }, areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(67,97,238,0.25)" }, { offset: 1, color: "rgba(67,97,238,0.04)" }] } }, symbol: "circle", symbolSize: 5 }],
   tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 } },
 }))
 
@@ -184,13 +190,7 @@ const pieOption = computed(() => ({
   tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 }, formatter: "{b}: {c} ({d}%)" },
   series: [{
     type: "pie", radius: ["35%", "68%"], center: ["50%", "50%"],
-    color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [
-      { name: "横向裂缝", value: 1258, itemStyle: { color: "#4361ee" } },
-      { name: "纵向裂缝", value: 892, itemStyle: { color: "#f72585" } },
-      { name: "网状裂缝", value: 534, itemStyle: { color: "#06d6a0" } },
-      { name: "路面抛洒", value: 378, itemStyle: { color: "#ffd166" } },
-      { name: "标志线损坏", value: 260, itemStyle: { color: "#7209b7" } },
-    ],
+    color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [],
     label: { show: false },
     emphasis: { label: { show: true, fontSize: 11, fontWeight: "bold" }, itemStyle: { shadowBlur: 4, shadowColor: "rgba(0,0,0,0.08)" } },
   }],
@@ -199,8 +199,8 @@ const pieOption = computed(() => ({
 const severityOption = computed(() => ({
   grid: { left: 50, right: 20, top: 5, bottom: 5 },
   xAxis: { type: "value", splitLine: { lineStyle: { color: "#f1f5f9" } }, axisLabel: { fontSize: 9, color: "#94a3b8" }, axisLine: { show: false }, axisTick: { show: false } },
-  yAxis: { type: "category", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: ["严重", "中等", "轻微"], axisLabel: { fontSize: 11, color: "#475569" }, axisLine: { show: false }, axisTick: { show: false } },
-  series: [{ type: "bar", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [{ value: 127, itemStyle: { color: "#ee5a24", borderRadius: [0, 4, 4, 0] } }, { value: 892, itemStyle: { color: "#f0932b", borderRadius: [0, 4, 4, 0] } }, { value: 2103, itemStyle: { color: "#6ab04c", borderRadius: [0, 4, 4, 0] } }], barWidth: 12, label: { show: true, position: "right", fontSize: 10, color: "#475569", fontWeight: 600, formatter: (p) => p.value + "处" } }],
+  yAxis: { type: "category", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], axisLabel: { fontSize: 11, color: "#475569" }, axisLine: { show: false }, axisTick: { show: false } },
+  series: [{ type: "bar", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], barWidth: 12, label: { show: true, position: "right", fontSize: 10, color: "#475569", fontWeight: 600, formatter: (p) => p.value + "处" } }],
   tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 } },
 }))
 
@@ -233,46 +233,8 @@ function initMap() {
   if (!mapContainer.value || !window.AMap) return
   map = new window.AMap.Map(mapContainer.value, { zoom: zoomLevel.value, center: [116.397428, 39.90923], features: ["bg", "road", "building", "point"], resizeEnable: true, viewMode: "3D", pitch: 0,  })
   map.on("zoomchange", () => { zoomLevel.value = map.getZoom() })
-  const positions = [[116.405285, 39.904989], [116.415, 39.91], [116.395, 39.92], [116.41, 39.898], [116.42, 39.915]]
-  positions.forEach((p, i) => {
-    const colors = ["#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"]
-    const types = ["横向裂缝", "纵向裂缝", "网状裂缝", "路面抛洒", "标志线损坏"]
-    const sevs = ["严重", "中等", "轻微", "严重", "中等"]
-    const marker = new window.AMap.Marker({
-      position: p, offset: new window.AMap.Pixel(-8, -8),
-      content: "<div style=\"width:18px;height:18px;background:" + colors[i] + ";border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.2);cursor:pointer\"></div>"
-    })
-    marker.on("click", () => {
-      selectedDisease.value = {
-        type: types[i], severity: sevs[i],
-        time: "2026-04-0" + (i + 8) + " 14:3" + i,
-        location: "G" + (i + 1) + "0" + (i + 2) + "国道 K" + (12 + i) + "+" + (500 + i * 100),
-        confidence: (96 - i * 3) + "%",
-        size: (i + 1) * 0.5 + "m" + String.fromCharCode(178),
-        orderId: "WO-2026" + (i + 1).toString().padStart(4, "0")
-      }
-    })
-    map.add(marker)
-  })
-}
-function initECharts() {
-  if (trendChartRef.value) { trendChart = echarts.init(trendChartRef.value); trendChart.setOption(trendOption.value) }
-  if (pieChartRef.value) { pieChart = echarts.init(pieChartRef.value); pieChart.setOption(pieOption.value) }
-  if (severityChartRef.value) { severityChart = echarts.init(severityChartRef.value); severityChart.setOption(severityOption.value) }
-}
-function refreshMapData() { weeklyTotal.value = Math.floor(Math.random() * 100 + 350); pendingRepair.value = Math.floor(Math.random() * 50 + 100); if (trendChart) trendChart.setOption({ series: [{ color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [42, 38, 55, 48, 62, 45, 51].map(v => v + Math.floor(Math.random() * 10 - 5)) }] }) }
-function exportReport() { selectedDisease.value = null; showCapacity.value = false }
-function createWorkOrder() { if (selectedDisease.value) selectedDisease.value.orderId = "WO-2026" + Date.now().toString().slice(-6) }
-function scrollChatToBottom() { nextTick(() => { if (chatMsgRef.value) chatMsgRef.value.scrollTop = chatMsgRef.value.scrollHeight }) }
-function sendChat() {
-  const text = chatInput.value.trim()
-  if (!text || chatTyping.value) return
-  chatInput.value = ""
-  chatMessages.value.push({ role: "user", text })
-  scrollChatToBottom()
-  chatTyping.value = true
-  const resp = { "分析最新检测数据": "根据最新检测数据，本周共发现病害 <strong>381 处</strong>，其中严重病害 127 处，中等 182 处，轻微 72 处。", "高优先级工单": "当前共有 <strong>8 个</strong>高优先级工单待处理：<br>1. G102 K15+300 纵向裂缝（严重）<br>2. G101 K12+500 横向裂缝（严重）<br>3. G103 K17+200 网状裂缝（严重）", "生成周报": "正在为您生成本周检测周报... 完成！<br><strong>📊 本周检测概览</strong><br>- 检测总里程：2,847 km<br>- 发现裂缝：1,258 处<br>- 已修复：892 处", "裂缝趋势预测": "根据近4周数据分析：<br>📈 G102国道趋势：<strong>上升 12%</strong>（需重点关注）<br>📉 G101国道趋势：<strong>下降 5%</strong><br>📈 G105国道趋势：<strong>上升 3%</strong>" }
-  setTimeout(() => { chatMessages.value.push({ role: "ai", text: resp[text] || "收到您的问题：" + text + "<br><br>请使用左侧快捷操作按钮快速查询。" }); chatTyping.value = false; scrollChatToBottom() }, 1200)
+  geocoder = new window.AMap.Geocoder({ city: "全国", radius: 1000 })
+
 }
 function startTimeUpdate() {
   const update = () => { const n = new Date(); currentTime.value = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0") + " " + String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0") + ":" + String(n.getSeconds()).padStart(2, "0") }
@@ -281,18 +243,136 @@ function startTimeUpdate() {
 
 async function loadStats() {
   try {
-    const r = await statisticsApi.getDashboard()
-    const d = r.data.data
+    const [dashR, trendR, typeR, sevR] = await Promise.all([
+      statisticsApi.getDashboard(),
+      statisticsApi.getTrend(),
+      statisticsApi.getCrackType(),
+      statisticsApi.getSeverity()
+    ])
+    const d = dashR.data.data
     if (d) {
       totalRoad.value = d.totalRoads || 0
       crackCount.value = d.totalCracksDetected || 0
       repairedCount.value = d.totalWorkOrders || 0
       alertCount.value = d.pendingAlerts || 0
     }
+    // Update trend chart
+    if (trendR.data.data?.length && trendChart) {
+      const trend = trendR.data.data
+      trendChart.setOption({
+        xAxis: { data: trend.map((t: any) => t.date?.slice(5) || "") },
+        series: [{ data: trend.map((t: any) => t.count) }]
+      })
+    }
+    // Update pie chart
+    if (typeR.data.data?.length && pieChart) {
+      const types = typeR.data.data
+      const colors = ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"]
+      pieChart.setOption({
+        series: [{
+          data: types.map((t: any, i: number) => ({
+            name: t.type, value: t.count,
+            itemStyle: { color: colors[i % colors.length] }
+          }))
+        }]
+      })
+    }
+    // Update severity chart
+    if (sevR.data.data?.length && severityChart) {
+      const sv = sevR.data.data
+      const sevColors: any = { HIGH: "#ee5a24", MEDIUM: "#f0932b", LOW: "#6ab04c" }
+      const sevLabel: any = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }
+      severityChart.setOption({
+        yAxis: { data: sv.map((s: any) => sevLabel[s.level] || s.level) },
+        series: [{
+          data: sv.map((s: any) => ({
+            value: s.count,
+            itemStyle: { color: sevColors[s.level] || "#6ab04c", borderRadius: [0, 4, 4, 0] }
+          }))
+        }]
+      })
+    }
   } catch {}
 }
-onMounted(() => { initMap(); initECharts(); startTimeUpdate(); loadStats() })
-onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (trendChart) trendChart.dispose(); if (pieChart) pieChart.dispose(); if (severityChart) severityChart.dispose(); map = null })
+
+let mapReady = false
+function waitForMap(cb, attempts = 30) {
+  if (map) { cb(); return }
+  if (attempts <= 0) { console.error("Map not ready after 30 attempts"); return }
+  setTimeout(() => waitForMap(cb, attempts - 1), 200)
+}
+
+async function loadDiseaseData() {
+  try {
+    const res = await detectionApi.list({ status: "COMPLETED", size: 100 })
+    const tasks = res.data.data?.records || []
+    diseaseList.value = tasks
+    console.log("loadDiseaseData: got", tasks.length, "completed tasks")
+    
+    waitForMap(() => {
+      // Clear old markers first
+      mapMarkers.forEach((m) => { try { map?.remove(m) } catch(e) {} })
+      mapMarkers.length = 0
+      
+      if (tasks.length === 0) {
+        console.log("loadDiseaseData: no completed tasks to display")
+        return
+      }
+      
+      tasks.forEach((task) => {
+        if (!task.location) return
+        const parts = task.location.split(",")
+        if (parts.length < 2) return
+        const lng = parseFloat(parts[0]), lat = parseFloat(parts[1])
+        if (isNaN(lng) || isNaN(lat)) {
+          console.warn("Invalid coordinates for task", task.id, task.location)
+          return
+        }
+        
+        const sevColor = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" }
+        const items = task.result?.items || []
+        const first = items[0] || {}
+        const topSev = first.severityLevel || "MEDIUM"
+        const color = sevColor[topSev] || "#3b82f6"
+        const label = first.damageType || "未知"
+        
+        // Use AMap.LabelMarker for richer content, or enhanced Marker
+        const markerContent = '<div style="width:28px;height:28px;background:' + color + ';border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;font-weight:bold;font-size:16px;color:#fff;display:flex;align-items:center;justify-content:center">!</div>'
+        
+        const marker = new window.AMap.Marker({
+          position: [lng, lat],
+          content: markerContent,
+          offset: new window.AMap.Pixel(-14, -14),
+          zIndex: 100
+        })
+        
+        marker.setExtData({ taskId: task.id, task: task })
+        marker.on("click", () => {
+          selectedDisease.value = {
+            type: first.damageType || "未知",
+            severity: first.severityLevel || "MEDIUM",
+            time: task.createdAt ? task.createdAt.replace("T", " ").substring(0, 16) : "--",
+            location: task.location || "",
+            confidence: first.confidence ? (first.confidence * 100).toFixed(1) + "%" : "--",
+            size: "--",
+            orderId: task.result?.generatedWorkOrderId ? "WO-" + task.result.generatedWorkOrderId : "未生成",
+            _suggestion: first.suggestion || "建议尽快安排修复处理"
+          }
+        })
+        map?.add(marker)
+        mapMarkers.push(marker)
+        console.log("Added marker for task", task.id, "at", lng, lat, "type:", label)
+      })
+      
+      // Fit view to all markers
+      if (mapMarkers.length > 0) {
+        map?.setFitView(mapMarkers, false, [50, 50, 50, 50])
+      }
+    })
+  } catch(e) { console.error("loadDiseaseData error:", e) }
+}
+onMounted(() => { nextTick(() => { initMap(); initECharts(); }); startTimeUpdate(); loadStats(); loadDiseaseData(); window.addEventListener("data-updated", () => { loadStats(); loadDiseaseData() }) })
+onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (trendChart) trendChart.dispose(); if (pieChart) pieChart.dispose(); if (severityChart) severityChart.dispose(); map = null; window.removeEventListener("data-updated", loadStats) })
 </script>
 <style scoped>
 .ds-container { display:flex; height:100vh; margin:-24px; width:calc(100% + 48px); background:#f5f7fa; font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif; overflow:hidden; position:relative; }

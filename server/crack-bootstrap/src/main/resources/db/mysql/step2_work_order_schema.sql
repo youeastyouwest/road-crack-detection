@@ -18,10 +18,7 @@ CREATE TABLE IF NOT EXISTS work_order (
     finished_at DATETIME NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
-    CONSTRAINT fk_work_order_detection_task FOREIGN KEY (detection_task_id) REFERENCES detection_task(id) ON DELETE SET NULL,
-    INDEX idx_work_order_status_created_at (status, created_at),
-    INDEX idx_work_order_department_status (department_code, status),
-    INDEX idx_work_order_assignee_status (assignee, status)
+    CONSTRAINT fk_work_order_detection_task FOREIGN KEY (detection_task_id) REFERENCES detection_task(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS work_order_flow (
@@ -35,6 +32,5 @@ CREATE TABLE IF NOT EXISTS work_order_flow (
     target_assignee VARCHAR(100) NULL,
     remark VARCHAR(500) NULL,
     created_at DATETIME NOT NULL,
-    CONSTRAINT fk_work_order_flow_work_order FOREIGN KEY (work_order_id) REFERENCES work_order(id) ON DELETE CASCADE,
-    INDEX idx_work_order_flow_work_order_created_at (work_order_id, created_at)
+    CONSTRAINT fk_work_order_flow_work_order FOREIGN KEY (work_order_id) REFERENCES work_order(id) ON DELETE CASCADE
 );

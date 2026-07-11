@@ -1,25 +1,25 @@
-﻿<template>
+<template>
   <div class="dc">
     <div class="dc-top">
       <div class="dc-top-left">
-        <h2 class="dc-title">数据采集</h2>
-        <span class="dc-subtitle">上传道路检测数据</span>
+        <h2 class="dc-title">上传检测</h2>
+        <span class="dc-subtitle">支持图片和视频AI识别</span>
       </div>
     </div>
 
     <div class="dc-grid">
       <!-- Left: Upload Form -->
-      <div class="card">
+      <div class="card form-card">
         <div class="card-head">
-          <span class="card-title">上传文件</span>
+          <span class="card-title">上传检测</span>
         </div>
         <div class="card-body card-body-form">
           <div class="form-group">
-            <label class="form-label">数据类型</label>
+            <label class="form-label">数据源类型</label>
             <div class="select-wrap">
               <select v-model="form.dataSourceType" class="form-select">
-                <option value="IMAGE">图片检测</option>
-                <option value="VIDEO">视频检测</option>
+                <option value="MANUAL_IMAGE">图片检测</option>
+                <option value="MANUAL_VIDEO">视频检测</option>
               </select>
               <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
@@ -30,72 +30,92 @@
             <div class="upload-zone" @drop.prevent="handleDrop" @dragover.prevent @click="$refs.fileInput.click()">
               <input ref="fileInput" type="file" hidden @change="e => handleFileInput(e.target as HTMLInputElement)" accept="image/*,video/*" />
               <template v-if="form.fileUrl">
-                <img v-if="form.dataSourceType==='IMAGE'" :src="form.fileUrl" class="preview-img" @error="handleImgError" />
+                <img v-if="form.dataSourceType==='MANUAL_IMAGE'" :src="form.fileUrl" class="preview-img" @error="handleImgError" />
                 <video v-else :src="form.fileUrl" class="preview-video" muted controls></video>
               </template>
               <template v-else>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <div class="uz-text">拖拽或点击上传文件</div>
-                <div class="uz-hint">支持 jpg/png/mp4，单文件不超过 500MB</div>
+                <div class="uz-text">点击或拖拽上传文件</div>
+                <div class="uz-hint">支持 jpg/png/mp4 格式，最大 500MB</div>
               </template>
             </div>
             <div v-if="form.fileName" class="file-name-tag">{{ form.fileName }}</div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">位置</label>
-            <input v-model="form.location" class="form-input" placeholder="如：G15 高速 K120+300" />
+            <label class="form-label">
+              位置
+              <span v-if="form.location" class="loc-badge">已定位</span>
+            </label>
+            <div class="loc-row">
+              <input v-model="form.location" class="form-input" placeholder="点击地图选择位置" readonly @click="focusMap" />
+              <button v-if="form.location" class="loc-clear" @click="form.location='';selectedPos=null">清除</button>
+            </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">备注</label>
-            <textarea v-model="form.remark" class="form-textarea" rows="3" placeholder="可选备注信息"></textarea>
+            <label class="form-label">文件</label>
+            <textarea v-model="form.remark" class="form-textarea" rows="3" placeholder="输入备注信息..."></textarea>
           </div>
 
           <button class="form-btn" @click="submitTask" :disabled="submitting">
             <span v-if="submitting" class="btn-loader"></span>
-            <span v-else>提交检测任务</span>
+            <span v-else>提交检测</span>
           </button>
         </div>
       </div>
 
-      <!-- Right: Recent Tasks -->
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">最近采集</span>
-          <span v-if="tasks.length" class="card-count">{{ tasks.length }} 条</span>
+      <!-- Right: AMap -->
+      <div class="card map-card">
+        <div class="map-search-bar">
+          <input v-model="searchKeyword" class="map-search-input" placeholder="点击地图选择位置" @keyup.enter="doSearch" />
+          <button class="map-search-btn" @click="doSearch">搜索</button>
         </div>
-        <div class="card-body card-body-nopad">
-          <div class="act-header">
-            <span class="act-cell act-id">编号</span>
-            <span class="act-cell act-loc">位置</span>
-            <span class="act-cell act-st">状态</span>
-            <span class="act-cell act-time">时间</span><span class="act-cell act-op">操作</span>
-          </div>
-          <div v-if="loading" class="act-loading"><div class="loader"></div></div>
-          <div v-for="t in tasks" :key="t.id" class="act-row">
-            <span class="act-cell act-id act-code">{{ t.taskCode }}</span>
-            <span class="act-cell act-loc">{{ t.location }}</span>
-            <span class="act-cell act-st"><span :class="['st-badge', stCls(t.status)]">{{ stLbl(t.status) }}</span></span>
-            <span class="act-cell act-time">{{ t.createdAt }}</span><span class="act-cell act-op"><button v-if="t.status==='COMPLETED'" class="view-btn" @click="viewResult(t.id)">查看结果</button><span v-else class="op-na">--</span></span>
-          </div>
-          <div v-if="!loading && tasks.length === 0" class="act-empty">暂无采集记录</div>
+        <div id="collectionMap" class="map-container"></div>
+        <div v-if="selectedPos" class="map-pos-info">
+          <span>经度 {{ selectedPos.lng.toFixed(6) }}, {{ selectedPos.lat.toFixed(6) }}</span>
+          <span v-if="selectedAddr" class="map-addr">{{ selectedAddr }}</span>
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- Recent Tasks -->
+    <div class="card tasks-card" style="margin-top:20px">
+      <div class="card-head">
+        <span class="card-title">上传检测</span>
+        <span v-if="tasks.length" class="card-count">{{ tasks.length }} 条</span>
+      </div>
+      <div class="card-body card-body-nopad">
+        <div class="act-header">
+          <span class="act-cell act-id">编号</span>
+          <span class="act-cell act-loc">位置</span>
+          <span class="act-cell act-st">状态</span>
+          <span class="act-cell act-time">时间</span><span class="act-cell act-op">操作</span>
+        </div>
+        <div v-if="loading" class="act-loading"><div class="loader"></div></div>
+        <div v-for="t in tasks" :key="t.id" class="act-row">
+          <span class="act-cell act-id act-code">{{ t.taskCode }}</span>
+          <span class="act-cell act-loc">{{ t.location }}</span>
+          <span class="act-cell act-st"><span :class="['st-badge', stCls(t.status)]">{{ stLbl(t.status) }}</span></span>
+          <span class="act-cell act-time">{{ t.createdAt }}</span><span class="act-cell act-op"><button v-if="t.status==='COMPLETED'" class="view-btn" @click="viewResult(t.id)">查看结果</button><span v-else class="op-na">--</span></span>
+        </div>
+        <div v-if="!loading && tasks.length === 0" class="act-empty">暂无检测记录</div>
+      </div>
+    </div>
+
     <!-- Result Modal -->
     <div v-if="showResultModal" class="modal-overlay" @click.self="showResultModal=false">
       <div class="modal-card">
         <div class="modal-head">
-          <span>检测结果 — {{ resultTask?.taskCode || resultTask?.id }}</span>
-          <button class="modal-close" @click="showResultModal=false">✕</button>
+          <span>检测结果: {{ resultTask?.taskCode || resultTask?.id }} 
+            <span v-if="resultTask?.location" style="font-size:12px;color:#94a3b8;margin-left:8px">{{ resultTask.location }}</span>
+          </span>
+          <button class="modal-close" @click="showResultModal=false">×</button>
         </div>
         <div class="modal-body">
           <div v-if="resultLoading" class="modal-loading">加载中...</div>
           <div v-else-if="resultData" class="result-content">
             <div class="result-summary">{{ resultData.summary }}</div>
-            <!-- Main Result: Damage Type + Severity -->
             <div v-if="resultData.items?.[0]" class="res-main">
               <div class="res-main-left">
                 <div class="res-main-type">{{ damageTypeLabel(resultData.items[0].damageType) }}</div>
@@ -107,11 +127,9 @@
                 <span class="res-sev-desc">{{ severityDesc(resultData.items[0].severityLevel) }}</span>
               </div>
             </div>
-            <!-- File Preview -->
-            <div v-if="modalTask?.fileUrl" class="res-file-preview">
-              <img v-if="modalTask?.dataSourceType==='IMAGE'" :src="modalTask.fileUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNNjAgMTAwIFEyMDAgOTAgMzQwIDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCAxNDAgUTIyMCAxMzAgMzMwIDE0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTAgMTgwIFExODAgMTcwIDM1MCAxODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSIzIiBmaWxsPSIjZGMyNjI2Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM1IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzNSIgcj0iMiIgZmlsbD0iI2Y1OWUwYiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6YGT6Lev6KOC57yd5qOA5rWLPC90ZXh0Pjwvc3ZnPg=='" class="res-preview-img" @error="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNNjAgMTAwIFEyMDAgOTAgMzQwIDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCAxNDAgUTIyMCAxMzAgMzMwIDE0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTAgMTgwIFExODAgMTcwIDM1MCAxODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSIzIiBmaWxsPSIjZGMyNjI2Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM1IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzNSIgcj0iMiIgZmlsbD0iI2Y1OWUwYiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6YGT6Lev6KOC57yd5qOA5rWLPC90ZXh0Pjwvc3ZnPg=='" />
-              <video v-else :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
-              <div class="res-file-name">{{ modalTask.fileName }}</div>
+            <div v-if="resultData?.imageBase64" class="res-file-preview">
+              <img :src="'data:image/jpeg;base64,' + resultData.imageBase64" class="res-preview-img" alt="Detection Result" />
+              <div class="res-file-name">{{ resultData.items?.length || 0 }} 项检测</div>
             </div>
             <div class="result-items">
               <div v-for="(item, i) in resultData.items" :key="i" class="result-item">
@@ -124,275 +142,327 @@
                     <span :class="['ri-badge', 'sev-'+item.severityLevel.toLowerCase()]">{{ severityLabel(item.severityLevel) }}</span>
                   </div>
                   <div class="ri-detail-row">
-                    <span class="ri-detail-label">病害判定</span>
-                    <span class="ri-detail-val">{{ damageTypeDesc(item.damageType) }}</span>
+                    <span class="ri-detail-label">病害类型</span>                <span class="ri-detail-val">{{ damageTypeDesc(item.damageType) }}</span>
                   </div>
                   <div class="ri-detail-row">
-                    <span class="ri-detail-label">严重程度</span>
-                    <span class="ri-detail-val">{{ severityDesc(item.severityLevel) }}</span>
+                    <span class="ri-detail-label">严重程度</span>                <span class="ri-detail-val">{{ severityDesc(item.severityLevel) }}</span>
                   </div>
                   <div class="ri-detail-row">
-                    <span class="ri-detail-label">置信度</span>
-                    <span class="ri-detail-val"><span class="conf-bar-wrap"><span class="conf-bar" :style="{width: (item.confidence*100)+'%'}"></span></span> {{ (item.confidence*100).toFixed(0) }}%</span>
+                    <span class="ri-detail-label">置信度</span>                <span class="ri-detail-val"><span class="conf-bar-wrap"><span class="conf-bar" :style="{width: (item.confidence*100)+'%'}"></span></span> {{ (item.confidence*100).toFixed(0) }}%</span>
                   </div>
                   <div v-if="item.suggestion" class="ri-suggest">{{ item.suggestion }}</div>
                 </div>
               </div>
             </div>
+            <div v-if="canDispatch(resultData)" class="res-actions">
+              <button class="btn-dispatch" @click="handleDispatch(resultTask?.id, resultData)">生成工单</button>
+            </div>
           </div>
-          <div v-else class="modal-loading">暂无结果数据</div>
+          <div v-else class="modal-loading">加载检测结果...</div>
         </div>
         <div class="modal-foot">
-                    <button class="btn-ghost" @click="showResultModal=false">关闭</button>
+          <button class="btn-ghost" @click="showResultModal=false">关闭</button>
         </div>
       </div>
-    </div></template>
-
+    </div>
+  </div>
+</template>
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, computed } from "vue"
-import { ElMessage } from "element-plus"
-import { detectionApi, fileApi } from "@/api"
+import { ref, reactive, onMounted, onUnmounted } from "vue"
+import { ElMessage, ElMessageBox } from "element-plus"
+import { detectionApi, workOrderApi } from "@/api"
 import type { DetectionTaskResponse } from "@/types"
 
-const form = reactive({ dataSourceType: "IMAGE", fileName: "", fileUrl: "", location: "", remark: "" })
+declare global { interface Window { AMap: any; _AMapSecurityConfig: any } }
+
+const form = reactive({ dataSourceType: "MANUAL_IMAGE", fileName: "", fileUrl: "", location: "", remark: "" })
 const tasks = ref<DetectionTaskResponse[]>([])
 const loading = ref(false)
 const submitting = ref(false)
 const polling = ref(false)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 const fileInput = ref<HTMLInputElement>()
-
-function handleFileInput(input: HTMLInputElement) {
-  const f = input.files?.[0]
-  if (f) { form.fileName = f.name; const url = URL.createObjectURL(f); form.fileUrl = url; uploadedFileUrl.value = url }
-}
-function handleDrop(e: DragEvent) {
-  const f = e.dataTransfer?.files?.[0]
-  if (f) { form.fileName = f.name; const url = URL.createObjectURL(f); form.fileUrl = url; uploadedFileUrl.value = url }
-}
-async function submitTask() {
-  if (!form.location) { ElMessage.warning("请填写位置"); return }
-  submitting.value = true
-  try {
-    const res = await detectionApi.create({ dataSourceType: form.dataSourceType as any, fileName: form.fileName || "unknown.jpg", fileUrl: form.fileUrl || "", location: form.location, remark: form.remark })
-    const taskId = res.data.data?.id
-    ElMessage.success("任务已提交，正在执行AI检测...")
-    if (taskId) {
-      await detectionApi.execute(taskId)
-      ElMessage.success("AI检测已启动，正在等待检测完成...")
-      startPolling(taskId)
-    }
-    form.location = ""; form.remark = ""; form.fileName = ""; form.fileUrl = ""
-  } catch (e) { ElMessage.error("提交失败：" + (e?.response?.data?.message || "请重试")) }
-  finally { submitting.value = false }
-}
-function startPolling(taskId: number) {
-  polling.value = true
-  let attempts = 0
-  pollTimer = setInterval(async () => {
-    attempts++
-    try {
-      await loadTasks()
-      const updated = tasks.value.find(t => t.id === taskId)
-      if (updated?.status === "COMPLETED") {
-        stopPolling()
-        ElMessage.success("AI检测完成！")
-        viewResult(taskId)
-      } else if (attempts >= 8) {
-        stopPolling()
-        ElMessage.info("检测仍在处理中，请稍后手动刷新查看结果")
-      }
-    } catch {
-      if (attempts >= 8) stopPolling()
-    }
-  }, 2000)
-}
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-  polling.value = false
-}
-async function loadTasks() {
-  loading.value = true
-  try { const r = await detectionApi.list({ page: 1, size: 5 }); tasks.value = r.data.data.records } catch {}
-  loading.value = false
-}
-function stCls(s: string) { return ({PENDING:"st-wait",PROCESSING:"st-run",COMPLETED:"st-ok",FAILED:"st-fail"})[s]||"" }
-function stLbl(s: string) { return ({PENDING:"待处理",PROCESSING:"处理中",COMPLETED:"已完成",FAILED:"失败"})[s]||s }
-const uploadedFileUrl = ref(''); // Keep uploaded file URL for result modal
+const uploadedFile = ref<File | null>(null)
+const uploadedFileUrl = ref("")
 const showResultModal = ref(false)
 const resultLoading = ref(false)
 const resultTask = ref<any>(null)
 const resultData = ref<any>(null)
 
-async function viewResult(taskId: number) {
-  showResultModal.value = true
-  resultLoading.value = true
-  resultTask.value = tasks.value.find(t => t.id === taskId) || { id: taskId }
-  // Restore original uploaded file URL
-  if (!resultTask.value.fileUrl && uploadedFileUrl.value) {
-    resultTask.value.fileUrl = uploadedFileUrl.value;
-  }
+// AMap state
+const searchKeyword = ref("")
+const selectedPos = ref<{lng:number;lat:number} | null>(null)
+const selectedAddr = ref("")
+let map: any = null
+let marker: any = null
+let placeSearch: any = null
+let geocoder: any = null
+
+function handleImgError(e: Event) { (e.target as HTMLElement).style.display = "none" }
+
+function handleFileInput(input: HTMLInputElement) {
+  const f = input.files?.[0]
+  if (f) { form.fileName = f.name; const url = URL.createObjectURL(f); form.fileUrl = url; uploadedFile.value = f; uploadedFileUrl.value = url }
+}
+
+function handleDrop(e: DragEvent) {
+  const f = e.dataTransfer?.files?.[0]
+  if (f) { form.fileName = f.name; const url = URL.createObjectURL(f); form.fileUrl = url; uploadedFile.value = f; uploadedFileUrl.value = url }
+}
+
+function initMap() {
+  if (typeof window.AMap === "undefined") { setTimeout(initMap, 500); return }
   try {
-    const r = await detectionApi.getResult(taskId)
-    resultData.value = r.data.data
-  } catch {
-    resultData.value = null
-  }
+    map = new window.AMap.Map("collectionMap", {
+      zoom: 13, center: [116.397428, 39.90923],
+      features: ["bg","road","building"],
+    })
+    map.addControl(new window.AMap.ToolBar())
+    map.addControl(new window.AMap.Scale())
+    map.on("click", (e: any) => {
+      const lng = e.lnglat.getLng(), lat = e.lnglat.getLat()
+      selectedPos.value = { lng, lat }
+      form.location = lng.toFixed(6) + "," + lat.toFixed(6)
+      placeMarker(lng, lat)
+      reverseGeocode(lng, lat)
+    })
+    placeSearch = new window.AMap.PlaceSearch({ city: "北京", citylimit: true })
+    geocoder = new window.AMap.Geocoder({ city: "北京", radius: 1000 })
+  } catch (e) { console.error("AMap init error:", e) }
+}
+
+function placeMarker(lng: number, lat: number) {
+  if (marker) map.remove(marker)
+  marker = new window.AMap.Marker({ position: [lng, lat], map })
+  map.setCenter([lng, lat])
+}
+
+function reverseGeocode(lng: number, lat: number) {
+  if (!geocoder) return
+  geocoder.getAddress([lng, lat], (status: string, result: any) => {
+    if (status === "complete" && result.regeocode) {
+      selectedAddr.value = result.regeocode.formattedAddress || ""
+    }
+  })
+}
+
+function doSearch() {
+  if (!placeSearch || !searchKeyword.value.trim()) return
+  placeSearch.search(searchKeyword.value.trim(), (status: string, result: any) => {
+    if (status === "complete" && result.poiList?.pois?.length) {
+      const poi = result.poiList.pois[0]
+      const lng = poi.location.lng, lat = poi.location.lat
+      selectedPos.value = { lng, lat }
+      form.location = lng.toFixed(6) + "," + lat.toFixed(6)
+      selectedAddr.value = poi.name + " ? " + (poi.address || "")
+      placeMarker(lng, lat)
+      map.setZoom(15)
+    } else {
+      ElMessage.warning("请先在地图上选择位置")
+    }
+  })
+}
+
+function focusMap() {
+  if (map) { map.setZoom(15); setTimeout(() => { (document.getElementById("collectionMap") as HTMLElement)?.scrollIntoView({ behavior: "smooth" }) }, 100) }
+}
+
+async function submitTask() {
+  if (!form.location) { ElMessage.warning("请先选择位置信息"); return }
+  if (!uploadedFile.value) { ElMessage.warning("请选择文件"); return }
+  submitting.value = true
+  try {
+    const fd = new FormData()
+    fd.append("file", uploadedFile.value)
+    fd.append("dataSourceType", form.dataSourceType)
+    fd.append("location", form.location)
+    fd.append("remark", form.remark)
+    const res = await detectionApi.createWithFile(fd)
+    const taskId = res.data.data?.id
+    ElMessage.success("任务提交成功，AI 检测中...")
+    if (taskId) { startPolling(taskId) }
+    form.fileName = ""; form.fileUrl = ""; form.remark = ""; uploadedFile.value = null
+  } catch (e: any) { ElMessage.error("提交失败: " + (e?.response?.data?.message || "未知错误")) }
+  finally { submitting.value = false }
+}
+
+function startPolling(taskId: number) {
+  polling.value = true; let attempts = 0
+  pollTimer = setInterval(async () => {
+    attempts++
+    try {
+      await loadTasks()
+      const updated = tasks.value.find(t => t.id === taskId)
+      if (updated?.status === "COMPLETED") { stopPolling(); ElMessage.success("AI 检测完成"); viewResult(taskId) }
+      else if (attempts >= 8) { stopPolling(); ElMessage.info("检测超时，请稍后刷新查看") }
+    } catch { if (attempts >= 8) stopPolling() }
+  }, 2000)
+}
+
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null }; polling.value = false }
+
+async function loadTasks() {
+  loading.value = true
+  try { const r = await detectionApi.list({ page: 1, size: 5 }); tasks.value = r.data.data.records } catch {}
+  loading.value = false
+}
+
+function stCls(s: string) { return ({ PENDING: "st-wait", PROCESSING: "st-run", COMPLETED: "st-ok", FAILED: "st-fail" })[s] || "" }
+function stLbl(s: string) { return ({ PENDING: "待处理", PROCESSING: "检测中", COMPLETED: "已完成", FAILED: "失败" })[s] || s }
+
+async function viewResult(taskId: number) {
+  showResultModal.value = true; resultLoading.value = true
+  resultTask.value = tasks.value.find(t => t.id === taskId) || { id: taskId }
+  try { const r = await detectionApi.getResult(taskId); resultData.value = r.data.data } catch { resultData.value = null }
   resultLoading.value = false
 }
 
-function damageTypeDesc(t: string) {
-  const m: Record<string,string> = {
-    TRANSVERSE_CRACK:"横向裂缝 - 路面出现垂直于行车方向的裂缝，通常由温度变化或路基不均匀沉降引起",
-    LONGITUDINAL_CRACK:"纵向裂缝 - 路面出现平行于行车方向的裂缝，通常由施工接缝或荷载疲劳引起",
-    NET_CRACK:"网状裂缝 - 路面呈龟壳状开裂，通常由路基强度不足或沥青老化引起",
-    POTHOLE:"坑槽 - 路面局部凹陷或坑洞，影响行车安全",
-    MARKING_DAMAGE:"标线损坏 - 交通标线磨损或脱落",
-    ROAD_SPILL:"路面抛洒 - 路面有杂物或油污等抛洒物",
-    OTHER:"其他病害"
-  };
-  return m[t] || t;
+function damageTypeLabel(t: string) { return ({ CRACK: "裂缝", POTHOLE: "坑洞", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒" })[t] || t || "未知" }
+function damageTypeDesc(t: string) { return ({ CRACK: "道路表面出现裂缝", POTHOLE: "路面出现坑洞", MARKING_DAMAGE: "标线磨损/缺失", ROAD_SPILL: "路面污染/杂物" })[t] || "" }
+function severityLabel(s: string) { return ({ HIGH: "严重", MEDIUM: "中等", LOW: "轻微" })[s] || s }
+function severityDesc(s: string) { return ({ HIGH: "需要立即处理", MEDIUM: "建议尽快修复", LOW: "可安排常规养护" })[s] || "" }
+
+function canDispatch(data: any) { return data?.items?.some((i: any) => i.severityLevel === "HIGH") }
+
+async function handleDispatch(taskId: number, data: any) {
+  ElMessageBox.confirm("确定要为该检测结果创建维修工单吗？", "生成工单", { confirmButtonText: "确认生成", cancelButtonText: "取消", type: "warning" })
+    .then(async () => {
+      try {
+        await workOrderApi.create({ detectionTaskId: taskId })
+        ElMessage.success("工单已生成")
+        window.dispatchEvent(new CustomEvent("data-updated"))
+      } catch { ElMessage.error("生成失败") }
+    }).catch(() => {})
 }
-function severityDesc(s: string) {
-  const m: Record<string,string> = {
-    HIGH:"严重病害 - 需立即维修处理，存在安全隐患",
-    MEDIUM:"中等病害 - 需尽快安排养护，防止病害扩展",
-    LOW:"轻微病害 - 继续观察，纳入日常养护计划"
-  };
-  return m[s] || s;
-}
-function damageTypeLabel(t: string) {
-  const m: Record<string, string> = {TRANSVERSE_CRACK:"横向裂缝",LONGITUDINAL_CRACK:"纵向裂缝",NET_CRACK:"网状裂缝",POTHOLE:"坑槽",MARKING_DAMAGE:"标线损坏",ROAD_SPILL:"路面抛洒",OTHER:"其他病害"};
-  return m[t] || t;
-}
-function severityLabel(s: string) {
-  const m: Record<string, string> = {HIGH:"严重",MEDIUM:"中等",LOW:"轻微"};
-  return m[s] || s;
-}
-onMounted(loadTasks)
-onUnmounted(() => stopPolling())
+
+onMounted(() => {
+  loadTasks()
+  setTimeout(initMap, 1000)
+})
+
+onUnmounted(() => {
+  stopPolling()
+  if (marker && map) map.remove(marker)
+})
 </script>
-
 <style scoped>
-.dc { font-family:Inter,"PingFang SC","Noto Sans SC",system-ui,sans-serif; }
-.dc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
-.dc-top-left { display:flex; align-items:baseline; gap:12px; }
-.dc-title { font-size:20px; font-weight:600; color:#111827; margin:0; }
-.dc-subtitle { font-size:13px; color:#9ca3af; }
-.dc-grid { display:grid; grid-template-columns:1fr 1.1fr; gap:16px; }
+.dc { font-family: Inter, "PingFang SC", "Noto Sans SC", system-ui, sans-serif; }
+.dc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.dc-top-left { display: flex; align-items: baseline; gap: 12px; }
+.dc-title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0; }
+.dc-subtitle { font-size: 13px; color: #94a3b8; }
+.dc-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+.card { background: #fff; border-radius: 12px; border: 1px solid #eef0f4; overflow: hidden; }
+.card-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #f0f2f5; font-size: 14px; font-weight: 600; color: #0f172a; }
+.card-title { font-size: 14px; font-weight: 600; color: #0f172a; }
+.card-count { font-size: 11px; color: #94a3b8; font-weight: 400; }
+.card-body { padding: 18px; }
+.card-body-form { display: flex; flex-direction: column; gap: 14px; }
+.card-body-nopad { padding: 0; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 12px; font-weight: 500; color: #475569; display: flex; align-items: center; gap: 6px; }
+.loc-badge { font-size: 10px; color: #059669; background: #ecfdf5; padding: 1px 6px; border-radius: 4px; font-weight: 400; }
+.loc-row { display: flex; gap: 6px; }
+.loc-clear { padding: 0 10px; font-size: 11px; color: #ef4444; background: #fef2f2; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.form-input, .form-select, .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-family: inherit; color: #0f172a; background: #fff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #2563eb; }
+.form-textarea { resize: vertical; min-height: 60px; }
+.select-wrap { position: relative; }
+.select-arrow { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.form-select { appearance: none; padding-right: 30px; cursor: pointer; }
+.file-name-tag { font-size: 11px; color: #2563eb; background: #eff6ff; padding: 3px 8px; border-radius: 4px; }
+.form-btn { padding: 10px; background: #2563eb; border: none; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.form-btn:hover { background: #1d4ed8; }
+.form-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-loader { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg) } }
 
-.card { background:#fff; border:1px solid #f3f4f6; border-radius:10px; overflow:hidden; }
-.card-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #f9fafb; }
-.card-title { font-size:13px; font-weight:600; color:#374151; }
-.card-count { font-size:11px; color:#9ca3af; }
-.card-body-nopad { padding:0; }
-.card-body-form { padding:20px 22px; }
+/* Upload Zone */
+.upload-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; border: 2px dashed #e2e8f0; border-radius: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: center; }
+.upload-zone:hover { border-color: #2563eb; background: #f8faff; }
+.uz-text { font-size: 12px; color: #64748b; margin-top: 6px; }
+.uz-hint { font-size: 10px; color: #cbd5e1; margin-top: 3px; }
+.preview-img { max-width: 100%; max-height: 120px; object-fit: contain; border-radius: 4px; }
+.preview-video { max-width: 100%; max-height: 120px; border-radius: 4px; }
 
-.form-group { margin-bottom:18px; }
-.form-label { display:block; font-size:12px; font-weight:500; color:#374151; margin-bottom:6px; }
-.form-input, .form-textarea, .form-select { width:100%; padding:9px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:13px; font-family:inherit; color:#111827; background:#fff; outline:none; transition:border-color .15s; box-sizing:border-box; }
-.form-input:focus, .form-textarea:focus, .form-select:focus { border-color:#4338ca; }
-.form-input::placeholder, .form-textarea::placeholder { color:#9ca3af; }
-.form-textarea { resize:vertical; min-height:60px; }
-.select-wrap { position:relative; }
-.select-arrow { position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none; color:#9ca3af; }
-.form-select { appearance:none; padding-right:28px; cursor:pointer; }
+/* Map Card */
+.map-card { display: flex; flex-direction: column; }
+.map-search-bar { display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid #f0f2f5; }
+.map-search-input { flex: 1; padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; }
+.map-search-input:focus { border-color: #2563eb; }
+.map-search-btn { padding: 7px 16px; background: #2563eb; border: none; border-radius: 8px; color: #fff; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.map-search-btn:hover { background: #1d4ed8; }
+.map-container { flex: 1; min-height: 500px; border-radius: 0 0 12px 12px; }
+.map-pos-info { padding: 8px 14px; background: #f0f9ff; border-top: 1px solid #e0f2fe; font-size: 12px; color: #0369a1; display: flex; flex-direction: column; gap: 2px; }
+.map-addr { font-size: 11px; color: #64748b; }
 
-.upload-zone { border:1.5px dashed #d1d5db; border-radius:10px; padding:28px 20px; text-align:center; cursor:pointer; transition:all .15s; background:#fafbfc; position:relative; }
-.upload-zone:hover { border-color:#4361ee; background:#f8f9fc; }
-.uz-text { font-size:13px; color:#6b7280; margin-top:8px; }
-.uz-hint { font-size:11px; color:#9ca3af; margin-top:4px; }
-/* Upload preview - scale down to fit container */
-.preview-img { max-width:100%; max-height:140px; width:auto; height:auto; object-fit:contain; border-radius:4px; display:block; margin:0 auto; }
-.preview-video { max-width:100%; max-height:140px; width:auto; height:auto; border-radius:4px; display:block; margin:0 auto; }
-/* When file selected, shrink upload-zone padding */
-.upload-zone:has(img.preview-img) { padding:10px; border-color:#d1d5db; background:#fff; }
-.upload-zone:has(video.preview-video) { padding:10px; border-color:#d1d5db; background:#fff; }
-.file-name-tag { margin-top:2px; padding:2px 6px; font-size:10px; color:#9ca3af; display:inline-block; }
+/* Tasks Table */
+.act-header, .act-row { display: flex; align-items: center; padding: 10px 18px; font-size: 12px; }
+.act-header { background: #f8f9fc; color: #64748b; font-weight: 500; border-bottom: 1px solid #f0f2f5; }
+.act-row { border-bottom: 1px solid #f8f9fc; }
+.act-row:hover { background: #fafbfc; }
+.act-id { width: 100px; flex-shrink: 0; }
+.act-loc { flex: 1; }
+.act-st { width: 80px; text-align: center; }
+.act-time { width: 160px; }
+.act-op { width: 80px; text-align: right; }
+.act-code { font-family: monospace; font-size: 11px; color: #475569; }
+.st-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.st-wait { background: #fef3c7; color: #d97706; }
+.st-run { background: #dbeafe; color: #2563eb; }
+.st-ok { background: #d1fae5; color: #059669; }
+.st-fail { background: #fee2e2; color: #dc2626; }
+.view-btn { padding: 4px 10px; background: transparent; border: 1px solid #dbeafe; border-radius: 6px; color: #2563eb; font-size: 11px; font-family: inherit; cursor: pointer; }
+.view-btn:hover { background: #2563eb; color: #fff; }
+.op-na { color: #d1d5db; font-size: 11px; }
+.act-loading { text-align: center; padding: 30px; }
+.act-empty { text-align: center; padding: 30px; color: #94a3b8; font-size: 13px; }
 
-.form-btn { width:100%; padding:10px 0; background:#4338ca; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:background .15s; display:flex; align-items:center; justify-content:center; gap:6px; }
-.form-btn:hover { background:#3730a3; }
-.form-btn:disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
-.btn-loader { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .5s linear infinite; }
+/* Loader */
+.loader { width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto; }
 
-.act-header { display:flex; padding:10px 20px; border-bottom:1px solid #f9fafb; }
-.act-cell { font-size:11px; color:#9ca3af; }
-.act-id { width:130px; flex-shrink:0; }
-.act-loc { flex:1; }
-.act-st { width:72px; flex-shrink:0; }
-.act-time { width:120px; flex-shrink:0; }
-.act-row { display:flex; padding:10px 20px; border-bottom:1px solid #f9fafb; align-items:center; }
-.act-row:last-child { border-bottom:none; }
-.act-row:hover { background:#fafbfc; }
-.act-code { font-family:monospace; font-size:11px; font-weight:600; color:#4338ca; }
-.st-badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:600; }
-.st-wait { background:#f9fafb; color:#6b7280; }
-.st-run { background:#fffbeb; color:#d97706; }
-.st-ok { background:#f0fdf4; color:#22c55e; }
-.st-fail { background:#fef2f2; color:#ef4444; }
-.act-loading { display:flex; justify-content:center; padding:32px 0; }
-.loader { width:20px; height:20px; border:2px solid #f3f4f6; border-top-color:#4338ca; border-radius:50%; animation:spin .5s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.act-empty { text-align:center; padding:36px 0; color:#9ca3af; font-size:13px; }
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal-card { background: #fff; border-radius: 12px; width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #f0f2f5; font-size: 15px; font-weight: 600; color: #0f172a; }
+.modal-close { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border: none; border-radius: 6px; color: #94a3b8; cursor: pointer; font-size: 12px; }
+.modal-body { padding: 20px; }
+.modal-loading { text-align: center; padding: 40px 0; color: #94a3b8; font-size: 13px; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid #f0f2f5; }
+.btn-ghost { padding: 7px 16px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 12px; color: #475569; cursor: pointer; font-family: inherit; }
+.btn-ghost:hover { border-color: #2563eb; color: #2563eb; }
 
-@media(max-width:1024px) { .dc-grid { grid-template-columns:1fr; } }
-.act-op { width:80px; flex-shrink:0; text-align:center; }
-.view-btn { padding:3px 10px; border:1px solid #2563eb; border-radius:4px; background:#eff6ff; color:#2563eb; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; transition:all .15s; }
-.view-btn:hover { background:#2563eb; color:#fff; }
-.op-na { color:#d1d5db; font-size:11px; }
-.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:1000; display:flex; align-items:center; justify-content:center; }
-.modal-card { background:#fff; border-radius:12px; width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 24px rgba(0,0,0,0.1); }
-.modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #f0f2f5; font-size:15px; font-weight:600; color:#0f172a; }
-.modal-close { width:26px; height:26px; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border:none; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:12px; }
-.modal-body { padding:20px; }
-.modal-loading { text-align:center; padding:40px 0; color:#94a3b8; font-size:13px; }
-.modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #f0f2f5; }
-.btn-ghost { padding:7px 16px; border:1px solid #e2e8f0; border-radius:6px; background:#fff; font-size:12px; color:#475569; cursor:pointer; font-family:inherit; }
-.btn-ghost:hover { border-color:#2563eb; color:#2563eb; }
-.result-summary { font-size:14px; font-weight:600; color:#0f172a; margin-bottom:16px; padding:10px 14px; background:#f0fdf4; border-radius:8px; }
-.res-main { display:flex; gap:16px; margin-bottom:16px; padding:16px; background:#f8f9fc; border:1px solid #eef0f4; border-radius:10px; align-items:flex-start; }
-.res-main-left { flex:1; }
-.res-main-type { font-size:18px; font-weight:700; color:#0f172a; margin-bottom:4px; }
-.res-main-desc { font-size:12px; color:#64748b; line-height:1.5; }
-.res-main-sev { display:flex; align-items:center; gap:6px; padding:10px 14px; border-radius:8px; flex-shrink:0; white-space:nowrap; }
-.res-sev-label { font-size:15px; font-weight:700; }
-.res-sev-desc { font-size:11px; }
-.res-main-sev.sev-high { background:#fef2f2; color:#dc2626; }
-.res-main-sev.sev-medium { background:#fffbeb; color:#d97706; }
-.res-main-sev.sev-low { background:#f0fdf4; color:#16a34a; }
-.res-file-preview { margin-bottom:16px; border:1px solid #f0f2f5; border-radius:8px; overflow:hidden; background:#fafbfc; }
-.res-preview-img { max-width:100%; max-height:200px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto; }
-.res-preview-video { max-width:100%; max-height:200px; width:auto; height:auto; display:block; margin:0 auto; }
-.res-file-name { padding:6px 12px; font-size:11px; color:#64748b; background:#fff; border-top:1px solid #f0f2f5; }
+/* Result Content */
+.result-summary { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 16px; padding: 10px 14px; background: #f0fdf4; border-radius: 8px; }
+.res-main { display: flex; gap: 16px; margin-bottom: 16px; padding: 16px; background: #f8f9fc; border: 1px solid #eef0f4; border-radius: 10px; align-items: flex-start; }
+.res-main-left { flex: 1; }
+.res-main-type { font-size: 18px; font-weight: 700; color: #0f172a; }
+.res-main-desc { font-size: 12px; color: #64748b; margin-top: 4px; }
+.res-main-sev { display: flex; flex-direction: column; align-items: center; padding: 8px 16px; border-radius: 8px; min-width: 80px; }
+.sev-high { background: #fef2f2; color: #dc2626; }
+.sev-medium { background: #fffbeb; color: #d97706; }
+.sev-low { background: #eff6ff; color: #2563eb; }
+.res-sev-label { font-size: 16px; font-weight: 700; margin-top: 4px; }
+.res-sev-desc { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+.res-file-preview { margin: 12px 0; border: 1px solid #eef0f4; border-radius: 8px; overflow: hidden; }
+.res-preview-img { width: 100%; display: block; }
+.res-file-name { padding: 6px 12px; font-size: 11px; color: #64748b; background: #f8f9fc; border-top: 1px solid #eef0f4; }
+.result-items { display: flex; flex-direction: column; gap: 8px; }
+.result-item { display: flex; gap: 10px; padding: 10px; background: #f8f9fc; border-radius: 8px; }
+.ri-sev-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
+.ri-info { flex: 1; min-width: 0; }
+.ri-type-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ri-type { font-size: 13px; font-weight: 600; color: #0f172a; }
+.ri-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 500; }
+.ri-detail-row { display: flex; font-size: 11px; color: #64748b; margin-bottom: 3px; }
+.ri-detail-label { width: 60px; flex-shrink: 0; color: #94a3b8; }
+.ri-detail-val { flex: 1; }
+.conf-bar-wrap { display: inline-block; width: 50px; height: 4px; background: #e2e8f0; border-radius: 2px; vertical-align: middle; margin-right: 4px; overflow: hidden; }
+.conf-bar { height: 100%; background: #2563eb; border-radius: 2px; transition: width 0.3s; }
+.ri-suggest { margin-top: 4px; font-size: 11px; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 4px; }
 
-.result-items { display:flex; flex-direction:column; gap:10px; }
-.result-item { display:flex; gap:14px; padding:14px 16px; border:1px solid #f0f2f5; border-radius:10px; background:#fafbfc; }
-.ri-sev-icon { flex-shrink:0; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; }
-.ri-sev-icon.sev-high { background:#fef2f2; color:#dc2626; }
-.ri-sev-icon.sev-medium { background:#fffbeb; color:#d97706; }
-.ri-sev-icon.sev-low { background:#f0fdf4; color:#16a34a; }
-.ri-type-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-.ri-type { font-size:14px; font-weight:600; color:#0f172a; }
-.ri-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; height:fit-content; white-space:nowrap; }
-.ri-detail-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-.ri-detail-label { font-size:11px; color:#94a3b8; font-weight:500; min-width:56px; flex-shrink:0; }
-.ri-detail-val { font-size:12px; color:#334155; line-height:1.5; }
-.conf-bar-wrap { display:inline-block; width:60px; height:6px; background:#f1f5f9; border-radius:3px; vertical-align:middle; overflow:hidden; }
-.conf-bar { display:block; height:100%; background:#4338ca; border-radius:3px; transition:width .3s; }
-.ri-suggest { margin-top:6px; font-size:11px; color:#2563eb; background:#eff6ff; padding:4px 10px; border-radius:4px; display:inline-block; }
-.result-items { display:flex; flex-direction:column; gap:12px; }
-.result-item { display:flex; gap:12px; padding:12px 14px; border:1px solid #f0f2f5; border-radius:8px; }
-.ri-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; height:fit-content; white-space:nowrap; }
-.sev-high { background:#fef2f2; color:#dc2626; }
-.sev-medium { background:#fffbeb; color:#d97706; }
-.sev-low { background:#f0fdf4; color:#16a34a; }
-.ri-info { flex:1; }
-.ri-type { font-size:13px; font-weight:600; color:#0f172a; margin-bottom:4px; }
-.ri-detail { font-size:11px; color:#64748b; margin-bottom:2px; }
-.ri-suggest { font-size:11px; color:#2563eb; margin-top:4px; background:#eff6ff; padding:4px 8px; border-radius:4px; }.btn-dispatch { padding:7px 16px; background:#4338ca; border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; transition:background .15s; }
-.btn-dispatch:hover { background:#3730a3; }
+/* Dispatch */
+.res-actions { margin-top: 14px; text-align: center; padding-top: 12px; border-top: 1px solid #f0f2f5; }
+.btn-dispatch { padding: 8px 20px; background: #4338ca; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .15s; }
+.btn-dispatch:hover { background: #3730a3; }
 </style>
-
-
-
-

@@ -4,13 +4,13 @@ import type {
   PageResponse,
   DetectionTaskResponse,
   DetectionResultResponse,
-  CreateDetectionTaskRequest,
   DetectionTaskStatus,
   DataSourceType,
+  CreateDetectionTaskSubmitRequest,
 } from "@/types"
 
 export const detectionApi = {
-  create(data: CreateDetectionTaskRequest) {
+  create(data: CreateDetectionTaskSubmitRequest) {
     return http.post<ApiResponse<DetectionTaskResponse>>("/detection-tasks", data)
   },
   execute(taskId: number) {
@@ -34,5 +34,10 @@ export const detectionApi = {
   },
   remove(taskId: number) {
     return http.delete<ApiResponse<null>>(`/detection-tasks/${taskId}`)
+  },
+  createWithFile(fd: FormData) {
+    return http.post<ApiResponse<DetectionTaskResponse>>("/detection-tasks/upload", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
   },
 }
