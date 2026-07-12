@@ -5,13 +5,18 @@ import com.roadcrack.api.response.statistics.DashboardResponse;
 import com.roadcrack.api.response.statistics.DepartmentWorkloadResponse;
 import com.roadcrack.api.response.statistics.SeverityDistributionResponse;
 import com.roadcrack.api.response.statistics.TrendResponse;
+import com.roadcrack.dao.entity.AlertEntity;
 import com.roadcrack.dao.entity.DetectionResultItemEntity;
 import com.roadcrack.dao.entity.DetectionTaskEntity;
+import com.roadcrack.dao.entity.RoadEntity;
 import com.roadcrack.dao.entity.WorkOrderEntity;
+import com.roadcrack.dao.mapper.AlertMapper;
 import com.roadcrack.dao.mapper.DetectionResultItemMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
+import com.roadcrack.dao.mapper.RoadMapper;
 import com.roadcrack.dao.mapper.WorkOrderMapper;
 import com.roadcrack.service.service.StatisticsService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
@@ -24,21 +29,50 @@ public class DbStatisticsService implements StatisticsService {
     private final DetectionTaskMapper taskMapper;
     private final DetectionResultItemMapper itemMapper;
     private final WorkOrderMapper woMapper;
+    private final RoadMapper roadMapper;
+    private final AlertMapper alertMapper;
 
-    public DbStatisticsService(DetectionTaskMapper taskMapper, DetectionResultItemMapper itemMapper, WorkOrderMapper woMapper) {
+    public DbStatisticsService(DetectionTaskMapper taskMapper, DetectionResultItemMapper itemMapper,
+                               WorkOrderMapper woMapper, RoadMapper roadMapper, AlertMapper alertMapper) {
         this.taskMapper = taskMapper; this.itemMapper = itemMapper; this.woMapper = woMapper;
+        this.roadMapper = roadMapper; this.alertMapper = alertMapper;
     }
 
     @Override
     public DashboardResponse getDashboard() {
+        // 道路总数 — 查 road 表
+        long roadCount = roadMapper.selectCount(null);
+
+        // 在管道路数 — status = 'ACTIVE' 的道路
+        long monitoredCount = roadMapper.selectCount(
+                new LambdaQueryWrapper<RoadEntity>().eq(RoadEntity::getStatus, "ACTIVE"));
+
+        // 今日检测数 — detection_task 表中 created_at 为今天的
         List<DetectionTaskEntity> tasks = taskMapper.selectList(null);
-        long woCount = woMapper.selectCount(null);
         int today = 0;
         LocalDate now = LocalDate.now();
         for (DetectionTaskEntity t : tasks) {
             if (t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().equals(now)) today++;
         }
-        return new DashboardResponse(tasks.size(), tasks.size(), today, 0, (int) woCount, (int) woCount);
+
+        // 待处理告警数 — alert 表中 status = 'PENDING'
+        long pendingAlerts = alertMapper.selectCount(
+                new LambdaQueryWrapper<AlertEntity>().eq(AlertEntity::getStatus, "PENDING"));
+
+        // 病害检出总数 — detection_result_item 表总记录数
+        long totalCracks = itemMapper.selectCount(null);
+
+        // 工单总数 — work_order 表总记录数
+        long woCount = woMapper.selectCount(null);
+
+        return new DashboardResponse(
+                (int) roadCount,
+                (int) monitoredCount,
+                today,
+                (int) pendingAlerts,
+                (int) totalCracks,
+                (int) woCount
+        );
     }
 
     @Override

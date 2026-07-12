@@ -1,4 +1,4 @@
-﻿import http from "./index"
+import http from "./index"
 import type { ApiResponse, PageResponse, AlertResponse } from "@/types"
 
 export const alertApi = {
@@ -8,4 +8,19 @@ export const alertApi = {
   recent(count?: number) {
     return http.get<ApiResponse<AlertResponse[]>>("/alerts/recent", { params: { count: count || 5 } })
   },
+  stats() {
+    return http.get<ApiResponse<AlertStatsData>>("/alerts/stats")
+  },
+  handle(id: number, handleRemark: string) {
+    return http.put<ApiResponse<AlertResponse>>(`/alerts/${id}/handle`, { handleRemark })
+  },
+}
+
+export interface AlertStatsData {
+  highCount: number
+  mediumCount: number
+  lowCount: number
+  pendingCount: number
+  handledCount: number
+  totalCount: number
 }

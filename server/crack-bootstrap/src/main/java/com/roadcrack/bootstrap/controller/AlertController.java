@@ -1,16 +1,15 @@
 package com.roadcrack.bootstrap.controller;
 
 import com.roadcrack.api.response.alert.AlertResponse;
+import com.roadcrack.api.response.alert.AlertStatsResponse;
 import com.roadcrack.common.model.ApiResponse;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.service.service.AlertService;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/alerts")
@@ -38,5 +37,20 @@ public class AlertController {
             @RequestParam(value = "count", defaultValue = "5") int count
     ) {
         return ApiResponse.success(alertService.recent(count));
+    }
+
+    @GetMapping("/stats")
+    public ApiResponse<AlertStatsResponse> stats() {
+        return ApiResponse.success(alertService.stats());
+    }
+
+    @PutMapping("/{id}/handle")
+    public ApiResponse<AlertResponse> handle(
+            @org.springframework.web.bind.annotation.PathVariable("id") Long id,
+            @org.springframework.web.bind.annotation.RequestAttribute("username") String username,
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> body
+    ) {
+        String remark = body != null ? body.get("handleRemark") : null;
+        return ApiResponse.success(alertService.handle(id, username, remark));
     }
 }

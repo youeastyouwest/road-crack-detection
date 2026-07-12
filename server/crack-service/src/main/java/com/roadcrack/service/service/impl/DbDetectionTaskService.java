@@ -17,10 +17,12 @@ import com.roadcrack.api.response.workorder.WorkOrderResponse;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.dao.entity.AlertEntity;
 import com.roadcrack.dao.entity.DetectionMediaEntity;
 import com.roadcrack.dao.entity.DetectionResultEntity;
 import com.roadcrack.dao.entity.DetectionResultItemEntity;
 import com.roadcrack.dao.entity.DetectionTaskEntity;
+import com.roadcrack.dao.mapper.AlertMapper;
 import com.roadcrack.dao.mapper.DetectionMediaMapper;
 import com.roadcrack.dao.mapper.DetectionResultItemMapper;
 import com.roadcrack.dao.mapper.DetectionResultMapper;
@@ -65,6 +67,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
     private final WorkOrderService workOrderService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final TaskExecutor detectionTaskExecutor;
+    private final AlertMapper alertMapper;
 
     public DbDetectionTaskService(DetectionTaskMapper detectionTaskMapper,
                                   DetectionMediaMapper detectionMediaMapper,
@@ -73,7 +76,8 @@ public class DbDetectionTaskService implements DetectionTaskService {
                                   AlgorithmClient algorithmClient,
                                   WorkOrderService workOrderService,
                                   RealtimeMessagePublisher realtimeMessagePublisher,
-                                  @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor) {
+                                  @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor,
+                                  AlertMapper alertMapper) {
         this.detectionTaskMapper = detectionTaskMapper;
         this.detectionMediaMapper = detectionMediaMapper;
         this.detectionResultMapper = detectionResultMapper;
@@ -82,6 +86,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
         this.workOrderService = workOrderService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
+        this.alertMapper = alertMapper;
     }
 
     @Override
@@ -233,6 +238,9 @@ public class DbDetectionTaskService implements DetectionTaskService {
             Long generatedWorkOrderId = createWorkOrderIfNeeded(taskEntity, mediaEntity, analysisResult.items());
             persistSuccessfulResult(taskEntity, mediaEntity, analysisResult, generatedWorkOrderId);
 
+            // 检测到严重病害时自动生成告警
+            createAlertIfNeeded(taskEntity, analysisResult, generatedWorkOrderId);
+
             DetectionResultResponse result = getResult(taskId);
             publishProgress(taskId, DetectionTaskStatus.COMPLETED, 100, "检测任务已完成");
             realtimeMessagePublisher.publishDetectionResult(taskId, result);
@@ -334,6 +342,83 @@ public class DbDetectionTaskService implements DetectionTaskService {
             case LOW -> 1;
             case MEDIUM -> 2;
             case HIGH -> 3;
+        };
+    }
+
+    private void createAlertIfNeeded(DetectionTaskEntity taskEntity,
+                                     DetectionAnalysisResult analysisResult,
+                                     Long workOrderId) {
+        if (analysisResult.items() == null || analysisResult.items().isEmpty()) {
+            return;
+        }
+        // 找到最高严重等级
+        DetectionItemResponse topItem = analysisResult.items().stream()
+                .max(Comparator.comparingInt(item -> severityScore(item.severityLevel())))
+                .orElse(null);
+        if (topItem == null) {
+            return;
+        }
+
+        SeverityLevel severity = topItem.severityLevel();
+        // HIGH → 严重告警, MEDIUM → 中等告警, LOW → 一般告警
+        String alertLevel = switch (severity) {
+            case HIGH -> "HIGH";
+            case MEDIUM -> "MEDIUM";
+            case LOW -> "LOW";
+        };
+
+        // 只对 HIGH 和 MEDIUM 生成告警，LOW 不需要
+        if (severity == SeverityLevel.LOW) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        long alertCount = alertMapper.selectCount(null) + 1;
+        String alertCode = "ALT-" + now.format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + String.format("%03d", alertCount);
+
+        String damageType = topItem.damageType().name();
+        String location = taskEntity.getLocation() != null ? taskEntity.getLocation() : "未知位置";
+
+        String title;
+        String content;
+        String alertType;
+        if (severity == SeverityLevel.HIGH) {
+            alertType = "SEVERITY_DAMAGE";
+            title = location + " 检测到严重" + damageTypeName(damageType);
+            content = String.format("检测到%s级别病害，类型: %s，置信度: %.1f%%，建议立即处理",
+                    severity.name(), damageTypeName(damageType), topItem.confidence() * 100);
+        } else {
+            alertType = "SUDDEN_CRACK";
+            title = location + " 检测到" + damageTypeName(damageType);
+            content = String.format("检测到%s级别病害，类型: %s，置信度: %.1f%%",
+                    severity.name(), damageTypeName(damageType), topItem.confidence() * 100);
+        }
+
+        AlertEntity alert = new AlertEntity();
+        alert.setAlertCode(alertCode);
+        alert.setAlertType(alertType);
+        alert.setAlertLevel(alertLevel);
+        alert.setTitle(title);
+        alert.setContent(content);
+        alert.setDamageType(damageType);
+        alert.setLocation(location);
+        alert.setWorkOrderId(workOrderId);
+        alert.setDetectionTaskId(taskEntity.getId());
+        alert.setStatus("PENDING");
+        alert.setCreatedAt(now);
+        alert.setUpdatedAt(now);
+        alertMapper.insert(alert);
+    }
+
+    private String damageTypeName(String type) {
+        return switch (type) {
+            case "CRACK" -> "裂缝";
+            case "POTHOLE" -> "坑槽";
+            case "ALLIGATOR" -> "龟裂";
+            case "BLOCK" -> "块状裂缝";
+            case "LONGITUDINAL" -> "纵向裂缝";
+            case "TRANSVERSE" -> "横向裂缝";
+            default -> type;
         };
     }
 

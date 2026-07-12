@@ -90,10 +90,6 @@ public class MaintenanceReportAggregate {
         return reviewedAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
     public void review(String status, String reviewer, String reviewRemark, LocalDateTime reviewedAt) {
         this.status = status;
         this.reviewer = reviewer;

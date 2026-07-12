@@ -1,6 +1,7 @@
 package com.roadcrack.service.service.impl;
 
 import com.roadcrack.api.response.alert.AlertResponse;
+import com.roadcrack.api.response.alert.AlertStatsResponse;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.service.service.AlertService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -20,5 +21,16 @@ public class StubAlertService implements AlertService {
     @Override
     public List<AlertResponse> recent(int count) {
         return new ArrayList<>();
+    }
+
+    @Override
+    public AlertStatsResponse stats() {
+        return new AlertStatsResponse(0, 0, 0, 0, 0, 0);
+    }
+
+    @Override
+    public AlertResponse handle(Long id, String handledBy, String handleRemark) {
+        return new AlertResponse(id, null, null, null, null, null, null, null, null, null, "HANDLED",
+            handledBy, null, handleRemark, null);
     }
 }
