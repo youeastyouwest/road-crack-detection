@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.roadcrack.api.response.road.RoadDiseaseSummaryResponse;
 import com.roadcrack.api.response.road.RoadResponse;
+import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
+import com.roadcrack.common.model.ResultCode;
 import com.roadcrack.dao.entity.DetectionMediaEntity;
 import com.roadcrack.dao.entity.DetectionResultEntity;
 import com.roadcrack.dao.entity.DetectionResultItemEntity;
@@ -17,9 +19,11 @@ import com.roadcrack.dao.mapper.DetectionResultMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
 import com.roadcrack.dao.mapper.RoadMapper;
 import com.roadcrack.dao.mapper.WorkOrderMapper;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.RoadService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,18 +42,21 @@ public class DbRoadService implements RoadService {
     private final DetectionResultMapper resultMapper;
     private final DetectionMediaMapper mediaMapper;
     private final WorkOrderMapper workOrderMapper;
+    private final AuditLogService auditLogService;
 
     public DbRoadService(RoadMapper roadMapper, DetectionTaskMapper taskMapper,
                          DetectionResultItemMapper resultItemMapper,
                          DetectionResultMapper resultMapper,
                          DetectionMediaMapper mediaMapper,
-                         WorkOrderMapper workOrderMapper) {
+                         WorkOrderMapper workOrderMapper,
+                         AuditLogService auditLogService) {
         this.roadMapper = roadMapper;
         this.taskMapper = taskMapper;
         this.resultItemMapper = resultItemMapper;
         this.resultMapper = resultMapper;
         this.mediaMapper = mediaMapper;
         this.workOrderMapper = workOrderMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -247,5 +254,99 @@ public class DbRoadService implements RoadService {
         if (loc == null || loc.isBlank()) return null;
         try { String[] p = loc.trim().split(","); return new double[]{Double.parseDouble(p[0].trim()), Double.parseDouble(p[1].trim())}; }
         catch (Exception e) { return null; }
+    }
+
+    @Override
+    public RoadEntity getById(Long id) {
+        return roadMapper.selectById(id);
+    }
+
+    @Override
+    public void createRoad(RoadEntity road) {
+        if (road.getRoadCode() != null && !road.getRoadCode().isBlank()) {
+            if (countByCode(road.getRoadCode(), null) > 0) {
+                throw new BusinessException(ResultCode.ROAD_CODE_EXISTS, "road code already exists: " + road.getRoadCode());
+            }
+        }
+        if (road.getStatus() == null || road.getStatus().isBlank()) {
+            road.setStatus("ACTIVE");
+        }
+        if (road.getHealthScore() == null) {
+            road.setHealthScore(new java.math.BigDecimal("100.00"));
+        }
+        if (road.getDamageLevel() == null || road.getDamageLevel().isBlank()) {
+            road.setDamageLevel("HEALTHY");
+        }
+        if (road.getTotalDetectionCount() == null) {
+            road.setTotalDetectionCount(0);
+        }
+        if (road.getCurrentDamageCount() == null) {
+            road.setCurrentDamageCount(0);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        road.setCreatedAt(now);
+        road.setUpdatedAt(now);
+        roadMapper.insert(road);
+
+        auditLogService.record(
+                "system", "ROAD", "CREATE",
+                "创建道路: " + road.getRoadName() + " (" + road.getRoadCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
+    }
+
+    @Override
+    public void updateRoad(RoadEntity road) {
+        requireRoad(road.getId());
+        if (road.getRoadCode() != null && !road.getRoadCode().isBlank()) {
+            if (countByCode(road.getRoadCode(), road.getId()) > 0) {
+                throw new BusinessException(ResultCode.ROAD_CODE_EXISTS, "road code already exists: " + road.getRoadCode());
+            }
+        }
+        road.setUpdatedAt(LocalDateTime.now());
+        roadMapper.updateById(road);
+
+        auditLogService.record(
+                "system", "ROAD", "UPDATE",
+                "更新道路: " + (road.getRoadName() != null ? road.getRoadName() : "") + " (ID:" + road.getId() + ")",
+                "", 0L, "SUCCESS", ""
+        );
+    }
+
+    @Override
+    public void deleteRoad(Long id) {
+        RoadEntity road = requireRoad(id);
+
+        long taskCount = taskMapper.selectCount(new LambdaQueryWrapper<DetectionTaskEntity>()
+                .eq(DetectionTaskEntity::getRoadId, id));
+        if (taskCount > 0) {
+            throw new BusinessException(ResultCode.ROAD_HAS_DETECTIONS,
+                    "road still has " + taskCount + " detection task(s), cannot delete");
+        }
+
+        roadMapper.deleteById(id);
+
+        auditLogService.record(
+                "system", "ROAD", "DELETE",
+                "删除道路: " + road.getRoadName() + " (" + road.getRoadCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
+    }
+
+    private RoadEntity requireRoad(Long id) {
+        RoadEntity road = roadMapper.selectById(id);
+        if (road == null) {
+            throw new BusinessException(ResultCode.ROAD_NOT_FOUND, "road not found: " + id);
+        }
+        return road;
+    }
+
+    private long countByCode(String roadCode, Long excludeId) {
+        LambdaQueryWrapper<RoadEntity> wrapper = new LambdaQueryWrapper<RoadEntity>()
+                .eq(RoadEntity::getRoadCode, roadCode);
+        if (excludeId != null) {
+            wrapper.ne(RoadEntity::getId, excludeId);
+        }
+        return roadMapper.selectCount(wrapper);
     }
 }

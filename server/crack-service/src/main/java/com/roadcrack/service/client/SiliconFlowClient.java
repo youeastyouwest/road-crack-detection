@@ -32,6 +32,10 @@ public class SiliconFlowClient {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+        log.info("SiliconFlowClient initialized: baseUrl={}, model={}, apiKey={}...{}", 
+                baseUrl, model, 
+                (apiKey != null && apiKey.length() > 8) ? apiKey.substring(0, 8) : "EMPTY",
+                (apiKey != null && apiKey.length() > 4) ? apiKey.substring(apiKey.length() - 4) : "EMPTY");
     }
 
     public ChatResponse chat(String sessionId, String message, String systemPrompt) {
@@ -41,14 +45,20 @@ public class SiliconFlowClient {
         }
         try {
             String requestBody = buildRequestBody(message, systemPrompt);
+            log.info("Calling SiliconFlow API: model={}, messageLength={}, promptLength={}", 
+                    model, message.length(), systemPrompt != null ? systemPrompt.length() : 0);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/chat/completions"))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                    .timeout(Duration.ofSeconds(30))
+                    .timeout(Duration.ofSeconds(45))
                     .build();
+            long startTime = System.currentTimeMillis();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info("SiliconFlow API response: status={}, duration={}ms, bodyLength={}", 
+                    response.statusCode(), elapsed, response.body().length());
             if (response.statusCode() == 200) {
                 return parseResponse(sessionId, message, response.body());
             } else {
@@ -72,7 +82,7 @@ public class SiliconFlowClient {
                 + "{\"role\":\"user\",\"content\":\"" + jsonEscape(message) + "\"}"
                 + "],"
                 + "\"temperature\":0.7,"
-                + "\"max_tokens\":1024"
+                + "\"max_tokens\":2048"
                 + "}";
     }
 

@@ -82,8 +82,14 @@ public class DetectionTaskAggregate {
                 failureReason,
                 createdAt,
                 updatedAt,
+                null,
+                null,
                 result
         );
+    }
+
+    public String getTaskCode() {
+        return taskCode;
     }
 
     public Long getId() {

@@ -60,7 +60,6 @@
           </div>
         </div>
         <div class="ds-popup-foot">
-          <button class="ds-btn ds-btn-primary" @click="createWorkOrder">生成工单</button>
           <button class="ds-btn ds-btn-ghost" @click="selectedDisease = null">关闭</button>
         </div>
       </div>
@@ -101,7 +100,20 @@
           </button>
         </div>
         <div v-if="activeTab === 'map'" class="ds-tab-panel">
-          <div class="ds-sb-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" placeholder="搜索道路、地点..." /></div>
+          <div class="ds-sb-search-wrap">
+            <div class="ds-sb-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" placeholder="搜索道路、地点..." @input="onSearchInput" /></div>
+            <div v-if="searchQuery && searchResults.length > 0" class="ds-search-results">
+              <div v-for="(r, idx) in searchResults" :key="idx" class="ds-search-item" @click="focusSearchResult(r)">
+                <span class="ds-search-dot" :style="{ background: r.color }"></span>
+                <div class="ds-search-info">
+                  <div class="ds-search-name">{{ r.label }}</div>
+                  <div class="ds-search-meta">{{ r.severityLabel }} · {{ r.count }}处病害</div>
+                </div>
+                <svg class="ds-search-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+            <div v-if="searchQuery && searchResults.length === 0 && searchDone" class="ds-search-empty">未找到匹配结果</div>
+          </div>
           <div class="ds-sb-section"><div class="ds-sb-section-title">图层</div>
             <div class="ds-layer-item">
               <div class="ds-layer-toggle">
@@ -145,7 +157,7 @@
             <div class="ds-sb-section-title">道路病害排行 TOP5</div>
             <div v-if="!roadNameResolved" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">正在解析道路名称...</div>
             <div v-else-if="roadRanking.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
-            <div v-for="(r, ri) in roadRanking" :key="r.roadId" style="margin-bottom:8px">
+            <div v-for="(r, ri) in roadRanking" :key="r.roadId" class="ds-rank-item" @click="focusRoad(r)">
               <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                 <span style="color:#64748b">#{{ ri+1 }} {{ roadNameCn(r.roadName) }}</span>
                 <span v-if="!r._roadNameReady" style="font-size:9px;color:#cbd5e1;margin-left:2px">...</span>
@@ -192,7 +204,7 @@
             <div class="ds-sb-section-title">道路健康度</div>
             <div v-if="!roadNameResolved" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">正在解析道路名称...</div>
             <div v-else-if="roadHealthList.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
-            <div v-for="r in roadHealthList" :key="r.roadId" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc">
+            <div v-for="r in roadHealthList" :key="r.roadId" class="ds-rank-item" style="display:flex;align-items:center;gap:8px" @click="focusRoad(r)">
               <span class="ds-health-dot" :style="{ background: healthColor(r.overallSeverity) }"></span>
               <span style="flex:1;font-size:11px;color:#475569;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ roadNameCn(r.roadName) }}</span>
               <span style="font-size:10px;color:#94a3b8">{{ r.totalCount }}处</span>
@@ -206,7 +218,7 @@
               <span v-if="alertMarkers.length > 0" style="font-size:10px;color:#ef4444;font-weight:600">{{ alertMarkers.length }}条</span>
             </div>
             <div v-if="alertMarkers.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无告警</div>
-            <div v-for="(am, ai) in alertMarkers.slice(0, 8)" :key="am.id" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc;animation:rowIn .35s ease both" :style="{ animationDelay: ai * 0.05 + 's' }">
+            <div v-for="(am, ai) in alertMarkers.slice(0, 8)" :key="am.id" class="ds-rank-item" style="display:flex;align-items:center;gap:8px;animation:rowIn .35s ease both" :style="{ animationDelay: ai * 0.05 + 's' }" @click="focusAlert(am)">
               <span class="ds-alert-dot" :style="{ background: sevDotColor(am.severity) }"></span>
               <span style="flex:1;font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ am.roadName || am.address || (am.longitude ? '(' + Number(am.longitude).toFixed(4) + ', ' + Number(am.latitude).toFixed(4) + ')' : '--') }}</span>
               <span class="ds-alert-type" :style="{ background: sevBgColor(am.severity), color: sevTextColor(am.severity) }">{{ damageTypeLabel(am.damageType) }}</span>
@@ -255,6 +267,226 @@ const filterSeverity = ref("")
 const filterDate = ref("")
 const filterStatus = ref("")
 const searchQuery = ref("")
+const searchDone = ref(false)
+
+interface SearchResult {
+  label: string
+  lng: number
+  lat: number
+  color: string
+  severityLabel: string
+  count: number
+  roadId?: number
+}
+
+const SEV_LABEL: Record<string, string> = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微", REPAIRED: "已维修" }
+const SEV_COLOR: Record<string, string> = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e", REPAIRED: "#3b82f6" }
+
+const searchResults = computed<SearchResult[]>(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return []
+  const results: SearchResult[] = []
+  const seen = new Set<string>()
+  for (const road of (roadDiseaseData.value || [])) {
+    const roadName = roadNameCn(road.roadName || road.name || "")
+    if (roadName.toLowerCase().includes(q)) {
+      const key = `road-${road.roadId || roadName}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        const topSev = (road.highCount > 0 ? "HIGH" : road.mediumCount > 0 ? "MEDIUM" : "LOW") as string
+        results.push({
+          label: roadName,
+          lng: road.centerLng || (road.diseasePoints?.[0]?.lng ?? 116.397),
+          lat: road.centerLat || (road.diseasePoints?.[0]?.lat ?? 39.909),
+          color: SEV_COLOR[topSev] || "#f59e0b",
+          severityLabel: SEV_LABEL[topSev] || "中等",
+          count: road.totalCount || road.diseasePoints?.length || 0,
+          roadId: road.roadId,
+        })
+      }
+    }
+    for (const dp of (road.diseasePoints || [])) {
+      const dpRoadName = geocodeCache.get(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`) || roadName
+      if (dpRoadName.toLowerCase().includes(q) || (dp.damageType || "").toLowerCase().includes(q)) {
+        const key = `dp-${dp.lng}-${dp.lat}`
+        if (!seen.has(key)) {
+          seen.add(key)
+          const sev = dp.severity || "MEDIUM"
+          const woNo = dp.workOrderNo || ""
+          const sevKey = (woNo === "CLOSED" || woNo === "COMPLETED") ? "REPAIRED" : sev
+          results.push({
+            label: dpRoadName,
+            lng: dp.lng,
+            lat: dp.lat,
+            color: SEV_COLOR[sevKey] || SEV_COLOR[sev] || "#f59e0b",
+            severityLabel: SEV_LABEL[sevKey] || SEV_LABEL[sev] || "中等",
+            count: 1,
+          })
+        }
+      }
+    }
+  }
+  return results.slice(0, 20)
+})
+
+let searchDebounce: number | undefined
+function onSearchInput() {
+  searchDone.value = false
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = window.setTimeout(() => {
+    searchDone.value = true
+  }, 300)
+}
+
+function focusSearchResult(r: SearchResult) {
+  if (!map) return
+  map.setZoomAndCenter(15, [r.lng, r.lat])
+  searchQuery.value = ""
+  searchDone.value = false
+}
+
+// 点击道路排行项 → 锁定到该道路
+const focusedRoadId = ref<number | null>(null)
+function focusRoad(r: any) {
+  if (!map) return
+  // 优先用 centerLng/centerLat，否则用病害点坐标的质心
+  let lng = r.centerLng
+  let lat = r.centerLat
+  if (!lng || !lat) {
+    const dps = r.diseasePoints || []
+    if (dps.length > 0) {
+      lng = dps.reduce((s: number, d: any) => s + (d.lng || 0), 0) / dps.length
+      lat = dps.reduce((s: number, d: any) => s + (d.lat || 0), 0) / dps.length
+    } else {
+      return // 没有坐标，无法定位
+    }
+  }
+
+  // 如果该道路有多个病害点，用 setFitView 适配所有点；否则直接缩放定位
+  const dps = (r.diseasePoints || []).filter((d: any) => d.lng && d.lat)
+  if (dps.length > 1) {
+    // 先飞到中心，再适配视野
+    map.setZoomAndCenter(16, [lng, lat])
+    // 用病害点坐标构建临时 Bounds 适配
+    setTimeout(() => {
+      try {
+        const bounds = new window.AMap.Bounds(
+          [Math.min(...dps.map((d: any) => d.lng)), Math.min(...dps.map((d: any) => d.lat))],
+          [Math.max(...dps.map((d: any) => d.lng)), Math.max(...dps.map((d: any) => d.lat))]
+        )
+        map.setBounds(bounds, false, [120, 120, 120, 120])
+      } catch(e) {
+        map.setZoomAndCenter(15, [lng, lat])
+      }
+    }, 300)
+  } else {
+    map.setZoomAndCenter(17, [lng, lat])
+  }
+
+  // 高亮该道路的标记：先清除之前的高亮，再标记当前道路
+  focusedRoadId.value = r.roadId ?? null
+  highlightRoadMarkers(r)
+}
+
+// 点击告警项 → 定位到告警坐标并高亮对应道路
+function focusAlert(am: any) {
+  if (!map) return
+  const lng = am.longitude || am.lng
+  const lat = am.latitude || am.lat
+  if (!lng || !lat) return
+
+  // 缩放到 17 级精准定位
+  map.setZoomAndCenter(17, [lng, lat])
+
+  // 找到告警对应的道路，高亮其标记
+  const roadName = am.roadName || ""
+  if (roadName && roadName !== "未知道路") {
+    // 按路名匹配道路数据
+    const matchedRoad = (roadDiseaseData.value || []).find((r: any) => {
+      const rn = roadNameCn(r.roadName || "")
+      return rn === roadName || roadNameCn(roadName) === rn
+    })
+    if (matchedRoad) {
+      focusedRoadId.value = matchedRoad.roadId ?? null
+      highlightRoadMarkers(matchedRoad)
+      return
+    }
+  }
+
+  // 没匹配到道路，只高亮该坐标附近的标记
+  focusedRoadId.value = null
+  const targetKey = `${Number(lng).toFixed(6)},${Number(lat).toFixed(6)}`
+  roadPolylines.forEach((pl: any) => {
+    try {
+      const ext = pl.getExtData?.() || {}
+      const dp = ext.dp
+      if (!dp) return
+      const key = `${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`
+      const isTarget = key === targetKey
+      if (pl.setOptions) {
+        if (isTarget) {
+          pl.setOptions({ strokeOpacity: 1, fillOpacity: ext._ringType === 'inner' ? 0.35 : 0, strokeWeight: 2, zIndex: 200 })
+        } else {
+          pl.setOptions({ strokeOpacity: 0.15, fillOpacity: ext._ringType === 'inner' ? 0.04 : 0, strokeWeight: 0.5, zIndex: 10 })
+        }
+      } else if (pl.setOpacity) {
+        pl.setOpacity(isTarget ? 1 : 0.2)
+      }
+    } catch(e) {}
+  })
+}
+
+// 高亮指定道路的地图标记，其他道路标记降低透明度
+function highlightRoadMarkers(road: any) {
+  const targetDps = new Set<string>()
+  for (const dp of (road.diseasePoints || [])) {
+    if (dp.lng && dp.lat) {
+      targetDps.add(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`)
+    }
+  }
+  roadPolylines.forEach((pl: any) => {
+    try {
+      const ext = pl.getExtData?.() || {}
+      const dp = ext.dp
+      if (!dp) return
+      const key = `${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`
+      const isTarget = targetDps.has(key)
+      if (pl.setOptions) {
+        if (isTarget) {
+          // 目标道路标记：提升透明度和权重
+          pl.setOptions({ strokeOpacity: 1, fillOpacity: ext._ringType === 'inner' ? 0.35 : 0, strokeWeight: 2, zIndex: 200 })
+        } else {
+          // 非目标道路标记：降低透明度
+          pl.setOptions({ strokeOpacity: 0.15, fillOpacity: ext._ringType === 'inner' ? 0.04 : 0, strokeWeight: 0.5, zIndex: 10 })
+        }
+      } else if (pl.setOpacity) {
+        // Marker 类型
+        pl.setOpacity(isTarget ? 1 : 0.2)
+      }
+    } catch(e) {}
+  })
+}
+
+// 清除高亮，恢复所有标记到正常状态
+function clearRoadHighlight() {
+  focusedRoadId.value = null
+  roadPolylines.forEach((pl: any) => {
+    try {
+      const ext = pl.getExtData?.() || {}
+      const colorInfo = ext.colorInfo
+      const sev = ext._sevLevel
+      if (pl.setOptions && colorInfo) {
+        if (ext._ringType === 'outer') {
+          pl.setOptions({ strokeOpacity: 0.55, fillOpacity: 0, strokeWeight: 1.2 })
+        } else if (ext._ringType === 'inner') {
+          pl.setOptions({ strokeOpacity: 0.45, fillOpacity: 0.16, strokeWeight: 1 })
+        }
+      } else if (pl.setOpacity) {
+        pl.setOpacity(1)
+      }
+    } catch(e) {}
+  })
+}
 const layers = ref([
   { id: "sev_high", label: "严重", color: "#ef4444", count: 0, visible: true },
   { id: "sev_medium", label: "中等", color: "#f59e0b", count: 0, visible: true },
@@ -404,6 +636,12 @@ function initMap() {
     pitch: 0,
   })
   map.on("zoomchange", () => { zoomLevel.value = map.getZoom() })
+  // 点击地图空白处清除道路高亮
+  map.on("click", () => {
+    if (focusedRoadId.value !== null) {
+      clearRoadHighlight()
+    }
+  })
   // 初始化批量逆地理编码器（复用 Geocoder 单例）
   batchGeocoder.init()
 }
@@ -488,7 +726,7 @@ function refreshMapData() {
   loadMapAnalysisData()
 }
 function exportReport() { selectedDisease.value = null; showCapacity.value = false }
-function createWorkOrder() { if (selectedDisease.value) { (selectedDisease.value as any).orderId = "WO-2026" + Date.now().toString().slice(-6) } }
+
 
 function startTimeUpdate() {
   const update = () => {
@@ -591,11 +829,11 @@ async function loadDiseaseData() {
  * 兰图绘风格：病害点标记 + 辐射范围
  * 颜色按病害严重等级区分
  */
-const MARKER_COLORS: Record<string, { fill: string; stroke: string; label: string }> = {
-  HIGH:     { fill: "#ef4444", stroke: "#b91c1c", label: "严重" },
-  MEDIUM:   { fill: "#f59e0b", stroke: "#b45309", label: "中等" },
-  LOW:      { fill: "#22c55e", stroke: "#15803d", label: "轻微" },
-  REPAIRED: { fill: "#3b82f6", stroke: "#1d4ed8", label: "已维修" },
+const MARKER_COLORS: Record<string, { fill: string; stroke: string; ring: string; label: string; radius: number }> = {
+  HIGH:     { fill: "#ef4444", stroke: "#b91c1c", ring: "rgba(239,68,68,0.35)",  label: "严重", radius: 1000 },
+  MEDIUM:   { fill: "#f59e0b", stroke: "#b45309", ring: "rgba(245,158,11,0.30)", label: "中等", radius: 700  },
+  LOW:      { fill: "#22c55e", stroke: "#15803d", ring: "rgba(34,197,94,0.28)",  label: "轻微", radius: 500  },
+  REPAIRED: { fill: "#3b82f6", stroke: "#1d4ed8", ring: "rgba(59,130,246,0.30)", label: "已维修", radius: 600 },
 }
 
 /**
@@ -668,20 +906,56 @@ const geocodeCache = {
 /**
  * 生成自定义水滴标记的 SVG 字符串
  */
-function createPinIcon(color: string): string {
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-      <defs>
-        <filter id="shadow" x="-30%" y="-20%" width="160%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.28)"/>
-        </filter>
-      </defs>
-      <path fill="${color}"
-        d="M14 34C5 24 0 19 0 12C0 5.4 6.3 0 14 0C21.7 0 28 5.4 28 12C28 19 23 24 14 34Z"
-        filter="url(#shadow)"/>
-      <circle cx="14" cy="12" r="5.5" fill="#fff"/>
-    </svg>
-  `.replace(/#/g, "%23")
+/**
+ * 生成水滴形标记的 SVG data URL
+ * - 保留经典水滴外观，含阴影 + 白色内圆
+ * - 用 encodeURIComponent 编码以支持 AMap.Icon image 字段
+ *
+ * @param fill   主色（实心填充）
+ * @param stroke 描边色（深色，用于内圆描边以增强对比）
+ */
+function createPinIcon(fill: string, stroke: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40">
+    <defs>
+      <filter id="ds" x="-30%" y="-20%" width="160%" height="140%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/>
+      </filter>
+    </defs>
+    <path fill="${fill}" d="M15 38C5 27 0 21 0 13C0 5.8 6.7 0 15 0C23.3 0 30 5.8 30 13C30 21 25 27 15 38Z" filter="url(#ds)"/>
+    <circle cx="15" cy="13" r="6" fill="#fff"/>
+    <circle cx="15" cy="13" r="6" fill="none" stroke="${stroke}" stroke-width="1.2" stroke-opacity="0.55"/>
+  </svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+/**
+ * 生成圆框道路信息标签的 HTML
+ * - 药丸形（border-radius: 999px），与水滴同一色系
+ * - 左侧小色块 + 道路名文字
+ * - 阴影 + 半透明白底，保证在地图上的可读性
+ *
+ * @param roadName 道路名（"加载中..." 或真实名称）
+ * @param fill     等级主色
+ * @param stroke   等级描边色
+ */
+function createRoadLabel(roadName: string, fill: string, stroke: string): string {
+  const safe = (roadName || "未知道路").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  return `<div class="ds-road-label" style="
+    display:inline-flex;align-items:center;gap:5px;
+    background:rgba(255,255,255,0.96);
+    border:1.5px solid ${fill};
+    border-radius:999px;
+    padding:3px 10px 3px 6px;
+    font-size:11px;font-weight:600;
+    color:#1e293b;
+    box-shadow:0 2px 8px rgba(0,0,0,0.12);
+    white-space:nowrap;max-width:150px;
+    overflow:hidden;text-overflow:ellipsis;
+    line-height:1.4;
+  "><span style="
+    display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:${fill};border:1px solid ${stroke};flex-shrink:0;
+  "></span><span style="overflow:hidden;text-overflow:ellipsis;">${safe}</span></div>`
 }
 
 /**
@@ -913,56 +1187,64 @@ async function loadRoadDiseaseData() {
         const isRepaired = (dp.workOrderNo === "CLOSED" || dp.workOrderNo === "COMPLETED")
         const colorInfo = isRepaired ? MARKER_COLORS.REPAIRED : (MARKER_COLORS[sev] || MARKER_COLORS.MEDIUM)
 
-        // 1. 辐射范围：半透明圆形覆盖（默认 800 米）
-        const circle = new window.AMap.Circle({
+        // 1. 辐射范围：双层同心圆（外圈虚线 + 内圈实心），半径随等级区分
+        const baseRadius = (dp as any).radius ? (dp as any).radius : colorInfo.radius
+        const outerRing = new window.AMap.Circle({
           center: [dp.lng, dp.lat],
-          radius: (dp as any).radius ? (dp as any).radius : 800,
-          fillColor: colorInfo.fill,
-          fillOpacity: 0.18,
-          strokeColor: colorInfo.stroke,
-          strokeWeight: 1,
-          strokeOpacity: 0.4,
-          zIndex: 50,
-          extData: { dp, colorInfo, _sevLevel: sev },
+          radius: baseRadius * 1.15,
+          fillColor: "transparent",
+          fillOpacity: 0,
+          strokeColor: colorInfo.fill,
+          strokeWeight: 1.2,
+          strokeOpacity: 0.55,
+          strokeStyle: "dashed",
+          zIndex: 48,
+          extData: { dp, colorInfo, _sevLevel: sev, _ringType: "outer" },
         })
-        map?.add(circle)
-        roadPolylines.push(circle)
+        map?.add(outerRing)
+        roadPolylines.push(outerRing)
 
-        // 2. 位置符号：自定义水滴标记
+        const innerFill = new window.AMap.Circle({
+          center: [dp.lng, dp.lat],
+          radius: baseRadius,
+          fillColor: colorInfo.fill,
+          fillOpacity: 0.16,
+          strokeColor: colorInfo.fill,
+          strokeWeight: 1,
+          strokeOpacity: 0.45,
+          zIndex: 50,
+          extData: { dp, colorInfo, _sevLevel: sev, _ringType: "inner" },
+        })
+        map?.add(innerFill)
+        roadPolylines.push(innerFill)
+
+        // 2. 位置符号：经典水滴标记（固定 30×40 像素 SVG，含阴影）
         const icon = new window.AMap.Icon({
-          image: `data:image/svg+xml,${createPinIcon(colorInfo.fill)}`,
-          size: new window.AMap.Size(28, 36),
-          imageSize: new window.AMap.Size(28, 36),
+          image: createPinIcon(colorInfo.fill, colorInfo.stroke),
+          size: new window.AMap.Size(30, 40),
+          imageSize: new window.AMap.Size(30, 40),
           imageOffset: new window.AMap.Pixel(0, 0),
         })
-
         const marker = new window.AMap.Marker({
           position: [dp.lng, dp.lat],
           icon,
-          offset: new window.AMap.Pixel(-14, -36),
-          anchor: 'bottom-center',
+          // anchor="center" 时图标几何中心严格落在 (lng,lat)，
+          // 与 AMap.Circle 圆心重合，缩放时不会错位
+          offset: new window.AMap.Pixel(0, 0),
+          anchor: "center",
           zIndex: 100,
           extData: { dp, colorInfo, _sevLevel: sev },
         })
 
-        // 文字标签：先显示"加载中..."，逆地理编码返回后更新为真实道路名
-        const label = new window.AMap.Text({
+        // 文字标签：用 AMap.Marker + DOM content 实现药丸标签，
+        // 避免 AMap.Text 默认外层白底/边框/阴影造成"白框套白框"的冗余
+        const labelEl = document.createElement("div")
+        labelEl.innerHTML = createRoadLabel("加载中...", colorInfo.fill, colorInfo.stroke)
+        const label = new window.AMap.Marker({
           position: [dp.lng, dp.lat],
-          text: `<div style="
-            background:#fff;
-            border:1px solid #cbd5e1;
-            border-radius:8px;
-            padding:3px 8px;
-            font-size:11px;
-            font-weight:600;
-            color:#334155;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1);
-            white-space:nowrap;
-            max-width:140px;
-            overflow:hidden;
-            text-overflow:ellipsis;
-          ">加载中...</div>`,
-          offset: new window.AMap.Pixel(16, -28),
+          content: labelEl,
+          // 标签高度约 22px，向上偏移 11px 让它垂直居中于水滴几何中心
+          offset: new window.AMap.Pixel(20, -11),
           anchor: "middle-left",
           zIndex: 110,
           extData: { _sevLevel: sev },
@@ -972,20 +1254,7 @@ async function loadRoadDiseaseData() {
         reverseGeocodeRoad(dp.lng, dp.lat).then((roadName) => {
           // 同步缓存到 geocodeCache（供 click 事件同步读取）
           geocodeCache.set(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`, roadName)
-          label.setText(`<div style="
-            background:#fff;
-            border:1px solid #cbd5e1;
-            border-radius:8px;
-            padding:3px 8px;
-            font-size:11px;
-            font-weight:600;
-            color:#334155;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1);
-            white-space:nowrap;
-            max-width:140px;
-            overflow:hidden;
-            text-overflow:ellipsis;
-          ">${roadName}</div>`)
+          labelEl.innerHTML = createRoadLabel(roadName, colorInfo.fill, colorInfo.stroke)
         })
 
         marker.on('click', () => {
@@ -1009,7 +1278,7 @@ async function loadRoadDiseaseData() {
           }
         })
 
-        circle.on('click', () => {
+        innerFill.on('click', () => {
           const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
           const woNo = dp.workOrderNo || ""
@@ -1120,40 +1389,59 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       const isRepaired = (dp.workOrderNo === "CLOSED" || dp.workOrderNo === "COMPLETED")
       const colorInfo = isRepaired ? MARKER_COLORS.REPAIRED : (MARKER_COLORS[sev] || MARKER_COLORS.MEDIUM)
 
-      const circle = new window.AMap.Circle({
+      const baseRadius = (dp as any).radius ? (dp as any).radius : colorInfo.radius
+      const outerRing = new window.AMap.Circle({
         center: [dp.lng, dp.lat],
-        radius: (dp as any).radius ? (dp as any).radius : 800,
-        fillColor: colorInfo.fill,
-        fillOpacity: 0.18,
-        strokeColor: colorInfo.stroke,
-        strokeWeight: 1,
-        strokeOpacity: 0.4,
-        zIndex: 50,
-        extData: { dp, colorInfo, _sevLevel: sev },
+        radius: baseRadius * 1.15,
+        fillColor: "transparent",
+        fillOpacity: 0,
+        strokeColor: colorInfo.fill,
+        strokeWeight: 1.2,
+        strokeOpacity: 0.55,
+        strokeStyle: "dashed",
+        zIndex: 48,
+        extData: { dp, colorInfo, _sevLevel: sev, _ringType: "outer" },
       })
-      map?.add(circle)
-      roadPolylines.push(circle)
+      map?.add(outerRing)
+      roadPolylines.push(outerRing)
+
+      const innerFill = new window.AMap.Circle({
+        center: [dp.lng, dp.lat],
+        radius: baseRadius,
+        fillColor: colorInfo.fill,
+        fillOpacity: 0.16,
+        strokeColor: colorInfo.fill,
+        strokeWeight: 1,
+        strokeOpacity: 0.45,
+        zIndex: 50,
+        extData: { dp, colorInfo, _sevLevel: sev, _ringType: "inner" },
+      })
+      map?.add(innerFill)
+      roadPolylines.push(innerFill)
 
       const icon = new window.AMap.Icon({
-        image: `data:image/svg+xml,${createPinIcon(colorInfo.fill)}`,
-        size: new window.AMap.Size(28, 36),
-        imageSize: new window.AMap.Size(28, 36),
+        image: createPinIcon(colorInfo.fill, colorInfo.stroke),
+        size: new window.AMap.Size(30, 40),
+        imageSize: new window.AMap.Size(30, 40),
         imageOffset: new window.AMap.Pixel(0, 0),
       })
-
       const marker = new window.AMap.Marker({
         position: [dp.lng, dp.lat],
         icon,
-        offset: new window.AMap.Pixel(-14, -36),
-        anchor: 'bottom-center',
+        // anchor="center" 时图标几何中心严格落在 (lng,lat)，
+        // 与 AMap.Circle 圆心重合，缩放时不会错位
+        offset: new window.AMap.Pixel(0, 0),
+        anchor: "center",
         zIndex: 100,
         extData: { dp, colorInfo, _sevLevel: sev },
       })
 
-      const label = new window.AMap.Text({
+      const labelEl = document.createElement("div")
+      labelEl.innerHTML = createRoadLabel("加载中...", colorInfo.fill, colorInfo.stroke)
+      const label = new window.AMap.Marker({
         position: [dp.lng, dp.lat],
-        text: `<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">加载中...</div>`,
-        offset: new window.AMap.Pixel(16, -28),
+        content: labelEl,
+        offset: new window.AMap.Pixel(20, -11),
         anchor: "middle-left",
         zIndex: 110,
         extData: { _sevLevel: sev },
@@ -1163,7 +1451,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       reverseGeocodeRoad(dp.lng, dp.lat).then((roadName) => {
         // 同步缓存到 geocodeCache（供 click 事件同步读取）
         geocodeCache.set(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`, roadName)
-        label.setText(`<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${roadName}</div>`)
+        labelEl.innerHTML = createRoadLabel(roadName, colorInfo.fill, colorInfo.stroke)
       })
 
       marker.on('click', () => {
@@ -1186,7 +1474,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
         }
       })
 
-      circle.on('click', () => {
+      innerFill.on('click', () => {
         const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
         let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
         const woNo = dp.workOrderNo || ""
@@ -1216,7 +1504,8 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       const layerId = `sev_${sev.toLowerCase()}`
       const layer = layers.value.find(l => l.id === layerId)
       if (layer && !layer.visible) {
-        try { circle.hide() } catch(e) {}
+        try { outerRing.hide() } catch(e) {}
+        try { innerFill.hide() } catch(e) {}
         try { marker.hide() } catch(e) {}
         try { label.hide() } catch(e) {}
       }
@@ -1428,10 +1717,24 @@ onUnmounted(() => {
 .ds-tab-panel { overflow-y:auto; flex:1; display:flex; flex-direction:column; padding:16px; gap:0; }
 .ds-tab-panel::-webkit-scrollbar { width:4px; }
 .ds-tab-panel::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:2px; }
-.ds-sb-search { display:flex; align-items:center; gap:6px; margin:0 0 16px; padding:8px 12px; background:#f8f9fc; border:1px solid #eef0f4; border-radius:8px; }
+.ds-sb-search-wrap { position:relative; margin-bottom:16px; }
+.ds-sb-search { display:flex; align-items:center; gap:6px; padding:8px 12px; background:#f8f9fc; border:1px solid #eef0f4; border-radius:8px; }
 .ds-sb-search svg { color:#94a3b8; flex-shrink:0; }
 .ds-sb-search input { flex:1; border:none; background:transparent; outline:none; font-size:13px; color:#1e293b; font-family:inherit; }
 .ds-sb-search input::placeholder { color:#94a3b8; }
+.ds-search-results { position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:280px; overflow-y:auto; background:#fff; border:1px solid #eef0f4; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.12); z-index:200; }
+.ds-search-item { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; transition:background 0.12s; border-bottom:1px solid #f1f5f9; }
+.ds-search-item:last-child { border-bottom:none; }
+.ds-search-item:hover { background:#f8f9fc; }
+.ds-search-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.ds-search-info { flex:1; min-width:0; }
+.ds-search-name { font-size:13px; font-weight:500; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ds-search-meta { font-size:11px; color:#94a3b8; margin-top:1px; }
+.ds-search-arrow { color:#cbd5e1; flex-shrink:0; }
+.ds-search-empty { padding:12px; text-align:center; font-size:12px; color:#94a3b8; background:#fff; border:1px solid #eef0f4; border-radius:8px; margin-top:4px; }
+.ds-rank-item { margin-bottom:8px; padding:6px 8px; border-radius:6px; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; border:1px solid transparent; }
+.ds-rank-item:hover { background:#f0f5ff; border-color:#c7d7fe; box-shadow:0 2px 8px rgba(67,97,238,0.10); }
+.ds-rank-item:active { background:#e0e7ff; }
 .ds-sb-section { padding:0; margin-bottom:16px; }
 .ds-sb-section-title { padding:0 0 0; margin-bottom:10px; font-size:11px; font-weight:600; color:#94a3b8; letter-spacing:0.04em; }
 .ds-layer-item { margin-bottom:2px; }

@@ -6,6 +6,7 @@
         <p class="page-desc">道路信息维护、健康评分与关联数据查看</p>
       </div>
       <div class="header-actions">
+        <button class="btn-primary" @click="openCreateModal">+ 新增道路</button>
         <router-link to="/road-health" class="btn-ghost">健康档案</router-link>
         <router-link to="/road-maintenance" class="btn-ghost">养护记录</router-link>
       </div>
@@ -51,6 +52,8 @@
             <span class="status-badge" :class="statusCls(road.status)">{{ statusLabel(road.status) }}</span>
             <div class="road-actions">
               <button class="action-btn" @click="viewRoad(road)">详情</button>
+              <button class="action-btn" @click="openEditModal(road)">编辑</button>
+              <button class="action-btn action-danger" @click="confirmDelete(road)">删除</button>
               <router-link :to="'/work-orders?keyword='+encodeURIComponent(road.roadName)" class="action-btn" style="text-decoration:none">工单</router-link>
               <router-link :to="'/road-health'" class="action-btn" style="text-decoration:none">档案</router-link>
             </div>
@@ -95,12 +98,94 @@
         </div>
       </div>
     </div>
+
+    <!-- Create/Edit Modal -->
+    <div v-if="showForm" class="modal-overlay" @click.self="showForm=false">
+      <div class="modal-card">
+        <div class="modal-head"><span>{{ editingRoad ? '编辑道路' : '新增道路' }}</span><button class="modal-close" @click="showForm=false">✕</button></div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-item">
+              <label>道路名称 <span class="req">*</span></label>
+              <input v-model="formData.roadName" placeholder="如：长安街" />
+            </div>
+            <div class="form-item">
+              <label>道路编码</label>
+              <input v-model="formData.roadCode" placeholder="如：RD-0001" />
+            </div>
+            <div class="form-item">
+              <label>道路等级</label>
+              <select v-model="formData.roadGrade">
+                <option value="">请选择</option>
+                <option value="主干道">主干道</option>
+                <option value="快速路">快速路</option>
+                <option value="次干道">次干道</option>
+                <option value="支路">支路</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label>所属区域</label>
+              <input v-model="formData.district" placeholder="如：海淀区" />
+            </div>
+            <div class="form-item">
+              <label>起点</label>
+              <input v-model="formData.startPoint" placeholder="如：复兴门" />
+            </div>
+            <div class="form-item">
+              <label>终点</label>
+              <input v-model="formData.endPoint" placeholder="如：建国门" />
+            </div>
+            <div class="form-item">
+              <label>长度(km)</label>
+              <input v-model.number="formData.lengthKm" type="number" step="0.1" placeholder="如：3.5" />
+            </div>
+            <div class="form-item">
+              <label>车道数</label>
+              <input v-model.number="formData.laneCount" type="number" placeholder="如：6" />
+            </div>
+            <div class="form-item">
+              <label>路面类型</label>
+              <select v-model="formData.surfaceType">
+                <option value="">请选择</option>
+                <option value="沥青">沥青</option>
+                <option value="水泥">水泥</option>
+                <option value="混合">混合</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label>建成年代</label>
+              <input v-model.number="formData.builtYear" type="number" placeholder="如：2010" />
+            </div>
+            <div class="form-item">
+              <label>状态</label>
+              <select v-model="formData.status">
+                <option value="ACTIVE">运营中</option>
+                <option value="MAINTAINING">养护中</option>
+                <option value="CLOSED">封闭</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label>责任部门编码</label>
+              <input v-model="formData.departmentCode" placeholder="如：DEPT_BJ" />
+            </div>
+            <div class="form-item form-item-full">
+              <label>备注</label>
+              <textarea v-model="formData.remark" rows="2" placeholder="可选备注信息"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-ghost" @click="showForm=false">取消</button>
+          <button class="btn-primary" @click="handleSaveRoad" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from "vue"
-import { ElMessage } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { roadApi } from "@/api"
 import type { RoadResponse } from "@/types"
 
@@ -113,6 +198,111 @@ const loading = ref(false)
 
 const roads = ref<RoadResponse[]>([])
 const stats = reactive({ totalRoads: 0, healthy: 0, warning: 0, danger: 0, totalDamages: 0 })
+
+// --- Create/Edit Modal ---
+const showForm = ref(false)
+const editingRoad = ref<RoadResponse | null>(null)
+const saving = ref(false)
+const formData = reactive<{
+  roadName: string; roadCode: string; roadGrade: string; district: string;
+  startPoint: string; endPoint: string; lengthKm: number | undefined;
+  laneCount: number | undefined; surfaceType: string; builtYear: number | undefined;
+  status: string; departmentCode: string; remark: string
+}>({
+  roadName: "", roadCode: "", roadGrade: "", district: "",
+  startPoint: "", endPoint: "", lengthKm: undefined,
+  laneCount: undefined, surfaceType: "", builtYear: undefined,
+  status: "ACTIVE", departmentCode: "", remark: ""
+})
+
+function resetForm() {
+  formData.roadName = ""; formData.roadCode = ""; formData.roadGrade = ""; formData.district = ""
+  formData.startPoint = ""; formData.endPoint = ""; formData.lengthKm = undefined
+  formData.laneCount = undefined; formData.surfaceType = ""; formData.builtYear = undefined
+  formData.status = "ACTIVE"; formData.departmentCode = ""; formData.remark = ""
+}
+
+function openCreateModal() {
+  editingRoad.value = null
+  resetForm()
+  showForm.value = true
+}
+
+function openEditModal(road: RoadResponse) {
+  editingRoad.value = road
+  formData.roadName = road.roadName || ""
+  formData.roadCode = road.roadCode || ""
+  formData.roadGrade = road.roadGrade || ""
+  formData.district = road.district || ""
+  formData.startPoint = road.startPoint || ""
+  formData.endPoint = road.endPoint || ""
+  formData.lengthKm = road.lengthKm
+  formData.laneCount = road.laneCount
+  formData.surfaceType = road.surfaceType || ""
+  formData.builtYear = road.builtYear
+  formData.status = road.status || "ACTIVE"
+  formData.departmentCode = road.departmentCode || ""
+  formData.remark = road.remark || ""
+  showForm.value = true
+}
+
+async function handleSaveRoad() {
+  if (!formData.roadName.trim()) {
+    ElMessage.warning("请输入道路名称")
+    return
+  }
+  saving.value = true
+  try {
+    const payload: Partial<RoadResponse> = {
+      roadName: formData.roadName.trim(),
+      roadCode: formData.roadCode.trim() || undefined,
+      roadGrade: formData.roadGrade || undefined,
+      district: formData.district || undefined,
+      startPoint: formData.startPoint || undefined,
+      endPoint: formData.endPoint || undefined,
+      lengthKm: formData.lengthKm,
+      laneCount: formData.laneCount,
+      surfaceType: formData.surfaceType || undefined,
+      builtYear: formData.builtYear,
+      status: formData.status,
+      departmentCode: formData.departmentCode || undefined,
+      remark: formData.remark || undefined,
+    }
+    if (editingRoad.value) {
+      await roadApi.update(editingRoad.value.id!, payload)
+      ElMessage.success("道路信息已更新")
+    } else {
+      await roadApi.create(payload)
+      ElMessage.success("道路已创建")
+    }
+    showForm.value = false
+    await loadData()
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || "操作失败"
+    ElMessage.error(msg)
+  }
+  saving.value = false
+}
+
+async function confirmDelete(road: RoadResponse) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除道路「${road.roadName}」？该道路下如有检测任务将无法删除。`,
+      "确认删除",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
+    )
+  } catch {
+    return
+  }
+  try {
+    await roadApi.remove(road.id!)
+    ElMessage.success("道路已删除")
+    await loadData()
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || "删除失败"
+    ElMessage.error(msg)
+  }
+}
 
 const filteredRoads = computed(() => {
   return roads.value.filter(r => {
@@ -244,4 +434,20 @@ onMounted(loadData)
 .detail-item label { font-size:11px; font-weight:600; color:#64748b; }
 .detail-item span { font-size:14px; color:#0f172a; }
 .modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #f0f2f5; }
+
+/* Form styles */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.form-item { display:flex; flex-direction:column; gap:4px; }
+.form-item-full { grid-column:1/-1; }
+.form-item label { font-size:11px; font-weight:600; color:#64748b; }
+.form-item .req { color:#dc2626; }
+.form-item input, .form-item select, .form-item textarea {
+  padding:7px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; color:#1e293b;
+  font-family:inherit; outline:none; transition:border-color .15s; background:#fff;
+}
+.form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color:#2563eb; }
+.form-item textarea { resize:vertical; }
+.action-danger { color:#dc2626 !important; border-color:#fecaca !important; }
+.action-danger:hover { background:#fef2f2; border-color:#dc2626 !important; }
+.btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
 </style>

@@ -99,8 +99,12 @@ async function send() {
     const res = await agentApi.chat({ message: text })
     const data = res.data.data
     messages.value.push({ role: "ai", content: data.answer || "暂无回复", time: getTime(), dataSource: data.dataSource || "ai" })
-  } catch {
-    messages.value.push({ role: "ai", content: "AI服务暂时不可用，请稍后重试。", time: getTime(), dataSource: "error" })
+  } catch (err: any) {
+    const isTimeout = err?.code === "ECONNABORTED" || (err?.message || "").includes("timeout")
+    const errorMsg = isTimeout
+      ? "AI 正在思考中，响应超时了。请稍后重试，或换个简短的问题。"
+      : "AI 服务暂时不可用，请稍后重试。"
+    messages.value.push({ role: "ai", content: errorMsg, time: getTime(), dataSource: "error" })
   }
   typing.value = false
   scrollBottom()

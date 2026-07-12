@@ -69,7 +69,18 @@
       <!-- Right: AMap -->
       <div class="card map-card">
         <div class="map-search-bar">
-          <input v-model="searchKeyword" class="map-search-input" placeholder="点击地图选择位置" @keyup.enter="doSearch" />
+          <div class="map-search-wrap">
+            <input v-model="searchKeyword" class="map-search-input" placeholder="搜索地点，如：天安门、西湖、外滩..." @input="onSearchInput" @keyup.enter="doSearch" @focus="onSearchInput" @blur="hideSuggestions" />
+            <div v-if="suggestions.length > 0" class="map-suggestions">
+              <div v-for="(s, i) in suggestions" :key="i" class="map-suggestion-item" @mousedown.prevent="selectSuggestion(s)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <div class="ms-info">
+                  <div class="ms-name">{{ s.name }}</div>
+                  <div class="ms-addr">{{ s.address || s.district || '' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
           <button class="map-search-btn" @click="doSearch">搜索</button>
         </div>
         <div id="collectionMap" class="map-container"></div>
@@ -204,10 +215,13 @@ const resultImageUrl = computed(() => {
 const searchKeyword = ref("")
 const selectedPos = ref<{lng:number;lat:number} | null>(null)
 const selectedAddr = ref("")
+const suggestions = ref<any[]>([])
 let map: any = null
 let marker: any = null
 let placeSearch: any = null
 let geocoder: any = null
+let autoComplete: any = null
+let suggestTimer: ReturnType<typeof setTimeout> | null = null
 
 function handleImgError(e: Event) { (e.target as HTMLElement).style.display = "none" }
 
@@ -237,8 +251,9 @@ function initMap() {
       placeMarker(lng, lat)
       reverseGeocode(lng, lat)
     })
-    placeSearch = new window.AMap.PlaceSearch({ city: "北京", citylimit: true })
-    geocoder = new window.AMap.Geocoder({ city: "北京", radius: 1000 })
+    placeSearch = new window.AMap.PlaceSearch({ city: "全国", citylimit: false, pageSize: 10 })
+    geocoder = new window.AMap.Geocoder({ city: "全国", radius: 1000 })
+    autoComplete = new window.AMap.Autocomplete({ city: "全国" })
   } catch (e) { console.error("AMap init error:", e) }
 }
 
@@ -264,8 +279,53 @@ function reverseGeocode(lng: number, lat: number) {
   })
 }
 
+function onSearchInput() {
+  if (suggestTimer) clearTimeout(suggestTimer)
+  const kw = searchKeyword.value.trim()
+  if (!kw) { suggestions.value = []; return }
+  suggestTimer = setTimeout(() => {
+    if (!autoComplete) return
+    autoComplete.search(kw, (status: string, result: any) => {
+      if (status === "complete" && result.tips) {
+        suggestions.value = result.tips
+          .filter((t: any) => t.location && t.location.lng && t.location.lat)
+          .slice(0, 8)
+          .map((t: any) => ({
+            name: t.name,
+            address: t.district || "",
+            district: t.district || "",
+            lng: t.location.lng,
+            lat: t.location.lat,
+          }))
+      } else {
+        suggestions.value = []
+      }
+    })
+  }, 300)
+}
+
+function selectSuggestion(s: any) {
+  searchKeyword.value = s.name
+  suggestions.value = []
+  selectedPos.value = { lng: s.lng, lat: s.lat }
+  selectedAddr.value = s.name + (s.address ? " - " + s.address : "")
+  placeMarker(s.lng, s.lat)
+  map.setZoom(15)
+  reverseGeocode(s.lng, s.lat)
+}
+
+function hideSuggestions() {
+  setTimeout(() => { suggestions.value = [] }, 200)
+}
+
 function doSearch() {
-  if (!placeSearch || !searchKeyword.value.trim()) return
+  if (!searchKeyword.value.trim()) return
+  // 如果有提示项，选择第一个
+  if (suggestions.value.length > 0) {
+    selectSuggestion(suggestions.value[0])
+    return
+  }
+  if (!placeSearch) return
   placeSearch.search(searchKeyword.value.trim(), (status: string, result: any) => {
     if (status === "complete" && result.poiList?.pois?.length) {
       const poi = result.poiList.pois[0]
@@ -274,10 +334,9 @@ function doSearch() {
       selectedAddr.value = poi.name + " - " + (poi.address || "")
       placeMarker(lng, lat)
       map.setZoom(15)
-      // 逆地理编码获取道路名
       reverseGeocode(lng, lat)
     } else {
-      ElMessage.warning("请先在地图上选择位置")
+      ElMessage.warning("未找到相关地点，请尝试更具体的关键词")
     }
   })
 }
@@ -413,6 +472,14 @@ onUnmounted(() => {
 .map-search-input:focus { border-color: #2563eb; }
 .map-search-btn { padding: 7px 16px; background: #2563eb; border: none; border-radius: 8px; color: #fff; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; white-space: nowrap; }
 .map-search-btn:hover { background: #1d4ed8; }
+.map-search-wrap { flex: 1; position: relative; }
+.map-suggestions { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-height: 280px; overflow-y: auto; z-index: 1000; }
+.map-suggestion-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; transition: background 0.12s; border-bottom: 1px solid #f8f9fc; }
+.map-suggestion-item:last-child { border-bottom: none; }
+.map-suggestion-item:hover { background: #eff6ff; }
+.ms-info { flex: 1; min-width: 0; }
+.ms-name { font-size: 13px; color: #0f172a; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-addr { font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .map-container { flex: 1; min-height: 500px; border-radius: 0 0 12px 12px; }
 .map-pos-info { padding: 8px 14px; background: #f0f9ff; border-top: 1px solid #e0f2fe; font-size: 12px; color: #0369a1; display: flex; flex-direction: column; gap: 2px; }
 .map-addr { font-size: 11px; color: #64748b; }

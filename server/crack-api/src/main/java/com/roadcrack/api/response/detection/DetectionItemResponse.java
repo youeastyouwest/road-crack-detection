@@ -4,6 +4,7 @@ import com.roadcrack.api.enums.DamageType;
 import com.roadcrack.api.enums.SeverityLevel;
 
 public record DetectionItemResponse(
+        Long id,
         DamageType damageType,
         SeverityLevel severityLevel,
         double confidence,

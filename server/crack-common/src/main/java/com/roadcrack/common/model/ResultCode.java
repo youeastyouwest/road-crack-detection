@@ -32,6 +32,10 @@ public enum ResultCode {
     DEPT_HAS_CHILDREN(3003, "department still has child departments"),
     DEPT_HAS_USERS(3004, "department still has users"),
 
+    ROAD_NOT_FOUND(5001, "road not found"),
+    ROAD_CODE_EXISTS(5002, "road code already exists"),
+    ROAD_HAS_DETECTIONS(5003, "road still has detection tasks"),
+
     FILE_UPLOAD_FAIL(4001, "file upload failed"),
     FILE_TYPE_ERROR(4002, "unsupported file type"),
     FILE_SIZE_EXCEED(4003, "file size exceeds limit"),

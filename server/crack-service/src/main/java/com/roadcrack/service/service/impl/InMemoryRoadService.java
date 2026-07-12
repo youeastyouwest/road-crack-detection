@@ -147,6 +147,60 @@ public class InMemoryRoadService implements RoadService {
         return listAll();
     }
 
+    @Override
+    public com.roadcrack.dao.entity.RoadEntity getById(Long id) {
+        SeededRoad r = roads.get(id);
+        if (r == null) return null;
+        return toEntity(r);
+    }
+
+    @Override
+    public void createRoad(com.roadcrack.dao.entity.RoadEntity road) {
+        long id = idGen.getAndIncrement();
+        if (road.getRoadCode() == null || road.getRoadCode().isBlank()) {
+            road.setRoadCode("RD-" + String.format("%04d", id));
+        }
+        if (road.getStatus() == null || road.getStatus().isBlank()) {
+            road.setStatus("ACTIVE");
+        }
+        road.setId(id);
+        road.setCreatedAt(LocalDateTime.now());
+        SeededRoad sr = new SeededRoad(id,
+                road.getRoadName() != null ? road.getRoadName() : "Unnamed",
+                road.getCenterLng() != null ? road.getCenterLng().doubleValue() : 0,
+                road.getCenterLat() != null ? road.getCenterLat().doubleValue() : 0,
+                new ArrayList<>());
+        sr.entity = road;
+        roads.put(id, sr);
+    }
+
+    @Override
+    public void updateRoad(com.roadcrack.dao.entity.RoadEntity road) {
+        SeededRoad r = roads.get(road.getId());
+        if (r == null) return;
+        if (road.getRoadName() != null) r.name = road.getRoadName();
+        if (road.getCenterLng() != null) r.centerLng = road.getCenterLng().doubleValue();
+        if (road.getCenterLat() != null) r.centerLat = road.getCenterLat().doubleValue();
+        r.entity = road;
+    }
+
+    @Override
+    public void deleteRoad(Long id) {
+        roads.remove(id);
+    }
+
+    private com.roadcrack.dao.entity.RoadEntity toEntity(SeededRoad r) {
+        if (r.entity != null) return r.entity;
+        // fallback: build from seeded data
+        com.roadcrack.dao.entity.RoadEntity e = new com.roadcrack.dao.entity.RoadEntity();
+        e.setId(r.id);
+        e.setRoadCode("RD-" + String.format("%04d", r.id));
+        e.setRoadName(r.name);
+        e.setStatus("ACTIVE");
+        e.setCreatedAt(LocalDateTime.now().minusMonths(6));
+        return e;
+    }
+
     private void seedRoads() {
         // Beijing area seeded roads for demonstration
         addRoad("ChangAn Street", 39.909, 116.397, new double[][]{{116.38,39.908},{116.42,39.910}});
@@ -239,10 +293,11 @@ public class InMemoryRoadService implements RoadService {
 
     private static class SeededRoad {
         final long id;
-        final String name;
-        final double centerLng;
-        final double centerLat;
+        String name;
+        double centerLng;
+        double centerLat;
         final List<double[]> path;
+        com.roadcrack.dao.entity.RoadEntity entity;
 
         SeededRoad(long id, String name, double centerLng, double centerLat, List<double[]> path) {
             this.id = id;

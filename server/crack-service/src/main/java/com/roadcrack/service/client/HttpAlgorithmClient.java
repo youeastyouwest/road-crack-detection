@@ -160,7 +160,7 @@ public class HttpAlgorithmClient implements AlgorithmClient {
                         bbox = new BoundingBoxResponse(0, 0, 0, 0);
                     }
                     String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
-                    items.add(new DetectionItemResponse(parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
+                    items.add(new DetectionItemResponse(null, parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
                 }
             }
             int total = data.path("num_detections").asInt(items.size());

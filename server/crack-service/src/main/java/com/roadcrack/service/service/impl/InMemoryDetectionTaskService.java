@@ -19,6 +19,7 @@ import com.roadcrack.service.client.AlgorithmClient;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.DetectionTaskService;
 import com.roadcrack.service.service.WorkOrderService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,15 +49,18 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
     private final WorkOrderService workOrderService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final TaskExecutor detectionTaskExecutor;
+    private final AuditLogService auditLogService;
 
     public InMemoryDetectionTaskService(AlgorithmClient algorithmClient,
                                         WorkOrderService workOrderService,
                                         RealtimeMessagePublisher realtimeMessagePublisher,
-                                        @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor) {
+                                        @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor,
+                                        AuditLogService auditLogService) {
         this.algorithmClient = algorithmClient;
         this.workOrderService = workOrderService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
+        this.auditLogService = auditLogService;
         seedTasks();
     }
 
@@ -90,6 +94,7 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
             );
             List<DetectionItemResponse> items = List.of(
                     new DetectionItemResponse(
+                            null,
                             s.type,
                             s.level,
                             0.85 + i * 0.03,
@@ -233,10 +238,144 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
     @Override
     public void deleteTask(Long taskId) {
         DetectionTaskAggregate aggregate = getRequired(taskId);
-        if (aggregate.getStatus() != DetectionTaskStatus.PENDING && aggregate.getStatus() != DetectionTaskStatus.FAILED) {
-            throw new BusinessException(ResultCode.CONFLICT, "仅待处理或失败的任务允许删除");
+        if (aggregate.getStatus() != DetectionTaskStatus.PENDING && aggregate.getStatus() != DetectionTaskStatus.FAILED
+                && aggregate.getStatus() != DetectionTaskStatus.COMPLETED) {
+            throw new BusinessException(ResultCode.CONFLICT, "仅待处理、失败或已完成的任务允许删除");
         }
         store.remove(taskId);
+    }
+
+    @Override
+    public void batchUpdateSeverity(List<Long> taskIds, String newSeverity, String operator) {
+        if (taskIds == null || taskIds.isEmpty()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "请选择至少一条检测结果");
+        }
+        if (newSeverity == null || newSeverity.isBlank()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "请指定目标严重等级");
+        }
+        String upperSeverity = newSeverity.toUpperCase();
+        if (!List.of("HIGH", "MEDIUM", "LOW", "NORMAL").contains(upperSeverity)) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "无效的严重等级: " + newSeverity + "，可选值: HIGH, MEDIUM, LOW, NORMAL");
+        }
+
+        int updatedCount = 0;
+        List<String> taskCodes = new java.util.ArrayList<>();
+
+        for (Long taskId : taskIds) {
+            DetectionTaskAggregate aggregate = store.get(taskId);
+            if (aggregate == null) continue;
+            taskCodes.add(aggregate.getTaskCode() != null ? aggregate.getTaskCode() : "DT-" + taskId);
+
+            DetectionResultResponse result = aggregate.getResult();
+            if (result == null) continue;
+
+            SeverityLevel newLevel;
+            if ("NORMAL".equals(upperSeverity)) {
+                // 设为"无病害"：清空所有病害项
+                DetectionResultResponse updatedResult = new DetectionResultResponse(
+                        taskId,
+                        "经人工复核，此路段无病害",
+                        List.of(),
+                        result.generatedWorkOrderId(),
+                        result.completedAt(),
+                        result.imageBase64()
+                );
+                aggregate.markCompleted(updatedResult);
+                updatedCount++;
+            } else {
+                newLevel = SeverityLevel.valueOf(upperSeverity);
+                // 更新所有病害项的严重等级
+                List<DetectionItemResponse> updatedItems = new java.util.ArrayList<>();
+                for (DetectionItemResponse item : result.items()) {
+                    updatedItems.add(new DetectionItemResponse(
+                            item.id(),
+                            item.damageType(),
+                            newLevel,
+                            item.confidence(),
+                            item.boundingBox(),
+                            item.suggestion()
+                    ));
+                }
+                DetectionResultResponse updatedResult = new DetectionResultResponse(
+                        taskId,
+                        result.summary(),
+                        updatedItems,
+                        result.generatedWorkOrderId(),
+                        result.completedAt(),
+                        result.imageBase64()
+                );
+                aggregate.markCompleted(updatedResult);
+                updatedCount++;
+            }
+        }
+
+        // 记录审计日志
+        String severityLabel = switch (upperSeverity) {
+            case "HIGH" -> "严重";
+            case "MEDIUM" -> "中等";
+            case "LOW" -> "轻微";
+            case "NORMAL" -> "无病害";
+            default -> upperSeverity;
+        };
+        auditLogService.record(
+                operator,
+                "DETECTION",
+                "BATCH_UPDATE_SEVERITY",
+                String.format("批量调整 %d 条检测结果的严重等级为「%s」：%s",
+                        updatedCount, severityLabel, String.join(", ", taskCodes)),
+                "0.0.0.0",
+                null,
+                "SUCCESS",
+                null
+        );
+    }
+
+    @Override
+    public void batchDeleteTasks(List<Long> taskIds, String operator) {
+        if (taskIds == null || taskIds.isEmpty()) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "请选择至少一条检测结果");
+        }
+
+        int deletedCount = 0;
+        List<String> taskCodes = new java.util.ArrayList<>();
+        StringBuilder errors = new StringBuilder();
+
+        for (Long taskId : taskIds) {
+            DetectionTaskAggregate aggregate = store.get(taskId);
+            if (aggregate == null) {
+                errors.append("任务 ID=").append(taskId).append(" 不存在; ");
+                continue;
+            }
+            DetectionTaskStatus status = aggregate.getStatus();
+            if (status != DetectionTaskStatus.PENDING && status != DetectionTaskStatus.FAILED
+                    && status != DetectionTaskStatus.COMPLETED) {
+                errors.append("任务 ").append(aggregate.getTaskCode()).append(" 状态不允许删除; ");
+                continue;
+            }
+            taskCodes.add(aggregate.getTaskCode() != null ? aggregate.getTaskCode() : "DT-" + taskId);
+            store.remove(taskId);
+            deletedCount++;
+        }
+
+        // 记录审计日志
+        String status = errors.length() > 0 ? "PARTIAL_SUCCESS" : "SUCCESS";
+        auditLogService.record(
+                operator,
+                "DETECTION",
+                "BATCH_DELETE",
+                String.format("批量删除 %d 条检测结果（共选中 %d 条）：%s%s",
+                        deletedCount, taskIds.size(),
+                        String.join(", ", taskCodes),
+                        errors.length() > 0 ? "。部分失败: " + errors : ""),
+                "0.0.0.0",
+                null,
+                status,
+                errors.length() > 0 ? errors.toString() : null
+        );
+
+        if (deletedCount == 0 && errors.length() > 0) {
+            throw new BusinessException(ResultCode.CONFLICT, "所有任务删除失败: " + errors);
+        }
     }
 
     private void processTask(DetectionTaskAggregate aggregate) {

@@ -3,7 +3,9 @@ import type { ApiResponse, AgentChatResponse, AgentDetectImageResponse, AgentRep
 
 export const agentApi = {
   chat(data: { sessionId?: string; message: string; includeContext?: boolean }) {
-    return http.post<ApiResponse<AgentChatResponse>>("/agent/chat", data)
+    return http.post<ApiResponse<AgentChatResponse>>("/agent/chat", data, {
+      timeout: 90000,
+    })
   },
   detectImage(file: File, options?: { question?: string; generateAdvice?: boolean; autoGenerateWorkOrder?: boolean; autoDispatch?: boolean; location?: string; confidenceThreshold?: number }) {
     const form = new FormData()
@@ -19,6 +21,8 @@ export const agentApi = {
     })
   },
   generateReport(data: GenerateReportRequest) {
-    return http.post<ApiResponse<AgentReportResponse>>("/agent/report", data)
+    return http.post<ApiResponse<AgentReportResponse>>("/agent/report", data, {
+      timeout: 90000,
+    })
   },
 }

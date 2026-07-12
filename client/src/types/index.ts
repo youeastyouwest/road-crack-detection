@@ -47,7 +47,7 @@ export interface ResetPasswordRequest { email: string; newPassword: string; code
 export interface UserEntity { id?: number; username: string; password?: string; realName: string; email?: string; phone?: string; deptId?: number; deptName?: string; avatar?: string; roleCode?: string; roleName?: string; roleId?: number; status: number; lastLoginAt?: string; lastLoginIp?: string; createdAt?: string; updatedAt?: string }
 export interface UserDetailResponse { user: UserEntity; roles: string[]; roleIds?: number[] }
 export interface UserPageQuery { page?: number; size?: number; username?: string; realName?: string; status?: number; deptId?: number }
-export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; roadId?: number; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; result?: DetectionResultResponse }
+export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; roadId?: number; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; highestSeverity?: string; damageCount?: number; result?: DetectionResultResponse }
 export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string }
 export interface DetectionItemResponse { damageType: string; severityLevel: string; confidence: number; boundingBox?: BoundingBoxResponse; suggestion?: string }
 export interface BoundingBoxResponse { x: number; y: number; width: number; height: number }
@@ -106,6 +106,8 @@ export interface SystemConfigResponse { siteName?: string; siteLogo?: string; la
 export interface CreateCrowdReportRequest { reporterName?: string; reporterPhone?: string; location: string; lng?: number; lat?: number; damageType?: string; severityLevel?: string; description?: string; imageUrl: string }
 export interface ReviewCrowdReportRequest { action: string; remark?: string }
 export interface CreateDetectionTaskSubmitRequest { dataSourceType: DataSourceType; location: string; fileName?: string; fileUrl?: string; remark?: string }
+export interface BatchSeverityUpdateRequest { taskIds: number[]; newSeverity: string }
+export interface BatchDeleteRequest { taskIds: number[] }
 export interface GenerateArchiveRequest { roadId: number; archiveDate: string }
 export interface GenerateReportRequest { reportType: string; roadSection?: string; startTime?: string; endTime?: string }
 export interface RoadDiseaseSummaryResponse {

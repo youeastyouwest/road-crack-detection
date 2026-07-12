@@ -2,12 +2,19 @@ package com.roadcrack.bootstrap.controller;
 
 import com.roadcrack.api.enums.DataSourceType;
 import com.roadcrack.api.enums.DetectionTaskStatus;
+import com.roadcrack.api.request.detection.BatchDeleteRequest;
+import com.roadcrack.api.request.detection.BatchSeverityUpdateRequest;
 import com.roadcrack.api.request.detection.CreateDetectionTaskRequest;
 import com.roadcrack.api.response.detection.DetectionResultResponse;
 import com.roadcrack.api.response.detection.DetectionTaskResponse;
 import com.roadcrack.common.model.ApiResponse;
+import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
+import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.dao.entity.UserEntity;
+import com.roadcrack.dao.mapper.UserMapper;
 import com.roadcrack.service.service.DetectionTaskService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -24,12 +32,14 @@ import java.util.UUID;
 public class DetectionTaskController {
 
     private final DetectionTaskService detectionTaskService;
+    private final UserMapper userMapper;
 
     @Value("${crack.upload.dir:uploads}")
     private String uploadDir;
 
-    public DetectionTaskController(DetectionTaskService detectionTaskService) {
+    public DetectionTaskController(DetectionTaskService detectionTaskService, UserMapper userMapper) {
         this.detectionTaskService = detectionTaskService;
+        this.userMapper = userMapper;
     }
 
     @PostMapping
@@ -95,9 +105,62 @@ public class DetectionTaskController {
         return ApiResponse.success(detectionTaskService.getResult(taskId));
     }
 
+    /**
+     * 批量更新检测结果严重等级（仅超级管理员）
+     */
+    @PutMapping("/batch-severity")
+    public ApiResponse<Void> batchUpdateSeverity(@RequestBody BatchSeverityUpdateRequest req,
+                                                  HttpServletRequest request) {
+        checkAdminRole(request);
+        String operator = getOperatorName(request);
+        detectionTaskService.batchUpdateSeverity(req.taskIds(), req.newSeverity(), operator);
+        return ApiResponse.success(null);
+    }
+
+    /**
+     * 批量删除检测结果（仅超级管理员）
+     * 注意：此端点必须在 @DeleteMapping("/{taskId}") 之前声明，
+     * 否则 Spring MVC 会将 /batch 路径匹配到 /{taskId}，导致 400。
+     */
+    @DeleteMapping("/batch")
+    public ApiResponse<Void> batchDelete(@RequestBody BatchDeleteRequest req,
+                                          HttpServletRequest request) {
+        checkAdminRole(request);
+        String operator = getOperatorName(request);
+        detectionTaskService.batchDeleteTasks(req.taskIds(), operator);
+        return ApiResponse.success(null);
+    }
+
     @DeleteMapping("/{taskId}")
-    public ApiResponse<Void> deleteTask(@PathVariable("taskId") Long taskId) {
+    public ApiResponse<Void> deleteTask(@PathVariable("taskId") Long taskId, HttpServletRequest request) {
+        // 仅超级管理员可删除检测结果
+        checkAdminRole(request);
         detectionTaskService.deleteTask(taskId);
         return ApiResponse.success(null);
+    }
+
+    /**
+     * 校验当前用户是否为超级管理员
+     */
+    private void checkAdminRole(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId != null) {
+            UserEntity user = userMapper.selectById(userId);
+            if (user == null) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "仅超级管理员可执行此操作");
+            }
+            List<String> roleCodes = userMapper.selectRoleCodesByUserId(userId);
+            if (roleCodes == null || !roleCodes.contains("ROLE_ADMIN")) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "仅超级管理员可执行此操作");
+            }
+        }
+    }
+
+    /**
+     * 从请求中获取操作人名称
+     */
+    private String getOperatorName(HttpServletRequest request) {
+        String username = (String) request.getAttribute("username");
+        return username != null ? username : "admin";
     }
 }

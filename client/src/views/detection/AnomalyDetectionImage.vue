@@ -28,7 +28,47 @@
       <button v-for="s in severityTags" :key="s.key" :class="['sev-tag', { active: activeSev === s.key }]" @click="activeSev = s.key">
         <span v-if="s.key !== ''" :class="['sev-dot', 'dot-'+s.key.toLowerCase()]"></span>
         {{ s.label }}
+        <span class="sev-tag-count">{{ s.count }}</span>
       </button>
+    </div>
+
+    <!-- 超级管理员批量操作工具栏 -->
+    <div v-if="authStore.isAdmin && filteredTasks.length > 0" class="batch-toolbar">
+      <!-- 批量操作开关 -->
+      <button
+        :class="['batch-toggle', { 'batch-toggle-on': isBatchMode }]"
+        @click="toggleBatchMode"
+      >
+        <svg v-if="!isBatchMode" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        {{ isBatchMode ? '退出批量操作' : '批量操作' }}
+      </button>
+
+      <!-- 批量模式下的选择区 -->
+      <template v-if="isBatchMode">
+        <label class="batch-check-all">
+          <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+          <span>全选</span>
+        </label>
+        <span v-if="selectedIds.size > 0" class="batch-count">已选 <strong>{{ selectedIds.size }}</strong> 条</span>
+        <div v-if="selectedIds.size > 0" class="batch-actions">
+          <div class="batch-severity-dropdown">
+            <button class="batch-btn batch-btn-severity" @click="showSeverityMenu = !showSeverityMenu">
+              调整严重等级
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div v-if="showSeverityMenu" class="severity-dropdown-mask" @click="showSeverityMenu = false"></div>
+            <div v-if="showSeverityMenu" class="severity-dropdown-menu">
+              <button v-for="opt in severityOptions" :key="opt.key" :class="['severity-option', 'sev-opt-'+opt.key.toLowerCase()]" @click="handleBatchSeverity(opt.key)">
+                <span :class="['sev-dot-sm', 'dot-'+opt.key.toLowerCase()]"></span>
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+          <button class="batch-btn batch-btn-delete" @click="handleBatchDelete">删除</button>
+        </div>
+        <button v-if="selectedIds.size > 0" class="batch-btn-cancel" @click="clearSelection">取消选择</button>
+      </template>
     </div>
 
     <!-- Results List -->
@@ -39,10 +79,20 @@
       <div class="dr-empty-hint">前往「上传检测」提交检测任务，完成后即在此显示</div>
     </div>
     <div v-else class="dr-list">
-      <div v-for="t in filteredTasks" :key="t.id" class="dr-card" @click="viewResult(t)">
+      <div v-for="t in filteredTasks" :key="t.id" :class="['dr-card', taskSeverityLevel(t) ? 'card-sev-' + taskSeverityLevel(t)!.toLowerCase() : '', { 'card-selected': isBatchMode && selectedIds.has(t.id) }]" @click="onCardClick(t)">
+        <!-- 批量模式下的卡片复选框 -->
+        <div v-if="isBatchMode" class="dr-card-check" @click.stop>
+          <input type="checkbox" :checked="selectedIds.has(t.id)" @change="toggleSelect(t.id)" />
+        </div>
         <div class="dr-thumb">
           <img v-if="t.dataSourceType==='MANUAL_IMAGE'" :src="thumbSrc(t)" class="dr-thumb-img" @error="imgLoadError($event)" />
           <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <!-- 左上角严重程度角标 -->
+          <div v-if="taskSeverityLevel(t)" :class="['thumb-sev-badge', 'sev-'+taskSeverityLevel(t)!.toLowerCase()]">
+            <svg v-if="taskSeverityLevel(t) === 'NORMAL'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15 9 22 9 16 14 18 21 12 17 6 21 8 14 2 9 9 9"/></svg>
+            {{ severityLabel(taskSeverityLevel(t)!) }}
+          </div>
         </div>
         <div class="dr-card-content">
         <div class="dr-card-top">
@@ -52,11 +102,15 @@
         <div class="dr-card-body">
           <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ t.location || '未填写' }}</div>
           <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {{ formatTime(t.createdAt) }}</div>
-          <div v-if="taskDamageCount(t) > 0" class="dr-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 识别病害 <strong>{{ taskDamageCount(t) }}</strong> 处</div>
+          <div class="dr-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 识别病害 <strong>{{ taskDamageCount(t) }}</strong> 处</div>
         </div>
         </div>
         <div class="dr-card-foot">
-          <span v-if="taskSeverityLevel(t)" :class="['dr-sev', 'sev-'+taskSeverityLevel(t)?.toLowerCase()]">{{ severityLabel(taskSeverityLevel(t)!) }}</span>
+          <span v-if="taskSeverityLevel(t)" :class="['dr-sev', 'sev-'+taskSeverityLevel(t)?.toLowerCase()]">
+            <svg v-if="taskSeverityLevel(t) === 'NORMAL'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px"><polygon points="12 2 15 9 22 9 16 14 18 21 12 17 6 21 8 14 2 9 9 9"/></svg>
+            {{ severityLabel(taskSeverityLevel(t)!) }}
+          </span>
           <span class="dr-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
       </div>
@@ -87,10 +141,11 @@
             </div>
             <!-- File Preview -->
             <div v-if="resultImageUrl || modalTask?.fileUrl" class="res-file-preview">
-              <img v-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" />
-              <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" />
+              <img v-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" @click="openImagePreview(resultImageUrl)" />
+              <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" @click="openImagePreview(modalTask.fileUrl)" />
               <video v-else-if="modalTask?.dataSourceType==='MANUAL_VIDEO'" :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
               <div class="res-file-name">{{ modalTask.fileName || (resultData.items?.length || 0) + ' 项检测' }}</div>
+              <div v-if="resultImageUrl || (modalTask?.dataSourceType==='MANUAL_IMAGE' && modalTask?.fileUrl)" class="res-zoom-hint">🔍 点击图片查看大图</div>
             </div>
             <div class="res-items">
               <div v-for="(item, i) in resultData.items" :key="i" class="res-item">
@@ -121,17 +176,35 @@
             <div class="res-foot">检测完成于 {{ formatTime(resultData.completedAt) }}</div>
             <div class="res-actions">
               <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id, resultData)">派单维修</button>
+              <button v-if="authStore.isAdmin" class="btn-delete" @click.stop="handleDelete(modalTask?.id)">删除该检测结果</button>
             </div>
           </div>
           <div v-else class="modal-loading">暂无结果数据</div>
         </div>
       </div>
     </div>
+
+    <!-- Full Screen Image Preview -->
+    <div v-if="imagePreviewUrl" class="img-preview-overlay" @click="closeImagePreview">
+      <div class="img-preview-toolbar" @click.stop>
+        <span class="img-preview-info">检测图片预览</span>
+        <div class="img-preview-actions">
+          <button class="img-preview-btn" @click="zoomDelta(-0.2)" title="缩小"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
+          <span class="img-preview-zoom">{{ Math.round(imgZoom * 100) }}%</span>
+          <button class="img-preview-btn" @click="zoomDelta(0.2)" title="放大"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
+          <button class="img-preview-btn" @click="resetZoom" title="重置"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+          <button class="img-preview-btn img-preview-close-btn" @click="closeImagePreview" title="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      </div>
+      <div class="img-preview-container" @click.stop @wheel.prevent="onWheel">
+        <img :src="imagePreviewUrl" class="img-preview-large" :style="{ transform: `scale(${imgZoom}) translate(${imgX}px, ${imgY}px)` }" @error="imgLoadError($event)" draggable="false" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, onMounted, watch } from "vue"
 import { detectionApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
 import { ElMessage, ElMessageBox } from "element-plus"
@@ -147,6 +220,68 @@ const loading = ref(false)
 const activeCat = ref("MANUAL_IMAGE")
 const activeSev = ref("")
 
+// 批量选择状态
+const selectedIds = ref<Set<number>>(new Set())
+const showSeverityMenu = ref(false)
+const isBatchMode = ref(false)
+
+const severityOptions = [
+  { key: "HIGH", label: "严重" },
+  { key: "MEDIUM", label: "中等" },
+  { key: "LOW", label: "轻微" },
+  { key: "NORMAL", label: "无病害" },
+]
+
+const isAllSelected = computed(() => {
+  return filteredTasks.value.length > 0 && filteredTasks.value.every(t => selectedIds.value.has(t.id))
+})
+
+function toggleBatchMode() {
+  if (isBatchMode.value) {
+    // 退出批量模式，清除选择
+    clearSelection()
+  }
+  isBatchMode.value = !isBatchMode.value
+}
+
+function toggleSelect(taskId: number) {
+  const next = new Set(selectedIds.value)
+  if (next.has(taskId)) {
+    next.delete(taskId)
+  } else {
+    next.add(taskId)
+  }
+  selectedIds.value = next
+}
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedIds.value = new Set()
+  } else {
+    selectedIds.value = new Set(filteredTasks.value.map(t => t.id))
+  }
+}
+
+function clearSelection() {
+  selectedIds.value = new Set()
+  showSeverityMenu.value = false
+}
+
+function onCardClick(t: DetectionTaskResponse) {
+  if (isBatchMode.value) {
+    // 批量选择模式下，点击卡片切换选中状态
+    toggleSelect(t.id)
+  } else {
+    viewResult(t)
+  }
+}
+
+// 切换分类/过滤时：退出批量模式并清除选择
+watch([activeCat, activeSev], () => {
+  isBatchMode.value = false
+  clearSelection()
+})
+
 const categories = computed(() => {
   const img = tasks.value.filter(t => t.dataSourceType === "MANUAL_IMAGE").length
   const vid = tasks.value.filter(t => t.dataSourceType === "MANUAL_VIDEO").length
@@ -156,12 +291,16 @@ const categories = computed(() => {
   ]
 })
 
-const severityTags = [
-  { key: "", label: "全部" },
-  { key: "HIGH", label: "严重" },
-  { key: "MEDIUM", label: "中等" },
-  { key: "LOW", label: "轻微" },
-]
+const severityTags = computed(() => {
+  const list = tasks.value.filter(t => t.dataSourceType === activeCat.value)
+  return [
+    { key: "", label: "全部", count: list.length, color: "#4338ca" },
+    { key: "HIGH", label: "严重", count: list.filter(t => taskSeverityLevel(t) === "HIGH").length, color: "#dc2626" },
+    { key: "MEDIUM", label: "中等", count: list.filter(t => taskSeverityLevel(t) === "MEDIUM").length, color: "#d97706" },
+    { key: "LOW", label: "轻微", count: list.filter(t => taskSeverityLevel(t) === "LOW").length, color: "#16a34a" },
+    { key: "NORMAL", label: "无病害", count: list.filter(t => taskSeverityLevel(t) === "NORMAL").length, color: "#0891b2" },
+  ]
+})
 
 const filteredTasks = computed(() => {
   let list = tasks.value.filter(t => t.dataSourceType === activeCat.value)
@@ -172,8 +311,15 @@ const filteredTasks = computed(() => {
 })
 
 function taskSeverityLevel(t: DetectionTaskResponse) {
+  // 优先使用后端列表接口返回的 highestSeverity 字段
+  if (t.highestSeverity) return t.highestSeverity
+  // 兜底：从 result.items 中计算（详情页场景）
   const items = t.result?.items
-  if (!items || items.length === 0) return null
+  if (!items || items.length === 0) {
+    // 已完成但无病害 → 归类为"无病害"
+    if (t.status === "COMPLETED") return "NORMAL"
+    return null
+  }
   const score: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
   let top = items[0]
   for (const item of items) {
@@ -185,6 +331,9 @@ function taskSeverityLevel(t: DetectionTaskResponse) {
 }
 
 function taskDamageCount(t: DetectionTaskResponse) {
+  // 优先使用后端列表接口返回的 damageCount 字段
+  if (t.damageCount != null) return t.damageCount
+  // 兜底：从 result.items 中计算
   return t.result?.items?.length ?? 0
 }
 
@@ -247,7 +396,7 @@ async function viewResult(t: DetectionTaskResponse) {
 }
 
 function severityLabel(s: string) {
-  return { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }[s] || s
+  return { HIGH: "严重", MEDIUM: "中等", LOW: "轻微", NORMAL: "无病害" }[s] || s
 }
 
 function damageTypeDesc(t: string) {
@@ -302,6 +451,113 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
     })
     .catch(() => {})
 }
+
+async function handleDelete(taskId?: number) {
+  if (!taskId) return
+  ElMessageBox.confirm(
+    "删除该检测结果后，与之关联的工单也将被同步删除，此操作不可撤销。确认删除？",
+    "删除确认",
+    { confirmButtonText: "确认删除", cancelButtonText: "取消", type: "error" }
+  )
+    .then(async () => {
+      try {
+        await detectionApi.remove(taskId)
+        ElMessage.success("检测结果已删除")
+        showModal.value = false
+        selectedIds.value.delete(taskId)
+        loadTasks()
+        window.dispatchEvent(new CustomEvent("data-updated"))
+      } catch {
+        ElMessage.error("删除失败，可能没有权限或任务状态不允许")
+      }
+    })
+    .catch(() => {})
+}
+
+// ====== 批量操作 ======
+async function handleBatchSeverity(newSeverity: string) {
+  showSeverityMenu.value = false
+  const ids = Array.from(selectedIds.value)
+  if (ids.length === 0) {
+    ElMessage.warning("请先选择需要调整的检测结果")
+    return
+  }
+  const label = severityLabel(newSeverity)
+  ElMessageBox.confirm(
+    `确认将已选的 ${ids.length} 条检测结果的严重等级调整为「${label}」？`,
+    "批量调整确认",
+    { confirmButtonText: "确认调整", cancelButtonText: "取消", type: "warning" }
+  )
+    .then(async () => {
+      try {
+        await detectionApi.batchUpdateSeverity({ taskIds: ids, newSeverity })
+        ElMessage.success(`已成功将 ${ids.length} 条检测结果的严重等级调整为「${label}」`)
+        clearSelection()
+        loadTasks()
+        window.dispatchEvent(new CustomEvent("data-updated"))
+      } catch {
+        ElMessage.error("批量调整失败，请稍后重试")
+      }
+    })
+    .catch(() => {})
+}
+
+async function handleBatchDelete() {
+  const ids = Array.from(selectedIds.value)
+  if (ids.length === 0) {
+    ElMessage.warning("请先选择需要删除的检测结果")
+    return
+  }
+  ElMessageBox.confirm(
+    `确认删除已选的 ${ids.length} 条检测结果？关联工单也将被同步删除，此操作不可撤销。`,
+    "批量删除确认",
+    { confirmButtonText: "确认删除", cancelButtonText: "取消", type: "error" }
+  )
+    .then(async () => {
+      try {
+        await detectionApi.batchRemove({ taskIds: ids })
+        ElMessage.success(`已成功删除 ${ids.length} 条检测结果`)
+        clearSelection()
+        loadTasks()
+        window.dispatchEvent(new CustomEvent("data-updated"))
+      } catch {
+        ElMessage.error("批量删除失败，请稍后重试")
+      }
+    })
+    .catch(() => {})
+}
+
+// ====== 全屏图片预览 ======
+const imagePreviewUrl = ref("")
+const imgZoom = ref(1)
+const imgX = ref(0)
+const imgY = ref(0)
+
+function openImagePreview(url: string) {
+  if (!url) return
+  imagePreviewUrl.value = url
+  imgZoom.value = 1
+  imgX.value = 0
+  imgY.value = 0
+}
+
+function closeImagePreview() {
+  imagePreviewUrl.value = ""
+}
+
+function zoomDelta(delta: number) {
+  imgZoom.value = Math.max(0.2, Math.min(5, imgZoom.value + delta))
+}
+
+function resetZoom() {
+  imgZoom.value = 1
+  imgX.value = 0
+  imgY.value = 0
+}
+
+function onWheel(e: WheelEvent) {
+  zoomDelta(e.deltaY > 0 ? -0.1 : 0.1)
+}
 </script>
 
 <style scoped>
@@ -322,14 +578,37 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
 .cat-btn.active .cat-count { background:#4338ca; color:#fff; }
 
 /* ── Severity Tags ── */
-.sev-tags { display:flex; gap:8px; margin-bottom:20px; }
-.sev-tag { display:flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid #e5e7eb; border-radius:20px; background:#fff; color:#6b7280; font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; transition:all .15s; }
-.sev-tag:hover { border-color:#9ca3af; color:#374151; }
-.sev-tag.active { border-color:#4338ca; background:#eef2ff; color:#4338ca; font-weight:600; }
-.sev-dot { width:8px; height:8px; border-radius:50%; }
-.dot-high { background:#dc2626; }
-.dot-medium { background:#d97706; }
-.dot-low { background:#16a34a; }
+.sev-tags { display:flex; gap:10px; margin-bottom:20px; }
+.sev-tag { display:flex; align-items:center; gap:8px; padding:8px 18px; border:2px solid #e5e7eb; border-radius:24px; background:#fff; color:#6b7280; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer; transition:all .2s; }
+.sev-tag:hover { border-color:#c7d2fe; background:#f8faff; }
+.sev-tag.active { border-color:#4338ca; background:#eef2ff; color:#4338ca; font-weight:700; box-shadow:0 2px 8px rgba(67,56,202,0.12); }
+.sev-tag .sev-dot { width:10px; height:10px; border-radius:50%; }
+.dot-high { background:#dc2626; box-shadow:0 0 0 2px rgba(220,38,38,0.15); }
+.dot-medium { background:#d97706; box-shadow:0 0 0 2px rgba(217,119,6,0.15); }
+.dot-low { background:#16a34a; box-shadow:0 0 0 2px rgba(22,163,74,0.15); }
+.dot-normal { background:#0891b2; box-shadow:0 0 0 2px rgba(8,145,178,0.15); }
+.sev-tag-count { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:20px; padding:0 6px; border-radius:10px; background:#f3f4f6; font-size:11px; font-weight:600; color:#6b7280; }
+.sev-tag.active .sev-tag-count { background:#4338ca; color:#fff; }
+
+/* 非选中状态下，各等级标签也显示对应色调，便于一眼区分 */
+.sev-tag:has(.dot-high) { color:#dc2626; border-color:#fecaca; }
+.sev-tag:has(.dot-high) .sev-tag-count { background:#fef2f2; color:#dc2626; }
+.sev-tag:has(.dot-medium) { color:#d97706; border-color:#fde68a; }
+.sev-tag:has(.dot-medium) .sev-tag-count { background:#fffbeb; color:#d97706; }
+.sev-tag:has(.dot-low) { color:#16a34a; border-color:#bbf7d0; }
+.sev-tag:has(.dot-low) .sev-tag-count { background:#f0fdf4; color:#16a34a; }
+.sev-tag:has(.dot-normal) { color:#0891b2; border-color:#a5f3fc; }
+.sev-tag:has(.dot-normal) .sev-tag-count { background:#ecfeff; color:#0891b2; }
+
+/* 选中状态下，各等级标签用对应深色 */
+.sev-tag:has(.dot-high).active { border-color:#dc2626; background:#fef2f2; color:#dc2626; }
+.sev-tag:has(.dot-high).active .sev-tag-count { background:#dc2626; color:#fff; }
+.sev-tag:has(.dot-medium).active { border-color:#d97706; background:#fffbeb; color:#d97706; }
+.sev-tag:has(.dot-medium).active .sev-tag-count { background:#d97706; color:#fff; }
+.sev-tag:has(.dot-low).active { border-color:#16a34a; background:#f0fdf4; color:#16a34a; }
+.sev-tag:has(.dot-low).active .sev-tag-count { background:#16a34a; color:#fff; }
+.sev-tag:has(.dot-normal).active { border-color:#0891b2; background:#ecfeff; color:#0891b2; }
+.sev-tag:has(.dot-normal).active .sev-tag-count { background:#0891b2; color:#fff; }
 
 .dr-loading { display:flex; justify-content:center; padding:60px 0; }
 .loader { width:24px; height:24px; border:2px solid #f3f4f6; border-top-color:#4338ca; border-radius:50%; animation:spin .5s linear infinite; }
@@ -338,9 +617,23 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
 .dr-empty-text { font-size:14px; color:#9ca3af; margin-top:12px; }
 .dr-empty-hint { font-size:12px; color:#d1d5db; margin-top:4px; }
 .dr-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; }
-.dr-card { background:#fff; border:1px solid #f3f4f6; border-radius:10px; padding:0; cursor:pointer; transition:all .15s; display:flex; overflow:hidden; }
+.dr-card { background:#fff; border:1px solid #f3f4f6; border-radius:10px; padding:0; cursor:pointer; transition:all .15s; display:flex; overflow:hidden; position:relative; }
 .dr-card:hover { border-color:#4338ca; box-shadow:0 2px 8px rgba(67,56,202,0.06); }
-.dr-thumb { width:140px; min-height:120px; flex-shrink:0; background:#f3f4f6; display:flex; align-items:center; justify-content:center; overflow:hidden; border-right:1px solid #f3f4f6; }
+
+/* ── 严重程度卡片左侧色条 ── */
+.dr-card.card-sev-high { border-left:4px solid #dc2626; }
+.dr-card.card-sev-medium { border-left:4px solid #d97706; }
+.dr-card.card-sev-low { border-left:4px solid #16a34a; }
+.dr-card.card-sev-normal { border-left:4px solid #0891b2; }
+
+/* ── 缩略图左上角严重程度角标 ── */
+.thumb-sev-badge { position:absolute; top:0; left:0; display:flex; align-items:center; gap:3px; padding:3px 8px; font-size:11px; font-weight:700; border-bottom-right-radius:8px; }
+.thumb-sev-badge.sev-high { background:#dc2626; color:#fff; }
+.thumb-sev-badge.sev-medium { background:#d97706; color:#fff; }
+.thumb-sev-badge.sev-low { background:#16a34a; color:#fff; }
+.thumb-sev-badge.sev-normal { background:#0891b2; color:#fff; }
+
+.dr-thumb { width:140px; min-height:120px; flex-shrink:0; background:#f3f4f6; display:flex; align-items:center; justify-content:center; overflow:hidden; border-right:1px solid #f3f4f6; position:relative; }
 .dr-thumb-img { width:100%; height:100%; object-fit:cover; display:block; }
 .dr-card-content { flex:1; padding:14px 18px; display:flex; flex-direction:column; justify-content:space-between; }
 .dr-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
@@ -352,10 +645,11 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
 .dr-stat { display:flex; align-items:center; gap:6px; font-size:12px; color:#6b7280; }
 .dr-stat strong { color:#111827; }
 .dr-card-foot { display:flex; align-items:center; justify-content:space-between; padding-top:10px; border-top:1px solid #f9fafb; }
-.dr-sev { font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; }
+.dr-sev { display:inline-flex; align-items:center; gap:3px; font-size:13px; font-weight:700; padding:4px 12px; border-radius:6px; }
 .sev-high { background:#fef2f2; color:#dc2626; }
 .sev-medium { background:#fffbeb; color:#d97706; }
 .sev-low { background:#f0fdf4; color:#16a34a; }
+.sev-normal { background:#ecfeff; color:#0891b2; }
 .dr-arrow { color:#d1d5db; }
 
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:1000; display:flex; align-items:center; justify-content:center; }
@@ -411,4 +705,63 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
 .res-actions { margin-top:12px; text-align:center; }
 .btn-dispatch { padding:8px 20px; background:#4338ca; border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; transition:background .15s; }
 .btn-dispatch:hover { background:#3730a3; }
+.btn-delete { padding:8px 20px; background:#fff; border:1px solid #fecaca; border-radius:6px; color:#dc2626; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; transition:all .15s; margin-left:8px; }
+.btn-delete:hover { background:#dc2626; border-color:#dc2626; color:#fff; }
+
+/* ── 图片预览提示 ── */
+.res-preview-img { cursor:zoom-in; transition:opacity .15s; }
+.res-preview-img:hover { opacity:0.85; }
+.res-zoom-hint { padding:4px 12px 6px; font-size:11px; color:#6366f1; background:#eef2ff; text-align:center; }
+
+/* ── 全屏图片预览 ── */
+.img-preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:2000; display:flex; flex-direction:column; }
+.img-preview-toolbar { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); flex-shrink:0; }
+.img-preview-info { color:#fff; font-size:14px; font-weight:500; }
+.img-preview-actions { display:flex; align-items:center; gap:8px; }
+.img-preview-btn { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border:none; border-radius:8px; background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; transition:background .15s; }
+.img-preview-btn:hover { background:rgba(255,255,255,0.25); }
+.img-preview-close-btn:hover { background:#dc2626; }
+.img-preview-zoom { color:#fff; font-size:13px; font-weight:500; min-width:50px; text-align:center; }
+.img-preview-container { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:grab; }
+.img-preview-container:active { cursor:grabbing; }
+.img-preview-large { max-width:90vw; max-height:90vh; object-fit:contain; transition:transform .1s ease-out; user-select:none; -webkit-user-drag:none; }
+
+/* ── 批量操作工具栏 ── */
+.batch-toolbar { display:flex; align-items:center; gap:14px; padding:10px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:16px; flex-wrap:wrap; }
+
+/* 批量操作开关按钮 */
+.batch-toggle { display:flex; align-items:center; gap:6px; padding:7px 16px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#374151; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:all .15s; }
+.batch-toggle:hover { border-color:#4338ca; color:#4338ca; }
+.batch-toggle-on { background:#4338ca; border-color:#4338ca; color:#fff; }
+.batch-toggle-on:hover { background:#3730a3; border-color:#3730a3; color:#fff; }
+
+.batch-check-all { display:flex; align-items:center; gap:6px; font-size:13px; color:#374151; cursor:pointer; user-select:none; }
+.batch-check-all input[type="checkbox"] { width:16px; height:16px; cursor:pointer; accent-color:#4338ca; }
+.batch-count { font-size:13px; color:#6b7280; }
+.batch-count strong { color:#4338ca; }
+.batch-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.batch-severity-dropdown { position:relative; }
+.batch-btn { display:flex; align-items:center; gap:5px; padding:6px 14px; border:none; border-radius:6px; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; transition:all .15s; }
+.batch-btn-severity { background:#eef2ff; color:#4338ca; }
+.batch-btn-severity:hover { background:#4338ca; color:#fff; }
+.batch-btn-delete { background:#fef2f2; color:#dc2626; }
+.batch-btn-delete:hover { background:#dc2626; color:#fff; }
+.batch-btn-cancel { padding:6px 14px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; color:#6b7280; font-size:12px; font-family:inherit; cursor:pointer; transition:all .15s; }
+.batch-btn-cancel:hover { border-color:#d1d5db; color:#374151; }
+
+/* ── 严重等级下拉菜单 ── */
+.severity-dropdown-mask { position:fixed; inset:0; z-index:99; }
+.severity-dropdown-menu { position:absolute; top:100%; left:0; margin-top:4px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.1); z-index:100; min-width:160px; overflow:hidden; }
+.severity-option { display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; border:none; background:#fff; color:#374151; font-size:13px; font-family:inherit; cursor:pointer; transition:background .12s; text-align:left; }
+.severity-option:hover { background:#f8fafc; }
+.sev-opt-high:hover { background:#fef2f2; color:#dc2626; }
+.sev-opt-medium:hover { background:#fffbeb; color:#d97706; }
+.sev-opt-low:hover { background:#f0fdf4; color:#16a34a; }
+.sev-opt-normal:hover { background:#ecfeff; color:#0891b2; }
+.sev-dot-sm { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* ── 卡片复选框 ── */
+.dr-card-check { position:absolute; top:8px; right:8px; z-index:5; display:flex; align-items:center; justify-content:center; width:22px; height:22px; background:rgba(255,255,255,0.9); border-radius:4px; }
+.dr-card-check input[type="checkbox"] { width:15px; height:15px; cursor:pointer; accent-color:#4338ca; }
+.card-selected { border-color:#4338ca !important; box-shadow:0 0 0 2px rgba(67,56,202,0.15); }
 </style>

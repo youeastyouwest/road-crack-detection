@@ -19,6 +19,8 @@ public record DetectionTaskResponse(
         String failureReason,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
+        String highestSeverity,
+        Integer damageCount,
         DetectionResultResponse result
 ) {
 }

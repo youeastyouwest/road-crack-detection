@@ -8,6 +8,18 @@ export const roadApi = {
   listWithDetections() {
     return http.get<ApiResponse<RoadResponse[]>>("/roads/with-detections")
   },
+  detail(id: number) {
+    return http.get<ApiResponse<RoadResponse>>("/roads/" + id)
+  },
+  create(data: Partial<RoadResponse>) {
+    return http.post<ApiResponse<null>>("/roads", data)
+  },
+  update(id: number, data: Partial<RoadResponse>) {
+    return http.put<ApiResponse<null>>("/roads/" + id, data)
+  },
+  remove(id: number) {
+    return http.delete<ApiResponse<null>>("/roads/" + id)
+  },
 }
 
 export const roadHealthArchiveApi = {

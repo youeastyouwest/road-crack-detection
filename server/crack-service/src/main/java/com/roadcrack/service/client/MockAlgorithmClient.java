@@ -24,6 +24,7 @@ public class MockAlgorithmClient implements AlgorithmClient {
 
         List<DetectionItemResponse> items = new ArrayList<>();
         items.add(new DetectionItemResponse(
+                null,
                 primaryType,
                 severityLevel,
                 0.78 + (seed % 15) / 100.0,
@@ -33,6 +34,7 @@ public class MockAlgorithmClient implements AlgorithmClient {
 
         if (seed % 3 == 0) {
             items.add(new DetectionItemResponse(
+                    null,
                     DamageType.CRACK,
                     SeverityLevel.LOW,
                     0.72,
