@@ -130,6 +130,13 @@ public class InMemoryUserService implements UserService {
             .orElse(null);
     }
 
+    public UserEntity findByEmail(String email) {
+        return users.stream()
+            .filter(u -> u.getEmail() != null && u.getEmail().equalsIgnoreCase(email))
+            .findFirst()
+            .orElse(null);
+    }
+
     @Override
     public void createUser(UserEntity user, List<Long> roleIds) {
         if (users.stream().anyMatch(u -> u.getUsername().equalsIgnoreCase(user.getUsername()))) {

@@ -7,9 +7,9 @@ import com.roadcrack.api.request.auth.ResetPasswordRequest;
 import com.roadcrack.api.response.auth.LoginResponse;
 import com.roadcrack.common.model.ApiResponse;
 import com.roadcrack.service.service.AuthService;
+import com.roadcrack.service.service.impl.InMemoryAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
@@ -48,7 +48,13 @@ public class AuthController {
     public ApiResponse<String> sendCode(@RequestParam(value = "email") String email,
                                         @RequestParam(value = "type", defaultValue = "1") Integer type) {
         authService.sendVerificationCode(email, type);
-        return ApiResponse.success("verification code accepted", null);
+
+        // Only return the code when mail is NOT configured (dev fallback)
+        String codeHint = null;
+        if (authService instanceof InMemoryAuthService memAuth && !memAuth.isMailConfigured()) {
+            codeHint = memAuth.getLatestCode(email, type);
+        }
+        return ApiResponse.success("验证码已发送，请查收邮件", codeHint);
     }
 
     @PutMapping("/change-password")

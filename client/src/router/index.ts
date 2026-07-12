@@ -65,7 +65,7 @@ const routes: RouteRecordRaw[] = [
         path: "data-screen",
         name: "DataScreen",
         component: () => import("@/views/detection/DataScreen.vue"),
-        meta: { title: "数据大屏", icon: "DataAnalysis", roles: [RoleCode.ADMIN] },
+        meta: { title: "数据大屏", icon: "DataAnalysis", roles: [RoleCode.ADMIN, RoleCode.VIEWER] },
       },
       {
         path: "work-orders",
@@ -222,6 +222,7 @@ router.beforeEach((to, _from, next) => {
         if (RoleCode.CROWDSOURCE === firstRole) return next("/crowd-report")
         if (RoleCode.MAINTAINER === firstRole) return next("/my-work-orders")
         if ([RoleCode.ROAD_ADMIN, RoleCode.SANIT_ADMIN, RoleCode.TRAFFIC_ADMIN].includes(firstRole)) return next("/dept-orders")
+        if (firstRole === RoleCode.VIEWER) return next("/dashboard")
         return next("/login")
       }
     }

@@ -100,6 +100,12 @@
           <label>姓名</label>
           <input v-model="registerForm.realName" type="text" placeholder="请输入真实姓名" />
         </div>
+        <div class="form-group">
+          <label>角色</label>
+          <select v-model="registerForm.roleId" class="role-select">
+            <option v-for="r in availableRoles" :key="r.id" :value="r.id">{{ r.name }}（{{ r.description }}）</option>
+          </select>
+        </div>
         <button type="submit" class="submit-btn" :disabled="regLoading">
           {{ regLoading ? "注册中..." : "注 册" }}
         </button>
@@ -135,10 +141,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue"
+import { ref, reactive, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { useAuthStore } from "@/stores/auth"
-import { authApi } from "@/api"
+import { authApi, roleApi } from "@/api"
+import type { RoleEntity } from "@/types"
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -148,35 +155,61 @@ const codeSending = ref(false)
 const codeCountdown = ref(0)
 const showLoginPwd = ref(false)
 const showRegPwd = ref(false)
+const availableRoles = ref<RoleEntity[]>([])
 
 const activeTab = ref<"login" | "register" | "forgot">("login")
 
 const loginForm = reactive({ username: "", password: "" })
 const registerForm = reactive({
-  username: "", email: "", code: "", password: "", realName: "", phone: "",
+  username: "", email: "", code: "", password: "", realName: "", phone: "", roleId: 6 as number | undefined,
 })
 const resetForm = reactive({ email: "", code: "", newPassword: "" })
+
+onMounted(async () => {
+  try {
+    const res = await roleApi.list()
+    availableRoles.value = res.data.data || []
+  } catch { /* ignore */ }
+})
 
 async function handleLogin() {
   loading.value = true
   try {
     await authStore.login(loginForm)
     ElMessage.success("登录成功")
-  } catch {
-    ElMessage.error("用户名或密码错误")
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || "用户名或密码错误"
+    ElMessage.error(msg)
   } finally {
     loading.value = false
   }
 }
 
 async function handleRegister() {
+  if (registerForm.username.length < 3) {
+    ElMessage.error("用户名长度不能少于 3 位")
+    return
+  }
+  if (registerForm.password.length < 6) {
+    ElMessage.error("密码长度不能少于 6 位")
+    return
+  }
   regLoading.value = true
   try {
-    await authApi.register(registerForm)
+    const res = await authApi.register(registerForm)
+    // 校验后端返回码，防止业务异常被当作成功
+    if (res.data && res.data.code !== 200) {
+      ElMessage.error(res.data.message || "注册失败")
+      return
+    }
     ElMessage.success("注册成功，请登录")
+    // 自动填充登录表单
+    loginForm.username = registerForm.username
+    loginForm.password = ""
     activeTab.value = "login"
-  } catch {
-    ElMessage.error("注册失败")
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || "注册失败"
+    ElMessage.error(msg)
   } finally {
     regLoading.value = false
   }
@@ -188,8 +221,9 @@ async function handleResetPassword() {
     await authApi.resetPassword(resetForm)
     ElMessage.success("密码重置成功，请登录")
     activeTab.value = "login"
-  } catch {
-    ElMessage.error("重置失败")
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || "重置失败"
+    ElMessage.error(msg)
   } finally {
     resetLoading.value = false
   }
@@ -201,17 +235,25 @@ async function sendCode() {
     ElMessage.warning("请先输入邮箱")
     return
   }
+  const type = activeTab.value === "register" ? 1 : 2
+  if (codeSending.value || codeCountdown.value > 0) return
   codeSending.value = true
   try {
-    await authApi.sendCode(email)
-    ElMessage.success("验证码已发送")
+    const res = await authApi.sendCode(email, type)
+    const code = (res.data as any)?.data
+    if (code) {
+      ElMessage.success({ message: "验证码：" + code, duration: 10000, showClose: true })
+    } else {
+      ElMessage.success("验证码已发送，请查收邮件")
+    }
     codeCountdown.value = 60
     const timer = setInterval(() => {
       codeCountdown.value--
       if (codeCountdown.value <= 0) clearInterval(timer)
     }, 1000)
-  } catch {
-    ElMessage.error("发送失败")
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || "发送失败"
+    ElMessage.error(msg)
   } finally {
     codeSending.value = false
   }
@@ -424,6 +466,34 @@ async function sendCode() {
 .input-with-btn button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.role-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.9rem;
+  font-family: "Inter", sans-serif;
+  color: #fff;
+  transition: all 0.2s;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.role-select:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.role-select option {
+  background: #1a1d2e;
+  color: #fff;
 }
 
 .actions {

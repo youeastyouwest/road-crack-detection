@@ -18,6 +18,7 @@ public record RegisterRequest(
         String phone,
         @NotBlank(message = "验证码不能为空")
         String code,
-        Long deptId
+        Long deptId,
+        Long roleId
 ) {
 }

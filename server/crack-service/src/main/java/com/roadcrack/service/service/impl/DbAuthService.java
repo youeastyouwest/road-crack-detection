@@ -21,6 +21,7 @@ import com.roadcrack.dao.mapper.VerificationCodeMapper;
 import com.roadcrack.service.security.JwtUtils;
 import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.AuthService;
+import com.roadcrack.service.service.SystemConfigService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +49,7 @@ public class DbAuthService implements AuthService {
     private final RoleMapper roleMapper;
     private final JwtUtils jwtUtils;
     private final AuditLogService auditLogService;
+    private final SystemConfigService systemConfigService;
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final String mailFrom;
@@ -60,6 +62,7 @@ public class DbAuthService implements AuthService {
                          RoleMapper roleMapper,
                          JwtUtils jwtUtils,
                          AuditLogService auditLogService,
+                         SystemConfigService systemConfigService,
                          ObjectProvider<JavaMailSender> mailSenderProvider,
                          @Value("${spring.mail.username:}") String mailFrom,
                          @Value("${security.login.max-fail-count:5}") int maxFailCount,
@@ -70,6 +73,7 @@ public class DbAuthService implements AuthService {
         this.roleMapper = roleMapper;
         this.jwtUtils = jwtUtils;
         this.auditLogService = auditLogService;
+        this.systemConfigService = systemConfigService;
         this.mailSenderProvider = mailSenderProvider;
         this.mailFrom = mailFrom;
         this.maxFailCount = maxFailCount;
@@ -148,6 +152,15 @@ public class DbAuthService implements AuthService {
     @Override
     @Transactional
     public void register(RegisterRequest request) {
+        if (!systemConfigService.isRegisterEnabled()) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "当前系统已关闭自助注册功能");
+        }
+
+        int minPasswordLength = systemConfigService.getConfig().getMinPasswordLength();
+        if (request.password() == null || request.password().length() < minPasswordLength) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "密码长度不能少于 " + minPasswordLength + " 位");
+        }
+
         validateCode(request.email(), request.code(), REGISTER_CODE_TYPE);
 
         if (countByUsername(request.username(), null) > 0) {

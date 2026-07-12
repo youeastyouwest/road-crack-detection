@@ -7291,5 +7291,103 @@
         ]
       }
     ]
+  },
+  {
+    "id": "56af63d1",
+    "timestamp": "2026-07-12T15:19:04.513715",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
   }
 ]
