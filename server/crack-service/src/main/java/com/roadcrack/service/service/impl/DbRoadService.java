@@ -10,16 +10,22 @@ import com.roadcrack.dao.entity.DetectionResultEntity;
 import com.roadcrack.dao.entity.DetectionResultItemEntity;
 import com.roadcrack.dao.entity.DetectionTaskEntity;
 import com.roadcrack.dao.entity.RoadEntity;
+import com.roadcrack.dao.entity.WorkOrderEntity;
 import com.roadcrack.dao.mapper.DetectionMediaMapper;
 import com.roadcrack.dao.mapper.DetectionResultItemMapper;
 import com.roadcrack.dao.mapper.DetectionResultMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
 import com.roadcrack.dao.mapper.RoadMapper;
+import com.roadcrack.dao.mapper.WorkOrderMapper;
 import com.roadcrack.service.service.RoadService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,16 +37,19 @@ public class DbRoadService implements RoadService {
     private final DetectionResultItemMapper resultItemMapper;
     private final DetectionResultMapper resultMapper;
     private final DetectionMediaMapper mediaMapper;
+    private final WorkOrderMapper workOrderMapper;
 
     public DbRoadService(RoadMapper roadMapper, DetectionTaskMapper taskMapper,
                          DetectionResultItemMapper resultItemMapper,
                          DetectionResultMapper resultMapper,
-                         DetectionMediaMapper mediaMapper) {
+                         DetectionMediaMapper mediaMapper,
+                         WorkOrderMapper workOrderMapper) {
         this.roadMapper = roadMapper;
         this.taskMapper = taskMapper;
         this.resultItemMapper = resultItemMapper;
         this.resultMapper = resultMapper;
         this.mediaMapper = mediaMapper;
+        this.workOrderMapper = workOrderMapper;
     }
 
     @Override
@@ -63,37 +72,51 @@ public class DbRoadService implements RoadService {
     @Override
     public List<RoadDiseaseSummaryResponse> getRoadsWithDisease() {
         List<RoadEntity> roads = roadMapper.selectList(null);
-        // 查所有有 location 的任务（不再依赖 road_id 关联）
+        Map<Long, RoadEntity> roadMap = new HashMap<>();
+        for (RoadEntity road : roads) {
+            roadMap.put(road.getId(), road);
+        }
+
+        // 查询所有有 location 的任务
         List<DetectionTaskEntity> allTasks = taskMapper.selectList(
                 new LambdaQueryWrapper<DetectionTaskEntity>().isNotNull(DetectionTaskEntity::getLocation));
 
-        // 为每条道路收集病害点和坐标（用于计算 centerLng/centerLat）
+        // 查询所有结果项，用于 road_id 兜底匹配
+        List<DetectionResultItemEntity> allItems = resultItemMapper.selectList(null);
+        Map<Long, List<DetectionResultItemEntity>> itemsByTaskId = new HashMap<>();
+        for (DetectionResultItemEntity item : allItems) {
+            itemsByTaskId.computeIfAbsent(item.getTaskId(), k -> new ArrayList<>()).add(item);
+        }
+
+        // 按道路 ID 聚合任务。key: roadId（null 表示未知道路）
+        Map<Long, List<DetectionTaskEntity>> taskByRoad = new HashMap<>();
+        for (DetectionTaskEntity task : allTasks) {
+            Long roadId = task.getRoadId();
+            if (roadId == null || !roadMap.containsKey(roadId)) {
+                // 尝试从该任务的 result_item 中提取共同的 road_id
+                List<DetectionResultItemEntity> items = itemsByTaskId.getOrDefault(task.getId(), new ArrayList<>());
+                roadId = extractCommonRoadId(items);
+            }
+            taskByRoad.computeIfAbsent(roadId, k -> new ArrayList<>()).add(task);
+        }
+
         List<RoadDiseaseSummaryResponse> result = new ArrayList<>();
-        for (RoadEntity road : roads) {
+        for (Map.Entry<Long, List<DetectionTaskEntity>> entry : taskByRoad.entrySet()) {
+            Long roadId = entry.getKey();
+            RoadEntity road = roadMap.get(roadId);
+            String roadName = road != null ? road.getRoadName() : "未知道路";
+            Double centerLng = 0.0;
+            Double centerLat = 0.0;
+
             int total = 0, high = 0, med = 0, low = 0;
             List<RoadDiseaseSummaryResponse.DiseasePoint> pts = new ArrayList<>();
             double sumLng = 0, sumLat = 0;
             int coordCount = 0;
 
-            for (DetectionTaskEntity task : allTasks) {
-                // 如果 task 有 road_id 且匹配当前 road，直接用；否则按坐标就近匹配
-                boolean match = false;
-                if (task.getRoadId() != null && task.getRoadId().equals(road.getId())) {
-                    match = true;
-                }
+            for (DetectionTaskEntity task : entry.getValue()) {
                 double[] coords = parseLoc(task.getLocation());
-                if (!match && coords != null) {
-                    // 按坐标就近匹配：检查这个坐标是否可能属于当前道路
-                    // 简单策略：把任务分配给第一条道路（因为 road 表没有坐标信息无法做距离匹配）
-                    // 更好的策略：把所有未关联的病害点都放到第一条道路上
-                    if (road.getId().equals(roads.get(0).getId())) {
-                        match = true;
-                    }
-                }
-                if (!match) continue;
 
-                List<DetectionResultItemEntity> items = resultItemMapper.selectList(
-                    new LambdaQueryWrapper<DetectionResultItemEntity>().eq(DetectionResultItemEntity::getTaskId, task.getId()));
+                List<DetectionResultItemEntity> items = itemsByTaskId.getOrDefault(task.getId(), new ArrayList<>());
                 // 查标注图 URL
                 String annotatedImageUrl = null;
                 List<DetectionResultEntity> results = resultMapper.selectList(
@@ -108,6 +131,13 @@ public class DbRoadService implements RoadService {
                 if (!medias.isEmpty()) {
                     fileUrl = medias.get(0).getFileUrl();
                 }
+                // 查该检测任务关联的工单状态
+                String workOrderStatus = null;
+                List<WorkOrderEntity> wos = workOrderMapper.selectList(
+                    new LambdaQueryWrapper<WorkOrderEntity>().eq(WorkOrderEntity::getDetectionTaskId, task.getId()));
+                if (!wos.isEmpty()) {
+                    workOrderStatus = wos.get(wos.size() - 1).getStatus();
+                }
 
                 for (DetectionResultItemEntity item : items) {
                     total++;
@@ -119,30 +149,83 @@ public class DbRoadService implements RoadService {
                         sumLat += coords[1];
                         coordCount++;
                     }
+                    // 使用 result_item 自身的坐标（如果存在），否则回退到 task.location
+                    Double itemLng = item.getLng() != null ? item.getLng().doubleValue() : (coords != null ? coords[0] : 0.0);
+                    Double itemLat = item.getLat() != null ? item.getLat().doubleValue() : (coords != null ? coords[1] : 0.0);
                     RoadDiseaseSummaryResponse.DiseasePoint dp = new RoadDiseaseSummaryResponse.DiseasePoint(
-                        item.getId(), coords != null ? coords[0] : 0.0, coords != null ? coords[1] : 0.0,
+                        item.getId(), itemLng, itemLat,
                         item.getDamageType(), item.getSeverityLevel(),
                         item.getConfidence() != null ? item.getConfidence().doubleValue() : 0.0,
                         task.getCreatedAt() != null ? task.getCreatedAt().toString() : "");
                     dp.setAddress(task.getLocation());
                     dp.setImageBase64(annotatedImageUrl);
                     dp.setFileUrl(fileUrl);
+                    dp.setWorkOrderNo(workOrderStatus);
                     pts.add(dp);
                 }
             }
-            if (pts.isEmpty()) {
-                // 空道路也返回（侧边栏需要显示），但 centerLng/centerLat 为 0
-                result.add(new RoadDiseaseSummaryResponse(road.getId(), road.getRoadName(), 0.0, 0.0,
-                    new ArrayList<>(), "LOW", 0, 0, 0, 0, pts));
-            } else {
-                String overall = high > 0 ? "HIGH" : med > 0 ? "MEDIUM" : "LOW";
-                double centerLng = coordCount > 0 ? sumLng / coordCount : 0.0;
-                double centerLat = coordCount > 0 ? sumLat / coordCount : 0.0;
-                result.add(new RoadDiseaseSummaryResponse(road.getId(), road.getRoadName(), centerLng, centerLat,
-                    new ArrayList<>(), overall, total, high, med, low, pts));
+
+            if (coordCount > 0) {
+                centerLng = sumLng / coordCount;
+                centerLat = sumLat / coordCount;
             }
+            String overall = high > 0 ? "HIGH" : med > 0 ? "MEDIUM" : "LOW";
+            result.add(new RoadDiseaseSummaryResponse(roadId != null ? roadId : 0L, roadName,
+                centerLng, centerLat, new ArrayList<>(), overall, total, high, med, low, pts));
         }
         return result;
+    }
+
+    private Long extractCommonRoadId(List<DetectionResultItemEntity> items) {
+        if (items == null || items.isEmpty()) return null;
+        Long common = null;
+        for (DetectionResultItemEntity item : items) {
+            if (item.getRoadId() != null) {
+                if (common == null) {
+                    common = item.getRoadId();
+                } else if (!common.equals(item.getRoadId())) {
+                    // 多个结果项对应不同道路，说明数据不一致，返回 null 作为未知道路
+                    return null;
+                }
+            }
+        }
+        return common;
+    }
+
+    @Override
+    public List<RoadResponse> listRoadsWithDetections() {
+        // 查询所有有检测任务关联的道路 ID（包括直接关联和通过坐标匹配的）
+        List<DetectionTaskEntity> allTasks = taskMapper.selectList(
+                new LambdaQueryWrapper<DetectionTaskEntity>()
+                        .isNotNull(DetectionTaskEntity::getRoadId)
+                        .eq(DetectionTaskEntity::getStatus, "COMPLETED"));
+
+        // 收集所有有检测记录的道路 ID
+        java.util.Set<Long> roadIdsWithDetection = new java.util.HashSet<>();
+        for (DetectionTaskEntity task : allTasks) {
+            if (task.getRoadId() != null) {
+                roadIdsWithDetection.add(task.getRoadId());
+            }
+        }
+
+        // 同时查询 result_item 中直接关联的道路 ID
+        List<DetectionResultItemEntity> allItems = resultItemMapper.selectList(null);
+        for (DetectionResultItemEntity item : allItems) {
+            if (item.getRoadId() != null) {
+                roadIdsWithDetection.add(item.getRoadId());
+            }
+        }
+
+        if (roadIdsWithDetection.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 查询这些道路的信息
+        List<RoadEntity> roads = roadMapper.selectList(
+                new LambdaQueryWrapper<RoadEntity>()
+                        .in(RoadEntity::getId, new ArrayList<>(roadIdsWithDetection)));
+
+        return roads.stream().map(this::toRoadRes).collect(Collectors.toList());
     }
 
     private RoadResponse toRoadRes(RoadEntity e) {

@@ -35,6 +35,12 @@ public class RoadEntity {
     @TableField("end_point")
     private String endPoint;
 
+    @TableField("center_lng")
+    private BigDecimal centerLng;
+
+    @TableField("center_lat")
+    private BigDecimal centerLat;
+
     @TableField("length_km")
     private BigDecimal lengthKm;
 
@@ -102,6 +108,12 @@ public class RoadEntity {
 
     public String getEndPoint() { return endPoint; }
     public void setEndPoint(String endPoint) { this.endPoint = endPoint; }
+
+    public BigDecimal getCenterLng() { return centerLng; }
+    public void setCenterLng(BigDecimal centerLng) { this.centerLng = centerLng; }
+
+    public BigDecimal getCenterLat() { return centerLat; }
+    public void setCenterLat(BigDecimal centerLat) { this.centerLat = centerLat; }
 
     public BigDecimal getLengthKm() { return lengthKm; }
     public void setLengthKm(BigDecimal lengthKm) { this.lengthKm = lengthKm; }

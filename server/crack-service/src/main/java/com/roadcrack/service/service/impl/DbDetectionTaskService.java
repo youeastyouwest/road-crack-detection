@@ -7,6 +7,7 @@ import com.roadcrack.api.enums.DataSourceType;
 import com.roadcrack.api.enums.DetectionTaskStatus;
 import com.roadcrack.api.enums.SeverityLevel;
 import com.roadcrack.api.request.detection.CreateDetectionTaskRequest;
+import com.roadcrack.api.request.healtharchive.GenerateRoadHealthArchiveRequest;
 import com.roadcrack.api.response.detection.BoundingBoxResponse;
 import com.roadcrack.api.response.detection.DetectionItemResponse;
 import com.roadcrack.api.response.detection.DetectionProgressMessage;
@@ -22,17 +23,22 @@ import com.roadcrack.dao.entity.DetectionMediaEntity;
 import com.roadcrack.dao.entity.DetectionResultEntity;
 import com.roadcrack.dao.entity.DetectionResultItemEntity;
 import com.roadcrack.dao.entity.DetectionTaskEntity;
+import com.roadcrack.dao.entity.RoadEntity;
 import com.roadcrack.dao.mapper.AlertMapper;
 import com.roadcrack.dao.mapper.DetectionMediaMapper;
 import com.roadcrack.dao.mapper.DetectionResultItemMapper;
 import com.roadcrack.dao.mapper.DetectionResultMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
+import com.roadcrack.dao.mapper.RoadMapper;
 import com.roadcrack.service.client.AlgorithmClient;
+import com.roadcrack.service.client.AmapGeocodeClient;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
 import com.roadcrack.service.service.DetectionTaskService;
+import com.roadcrack.service.service.RoadHealthArchiveService;
 import com.roadcrack.service.service.WorkOrderService;
+import com.roadcrack.service.util.RoadHealthScoreCalculator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.task.TaskExecutor;
@@ -63,30 +69,39 @@ public class DbDetectionTaskService implements DetectionTaskService {
     private final DetectionMediaMapper detectionMediaMapper;
     private final DetectionResultMapper detectionResultMapper;
     private final DetectionResultItemMapper detectionResultItemMapper;
+    private final RoadMapper roadMapper;
     private final AlgorithmClient algorithmClient;
     private final WorkOrderService workOrderService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final TaskExecutor detectionTaskExecutor;
     private final AlertMapper alertMapper;
+    private final AmapGeocodeClient amapGeocodeClient;
+    private final RoadHealthArchiveService roadHealthArchiveService;
 
     public DbDetectionTaskService(DetectionTaskMapper detectionTaskMapper,
                                   DetectionMediaMapper detectionMediaMapper,
                                   DetectionResultMapper detectionResultMapper,
                                   DetectionResultItemMapper detectionResultItemMapper,
+                                  RoadMapper roadMapper,
                                   AlgorithmClient algorithmClient,
                                   WorkOrderService workOrderService,
                                   RealtimeMessagePublisher realtimeMessagePublisher,
                                   @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor,
-                                  AlertMapper alertMapper) {
+                                  AlertMapper alertMapper,
+                                  AmapGeocodeClient amapGeocodeClient,
+                                  RoadHealthArchiveService roadHealthArchiveService) {
         this.detectionTaskMapper = detectionTaskMapper;
         this.detectionMediaMapper = detectionMediaMapper;
         this.detectionResultMapper = detectionResultMapper;
         this.detectionResultItemMapper = detectionResultItemMapper;
+        this.roadMapper = roadMapper;
         this.algorithmClient = algorithmClient;
         this.workOrderService = workOrderService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
         this.alertMapper = alertMapper;
+        this.amapGeocodeClient = amapGeocodeClient;
+        this.roadHealthArchiveService = roadHealthArchiveService;
     }
 
     @Override
@@ -103,6 +118,11 @@ public class DbDetectionTaskService implements DetectionTaskService {
         entity.setRemark(request.remark());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
+
+        // 优先用前端传来的道路名匹配，其次用坐标自动匹配
+        Long matchedRoadId = matchNearestRoad(request.location(), request.roadName());
+        entity.setRoadId(matchedRoadId);
+
         detectionTaskMapper.insert(entity);
 
         DetectionMediaEntity mediaEntity = new DetectionMediaEntity();
@@ -115,6 +135,145 @@ public class DbDetectionTaskService implements DetectionTaskService {
         detectionMediaMapper.insert(mediaEntity);
 
         return toTaskResponse(entity, mediaEntity, null);
+    }
+
+    /**
+     * 根据 location（格式 "lng,lat" 或 "道路名 (lng,lat)"）和可选的道路名匹配道路。
+     *
+     * 策略（优先级从高到低）：
+     * 0. 如果前端传入了 roadName，优先在 road 表中按名称精确匹配
+     * 1. 调用高德逆地理编码 API 获取真实道路名称
+     * 2. 在 road 表中按名称查找已有道路记录；找到则直接返回其 ID
+     * 3. 未找到则自动创建一条 road 记录（road_name=高德返回的道路名，自动生成 road_code），返回新 ID
+     * 4. 如果高德未配置或返回空，则回退到 Haversine 距离匹配（2km 阈值内匹配已有标准道路）
+     * 5. 如果以上都失败，自动创建一条 "未命名道路" 记录
+     */
+    private Long matchNearestRoad(String location, String roadName) {
+        if (location == null || location.isBlank()) return null;
+        double[] coords = parseLocationCoord(location);
+        if (coords == null) return null;
+
+        // 策略 0：前端传入了道路名，优先精确匹配
+        if (roadName != null && !roadName.isBlank()) {
+            RoadEntity existing = roadMapper.selectOne(
+                    new LambdaQueryWrapper<RoadEntity>()
+                            .eq(RoadEntity::getRoadName, roadName));
+            if (existing != null) {
+                return existing.getId();
+            }
+            // road 表中没有这条路，自动创建
+            return createAutoRoad(roadName, coords[0], coords[1]);
+        }
+
+        // 策略 1：高德逆地理编码获取真实道路名
+        if (amapGeocodeClient.isConfigured()) {
+            String geocodeRoadName = amapGeocodeClient.reverseGeocode(coords[0], coords[1]);
+            if (!geocodeRoadName.isBlank()) {
+                // 在 road 表中查找同名道路
+                RoadEntity existing = roadMapper.selectOne(
+                        new LambdaQueryWrapper<RoadEntity>()
+                                .eq(RoadEntity::getRoadName, geocodeRoadName));
+                if (existing != null) {
+                    return existing.getId();
+                }
+                // 自动创建新道路记录
+                return createAutoRoad(geocodeRoadName, coords[0], coords[1]);
+            }
+        }
+
+        // 策略 2：回退到 Haversine 距离匹配（2km 阈值）
+        List<RoadEntity> roads = roadMapper.selectList(null);
+        if (!roads.isEmpty()) {
+            Long nearestRoadId = null;
+            double minDistance = Double.MAX_VALUE;
+            for (RoadEntity road : roads) {
+                if (road.getCenterLng() == null || road.getCenterLat() == null) continue;
+                double dist = haversineDistance(
+                    coords[0], coords[1],
+                    road.getCenterLng().doubleValue(), road.getCenterLat().doubleValue()
+                );
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    nearestRoadId = road.getId();
+                }
+            }
+            // 2km 阈值：只有距离在 2000m 以内才匹配
+            if (nearestRoadId != null && minDistance <= 2000) {
+                return nearestRoadId;
+            }
+        }
+
+        // 策略 3：高德未配置或解析失败，自动创建未命名道路
+        return createAutoRoad(null, coords[0], coords[1]);
+    }
+
+    /**
+     * 自动创建道路记录。
+     * @param roadName 道路名称（可为 null，此时生成 "未命名道路-经度,纬度" 格式）
+     * @param lng 经度
+     * @param lat 纬度
+     * @return 新创建的道路 ID
+     */
+    private Long createAutoRoad(String roadName, double lng, double lat) {
+        LocalDateTime now = LocalDateTime.now();
+        RoadEntity road = new RoadEntity();
+        if (roadName != null && !roadName.isBlank()) {
+            road.setRoadName(roadName);
+        } else {
+            road.setRoadName(String.format("未命名道路-%.4f,%.4f", lng, lat));
+        }
+        road.setRoadCode("AUTO-" + now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        road.setCenterLng(BigDecimal.valueOf(lng).setScale(7, RoundingMode.HALF_UP));
+        road.setCenterLat(BigDecimal.valueOf(lat).setScale(7, RoundingMode.HALF_UP));
+        road.setLengthKm(BigDecimal.valueOf(1.0)); // 默认 1km
+        road.setHealthScore(BigDecimal.valueOf(100));
+        road.setDamageLevel("HEALTHY");
+        road.setTotalDetectionCount(0);
+        road.setCurrentDamageCount(0);
+        road.setStatus("ACTIVE");
+        road.setCreatedAt(now);
+        road.setUpdatedAt(now);
+        roadMapper.insert(road);
+        return road.getId();
+    }
+
+    /**
+     * 简化的 Haversine 球面距离（单位：米）
+     */
+    private double haversineDistance(double lng1, double lat1, double lng2, double lat2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                 * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return 6371000.0 * c; // 地球半径 6371km
+    }
+
+    /**
+     * 解析位置字符串为坐标数组。
+     * 支持格式：
+     * - "lng,lat"（纯坐标）
+     * - "道路名 (lng,lat)"（带道路名的坐标）
+     */
+    private double[] parseLocationCoord(String location) {
+        if (location == null || location.isBlank()) return null;
+        // 如果格式是 "道路名 (lng,lat)"，先提取括号内的坐标
+        int parenStart = location.lastIndexOf('(');
+        int parenEnd = location.lastIndexOf(')');
+        String coordStr = location;
+        if (parenStart >= 0 && parenEnd > parenStart) {
+            coordStr = location.substring(parenStart + 1, parenEnd);
+        }
+        String[] parts = coordStr.split(",");
+        if (parts.length != 2) return null;
+        try {
+            double lng = Double.parseDouble(parts[0].trim());
+            double lat = Double.parseDouble(parts[1].trim());
+            return new double[]{lng, lat};
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @Override
@@ -226,6 +385,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
                     mediaEntity == null ? "unknown" : mediaEntity.getFileName(),
                     mediaEntity == null ? "" : mediaEntity.getFileUrl(),
                     taskEntity.getLocation(),
+                    taskEntity.getRoadId(),
                     taskEntity.getRemark(),
                     taskEntity.getSubmittedBy(),
                     taskEntity.getCreatedAt()
@@ -283,6 +443,14 @@ public class DbDetectionTaskService implements DetectionTaskService {
             itemEntity.setResultId(resultEntity.getId());
             itemEntity.setTaskId(taskEntity.getId());
             itemEntity.setMediaId(mediaEntity == null ? null : mediaEntity.getId());
+            // 继承 task 的 road_id，确保病害与道路关联
+            itemEntity.setRoadId(taskEntity.getRoadId());
+            // 从 task.location 解析坐标写入 result_item
+            double[] taskCoords = parseLocationCoord(taskEntity.getLocation());
+            if (taskCoords != null) {
+                itemEntity.setLng(BigDecimal.valueOf(taskCoords[0]).setScale(7, RoundingMode.HALF_UP));
+                itemEntity.setLat(BigDecimal.valueOf(taskCoords[1]).setScale(7, RoundingMode.HALF_UP));
+            }
             itemEntity.setDamageType(item.damageType().name());
             itemEntity.setSeverityLevel(item.severityLevel().name());
             itemEntity.setConfidence(BigDecimal.valueOf(item.confidence()).setScale(4, RoundingMode.HALF_UP));
@@ -304,6 +472,75 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 .set(DetectionTaskEntity::getFailureReason, null)
                 .set(DetectionTaskEntity::getCompletedAt, now)
                 .set(DetectionTaskEntity::getUpdatedAt, now));
+
+        // 检测完成后，自动更新关联道路的健康信息
+        updateRoadHealthAfterDetection(taskEntity.getRoadId(), now);
+
+        // 检测完成后，自动生成道路健康档案（当天）
+        autoGenerateHealthArchive(taskEntity.getRoadId(), now);
+    }
+
+    /**
+     * 检测完成后自动为该道路生成当天的健康档案。
+     * generateArchive 内部有幂等性处理（同道路同日期先删后建），所以重复调用是安全的。
+     */
+    private void autoGenerateHealthArchive(Long roadId, LocalDateTime now) {
+        if (roadId == null) return;
+        try {
+            roadHealthArchiveService.generateArchive(new GenerateRoadHealthArchiveRequest(
+                    roadId, now.toLocalDate()
+            ));
+        } catch (Exception e) {
+            // 健康档案生成失败不应影响检测任务本身的结果
+            System.err.println("[autoGenerateHealthArchive] roadId=" + roadId + " failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 检测完成后，根据该道路下的所有病害数据重新计算并更新道路健康信息。
+     */
+    private void updateRoadHealthAfterDetection(Long roadId, LocalDateTime now) {
+        if (roadId == null) return;
+
+        RoadEntity road = roadMapper.selectById(roadId);
+        if (road == null) return;
+
+        // 查询该道路下的所有检测任务
+        List<DetectionTaskEntity> roadTasks = detectionTaskMapper.selectList(
+                new LambdaQueryWrapper<DetectionTaskEntity>()
+                        .eq(DetectionTaskEntity::getRoadId, roadId)
+                        .eq(DetectionTaskEntity::getStatus, DetectionTaskStatus.COMPLETED.name()));
+
+        // 查询该道路下的所有病害结果项
+        List<Long> taskIds = roadTasks.stream().map(DetectionTaskEntity::getId).toList();
+        if (taskIds.isEmpty()) {
+            // 没有已完成任务，重置健康信息
+            road.setHealthScore(BigDecimal.valueOf(100));
+            road.setDamageLevel("HEALTHY");
+            road.setTotalDetectionCount(0);
+            road.setCurrentDamageCount(0);
+            road.setLatestDetectionAt(null);
+            road.setUpdatedAt(now);
+            roadMapper.updateById(road);
+            return;
+        }
+
+        List<DetectionResultItemEntity> allItems = detectionResultItemMapper.selectList(
+                new LambdaQueryWrapper<DetectionResultItemEntity>()
+                        .in(DetectionResultItemEntity::getTaskId, taskIds));
+
+        // 计算健康评分
+        BigDecimal healthScore = RoadHealthScoreCalculator.calculate(road, allItems);
+        String damageLevel = RoadHealthScoreCalculator.resolveDamageLevel(healthScore);
+
+        // 更新道路信息
+        road.setHealthScore(healthScore);
+        road.setDamageLevel(damageLevel);
+        road.setTotalDetectionCount(roadTasks.size());
+        road.setCurrentDamageCount(allItems.size());
+        road.setLatestDetectionAt(now);
+        road.setUpdatedAt(now);
+        roadMapper.updateById(road);
     }
 
     @Transactional
@@ -493,6 +730,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 mediaEntity == null ? null : mediaEntity.getFileName(),
                 mediaEntity == null ? null : mediaEntity.getFileUrl(),
                 taskEntity.getLocation(),
+                taskEntity.getRoadId(),
                 taskEntity.getRemark(),
                 taskEntity.getSubmittedBy(),
                 DetectionTaskStatus.valueOf(taskEntity.getStatus()),

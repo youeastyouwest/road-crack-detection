@@ -12,4 +12,10 @@ public interface RoadService {
     List<RoadResponse> listAll();
     
     List<RoadDiseaseSummaryResponse> getRoadsWithDisease();
+
+    /**
+     * 获取所有有病害检测记录的道路（用于生成健康档案下拉框）。
+     * 包含 road 表中的道路以及通过检测坐标匹配到的道路。
+     */
+    List<RoadResponse> listRoadsWithDetections();
 }

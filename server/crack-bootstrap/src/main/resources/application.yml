@@ -35,6 +35,11 @@ crack:
   websocket:
     endpoint: /ws/crack
 
+# 高德地图 Web API 配置（用于逆地理编码反查道路名）
+# 申请地址：https://console.amap.com/dev/key/app
+amap:
+  api-key: bba0da8b9d68b88dfd30c470fdb26f97
+
 jwt:
   secret: r0ad-crack-d3tecti0n-jwt-s3cret-k3y-2025-please-change
   expiration: 86400000

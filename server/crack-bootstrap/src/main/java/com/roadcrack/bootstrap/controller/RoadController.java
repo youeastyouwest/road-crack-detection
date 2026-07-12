@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/roads")
 public class RoadController {
@@ -30,5 +32,10 @@ public class RoadController {
             @RequestParam(value = "status", required = false) String status
     ) {
         return ApiResponse.success(roadService.page(page, size, roadName, district, roadGrade, status));
+    }
+
+    @GetMapping("/with-detections")
+    public ApiResponse<List<RoadResponse>> listRoadsWithDetections() {
+        return ApiResponse.success(roadService.listRoadsWithDetections());
     }
 }

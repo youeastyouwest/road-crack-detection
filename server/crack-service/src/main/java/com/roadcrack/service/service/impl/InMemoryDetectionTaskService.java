@@ -63,12 +63,13 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
     private void seedTasks() {
         // Seed some completed demo tasks so the data-screen has data to show
         LocalDateTime now = LocalDateTime.now();
-        record Seed(String location, DamageType type, SeverityLevel level) {}
+        // roadId: 1=长安街, 2=东二环路, 3=东三环路, 4=朝阳路, 5=建国路, 6=通惠河北路
+        record Seed(String location, DamageType type, SeverityLevel level, Long roadId) {}
         List<Seed> seeds = List.of(
-                new Seed("116.397,39.909", DamageType.CRACK, SeverityLevel.HIGH),
-                new Seed("116.40,39.91", DamageType.POTHOLE, SeverityLevel.MEDIUM),
-                new Seed("116.42,39.93", DamageType.CRACK, SeverityLevel.LOW),
-                new Seed("116.35,39.95", DamageType.ROAD_SPILL, SeverityLevel.HIGH)
+                new Seed("116.397,39.909", DamageType.CRACK, SeverityLevel.HIGH, 1L),
+                new Seed("116.40,39.91",  DamageType.POTHOLE, SeverityLevel.MEDIUM, 1L),
+                new Seed("116.42,39.93",  DamageType.CRACK, SeverityLevel.LOW, 2L),
+                new Seed("116.35,39.95",  DamageType.ROAD_SPILL, SeverityLevel.HIGH, 2L)
         );
 
         for (int i = 0; i < seeds.size(); i++) {
@@ -82,6 +83,7 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
                     "demo-image-" + id + ".jpg",
                     "/uploads/demo-image-" + id + ".jpg",
                     s.location,
+                    s.roadId,
                     "演示数据：" + s.type.name() + " @ " + s.level.name(),
                     DEFAULT_SUBMITTED_BY,
                     createdAt
@@ -112,6 +114,8 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
     public DetectionTaskResponse createTask(CreateDetectionTaskRequest request) {
         long id = idGenerator.getAndIncrement();
         LocalDateTime now = LocalDateTime.now();
+        // 内存模式：根据坐标简单匹配道路（与 DB 模式使用相同逻辑）
+        Long roadId = matchNearestRoadByCoord(request.location());
         DetectionTaskAggregate aggregate = new DetectionTaskAggregate(
                 id,
                 buildCode(id, now.toLocalDate()),
@@ -119,12 +123,64 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
                 request.fileName(),
                 request.fileUrl(),
                 request.location(),
+                roadId,
                 request.remark(),
                 DEFAULT_SUBMITTED_BY,
                 now
         );
         store.put(id, aggregate);
         return aggregate.toResponse();
+    }
+
+    /**
+     * 内存模式下的道路匹配：根据坐标匹配预置的 6 条北京道路
+     */
+    private Long matchNearestRoadByCoord(String location) {
+        if (location == null || location.isBlank()) return null;
+        double[] coords = parseCoord(location);
+        if (coords == null) return null;
+
+        // 预置道路中心点：(roadId, lng, lat)
+        record RoadCoord(long id, double lng, double lat) {}
+        List<RoadCoord> roads = List.of(
+            new RoadCoord(1L, 116.4075, 39.9070),  // 长安街
+            new RoadCoord(2L, 116.4350, 39.9150),  // 东二环路
+            new RoadCoord(3L, 116.4550, 39.9150),  // 东三环路
+            new RoadCoord(4L, 116.4600, 39.9200),  // 朝阳路
+            new RoadCoord(5L, 116.4500, 39.9080),  // 建国路
+            new RoadCoord(6L, 116.4480, 39.9000)   // 通惠河北路
+        );
+
+        long nearestId = 0;
+        double minDist = Double.MAX_VALUE;
+        for (RoadCoord r : roads) {
+            double dist = haversineDist(coords[0], coords[1], r.lng, r.lat);
+            if (dist < minDist) {
+                minDist = dist;
+                nearestId = r.id;
+            }
+        }
+        return nearestId > 0 ? nearestId : null;
+    }
+
+    private double haversineDist(double lng1, double lat1, double lng2, double lat2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                 * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return 6371000.0 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    private double[] parseCoord(String location) {
+        if (location == null || location.isBlank()) return null;
+        String[] parts = location.split(",");
+        if (parts.length != 2) return null;
+        try {
+            return new double[]{Double.parseDouble(parts[0].trim()), Double.parseDouble(parts[1].trim())};
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @Override

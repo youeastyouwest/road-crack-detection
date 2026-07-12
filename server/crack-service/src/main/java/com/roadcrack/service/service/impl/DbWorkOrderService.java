@@ -15,12 +15,19 @@ import com.roadcrack.api.response.workorder.WorkOrderStatusLogResponse;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.dao.entity.DetectionTaskEntity;
+import com.roadcrack.dao.entity.DetectionResultItemEntity;
+import com.roadcrack.dao.entity.RoadEntity;
 import com.roadcrack.dao.entity.WorkOrderEntity;
 import com.roadcrack.dao.entity.WorkOrderFlowEntity;
+import com.roadcrack.dao.mapper.DetectionResultItemMapper;
+import com.roadcrack.dao.mapper.DetectionTaskMapper;
+import com.roadcrack.dao.mapper.RoadMapper;
 import com.roadcrack.dao.mapper.WorkOrderFlowMapper;
 import com.roadcrack.dao.mapper.WorkOrderMapper;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
 import com.roadcrack.service.service.WorkOrderService;
+import com.roadcrack.service.util.RoadHealthScoreCalculator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,13 +54,22 @@ public class DbWorkOrderService implements WorkOrderService {
     private final WorkOrderMapper workOrderMapper;
     private final WorkOrderFlowMapper workOrderFlowMapper;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
+    private final RoadMapper roadMapper;
+    private final DetectionTaskMapper detectionTaskMapper;
+    private final DetectionResultItemMapper detectionResultItemMapper;
 
     public DbWorkOrderService(WorkOrderMapper workOrderMapper,
                               WorkOrderFlowMapper workOrderFlowMapper,
-                              RealtimeMessagePublisher realtimeMessagePublisher) {
+                              RealtimeMessagePublisher realtimeMessagePublisher,
+                              RoadMapper roadMapper,
+                              DetectionTaskMapper detectionTaskMapper,
+                              DetectionResultItemMapper detectionResultItemMapper) {
         this.workOrderMapper = workOrderMapper;
         this.workOrderFlowMapper = workOrderFlowMapper;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
+        this.roadMapper = roadMapper;
+        this.detectionTaskMapper = detectionTaskMapper;
+        this.detectionResultItemMapper = detectionResultItemMapper;
     }
 
     @Override
@@ -285,7 +301,54 @@ public class DbWorkOrderService implements WorkOrderService {
                 note,
                 now);
 
+        // 工单关闭后，更新关联道路的统计信息
+        updateRoadStatsOnClose(entity, now);
+
         publishAndReturn(entity.getId());
+    }
+
+    /**
+     * 工单关闭时更新道路统计：
+     * - current_damage_count 减 1（不低于 0）
+     * - health_score 使用 RoadHealthScoreCalculator 基于该道路所有剩余病害重新计算
+     * - last_maintained 设为当前时间
+     * - status 如果之前是 MAINTAINING 则改为 ACTIVE
+     * - damage_level 根据新的 health_score 重新评估
+     */
+    private void updateRoadStatsOnClose(WorkOrderEntity workOrder, LocalDateTime now) {
+        if (workOrder.getDetectionTaskId() == null) return;
+        DetectionTaskEntity task = detectionTaskMapper.selectById(workOrder.getDetectionTaskId());
+        if (task == null || task.getRoadId() == null) return;
+        RoadEntity road = roadMapper.selectById(task.getRoadId());
+        if (road == null) return;
+
+        int currentDamage = road.getCurrentDamageCount() != null ? road.getCurrentDamageCount() : 0;
+        currentDamage = Math.max(0, currentDamage - 1);
+        road.setCurrentDamageCount(currentDamage);
+
+        // 使用 RoadHealthScoreCalculator 基于该道路所有剩余病害重新计算健康评分
+        List<DetectionTaskEntity> roadTasks = detectionTaskMapper.selectList(
+                new LambdaQueryWrapper<DetectionTaskEntity>()
+                        .eq(DetectionTaskEntity::getRoadId, task.getRoadId())
+                        .eq(DetectionTaskEntity::getStatus, "COMPLETED"));
+        List<Long> taskIds = roadTasks.stream().map(DetectionTaskEntity::getId).toList();
+        List<DetectionResultItemEntity> allItems = taskIds.isEmpty()
+                ? Collections.emptyList()
+                : detectionResultItemMapper.selectList(
+                        new LambdaQueryWrapper<DetectionResultItemEntity>()
+                                .in(DetectionResultItemEntity::getTaskId, taskIds));
+
+        java.math.BigDecimal healthScore = RoadHealthScoreCalculator.calculate(road, allItems);
+        String damageLevel = RoadHealthScoreCalculator.resolveDamageLevel(healthScore);
+
+        road.setHealthScore(healthScore);
+        road.setDamageLevel(damageLevel);
+        road.setLastMaintained(now);
+        road.setUpdatedAt(now);
+        if ("MAINTAINING".equals(road.getStatus())) {
+            road.setStatus("ACTIVE");
+        }
+        roadMapper.updateById(road);
     }
 
     private WorkOrderResponse createWorkOrderInternal(CreateWorkOrderRequest request, String sourceType, String operatorName) {

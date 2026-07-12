@@ -22,7 +22,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         路段健康档案
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <select v-model="filterLevel" class="filter-select"><option value="">全部等级</option><option value="LOW">轻微</option><option value="MEDIUM">中等</option><option value="HIGH">严重</option></select>
+          <select v-model="filterLevel" class="filter-select"><option value="">全部等级</option><option value="HEALTHY">健康</option><option value="SUB_HEALTHY">亚健康</option><option value="UNHEALTHY">需维修</option></select>
         </div>
       </div>
       <div class="table-wrap">
@@ -38,7 +38,7 @@
                   <div class="score-bar"><div class="score-fill" :style="{width:(a.healthScore||0)+'%',background:scoreColor(a.healthScore)}"></div></div>
                 </div>
               </td>
-              <td><span :class="['sev-badge', a.damageLevel === 'HIGH' ? 'sev-high' : a.damageLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ damageLevelLabel(a.damageLevel) }}</span></td>
+              <td><span :class="['sev-badge', a.damageLevel === 'UNHEALTHY' ? 'sev-high' : a.damageLevel === 'SUB_HEALTHY' ? 'sev-med' : 'sev-low']">{{ damageLevelLabel(a.damageLevel) }}</span></td>
               <td>{{ a.totalDetectionCount ?? 0 }}</td>
               <td>{{ a.totalDamageCount ?? 0 }}</td>
               <td><span :class="{'td-danger': (a.severityHighCount ?? 0) > 0}">{{ a.severityHighCount ?? 0 }}</span></td>
@@ -125,6 +125,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" @click="showGenerate=false">取消</button>
+          <button class="btn-ghost" @click="handleBatchGenerate" :disabled="generating" style="color:#2563eb;border-color:#2563eb">{{ generating ? '批量生成中...' : '为全部道路生成' }}</button>
           <button class="btn-primary" :disabled="generating" @click="handleGenerate">{{ generating ? '生成中...' : '确认生成' }}</button>
         </div>
       </div>
@@ -158,7 +159,7 @@ const filteredArchives = computed(() => {
 function scoreCls(s?: number) { return s == null ? 'sc-low' : s >= 80 ? 'sc-high' : s >= 60 ? 'sc-mid' : 'sc-low' }
 function scoreColor(s?: number) { return s == null ? '#ef4444' : s >= 80 ? '#22c55e' : s >= 60 ? '#f59e0b' : '#ef4444' }
 function damageLevelLabel(level?: string) {
-  return ({ LOW: '轻微', MEDIUM: '中等', HIGH: '严重' } as any)[level || ''] || '--'
+  return ({ HEALTHY: '健康', SUB_HEALTHY: '亚健康', UNHEALTHY: '需维修' } as any)[level || ''] || level || '--'
 }
 
 async function loadData() {
@@ -191,8 +192,8 @@ async function viewDetail(a: RoadHealthArchiveResponse) {
 
 async function loadRoadOptions() {
   try {
-    const res = await roadApi.list({ page: 1, size: 100 })
-    roadOptions.value = res.data.data.records
+    const res = await roadApi.listWithDetections()
+    roadOptions.value = res.data.data || []
   } catch { /* 忽略 */ }
 }
 
@@ -207,6 +208,30 @@ async function handleGenerate() {
     await loadData()
   } catch {
     ElMessage.error("生成档案失败")
+  }
+  generating.value = false
+}
+
+async function handleBatchGenerate() {
+  if (!genForm.archiveDate) return ElMessage.warning("请选择日期")
+  if (roadOptions.value.length === 0) return ElMessage.warning("没有可用的道路")
+  generating.value = true
+  let successCount = 0
+  let failCount = 0
+  try {
+    for (const road of roadOptions.value) {
+      try {
+        await roadHealthArchiveApi.generate({ roadId: road.id!, archiveDate: genForm.archiveDate })
+        successCount++
+      } catch {
+        failCount++
+      }
+    }
+    ElMessage.success(`批量生成完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+    showGenerate.value = false
+    await loadData()
+  } catch {
+    ElMessage.error("批量生成档案失败")
   }
   generating.value = false
 }

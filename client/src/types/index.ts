@@ -47,7 +47,7 @@ export interface ResetPasswordRequest { email: string; newPassword: string; code
 export interface UserEntity { id?: number; username: string; password?: string; realName: string; email?: string; phone?: string; deptId?: number; deptName?: string; avatar?: string; roleCode?: string; roleName?: string; roleId?: number; status: number; lastLoginAt?: string; lastLoginIp?: string; createdAt?: string; updatedAt?: string }
 export interface UserDetailResponse { user: UserEntity; roles: string[]; roleIds?: number[] }
 export interface UserPageQuery { page?: number; size?: number; username?: string; realName?: string; status?: number; deptId?: number }
-export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; result?: DetectionResultResponse }
+export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; roadId?: number; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; result?: DetectionResultResponse }
 export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string }
 export interface DetectionItemResponse { damageType: string; severityLevel: string; confidence: number; boundingBox?: BoundingBoxResponse; suggestion?: string }
 export interface BoundingBoxResponse { x: number; y: number; width: number; height: number }

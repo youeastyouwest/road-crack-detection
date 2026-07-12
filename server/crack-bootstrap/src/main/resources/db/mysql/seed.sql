@@ -42,12 +42,6 @@ INSERT IGNORE INTO user_role (user_id, role_id) VALUES
 (5, 5),  -- maintainer -> ROLE_MAINTAINER
 (6, 6);  -- crowd_user -> ROLE_CROWDSOURCE
 
--- Seed 6 Demo Roads
-INSERT IGNORE INTO road (id, road_code, road_name, road_grade, district, start_point, end_point, length_km, lane_count, surface_type, status, created_at)
-VALUES
-(1, 'RD-001', '长安街', '主干道', '东城区', '东单', '建国门', 3.5, 8, '沥青', 'ACTIVE', NOW()),
-(2, 'RD-002', '东二环路', '快速路', '东城区', '东直门', '广渠门', 5.2, 6, '沥青', 'ACTIVE', NOW()),
-(3, 'RD-003', '东三环路', '快速路', '朝阳区', '三元桥', '国贸桥', 6.8, 6, '沥青', 'ACTIVE', NOW()),
-(4, 'RD-004', '朝阳路', '主干道', '朝阳区', '朝阳门', '管庄', 8.0, 4, '沥青', 'ACTIVE', NOW()),
-(5, 'RD-005', '建国路', '主干道', '朝阳区', '建国门', '大望路', 4.5, 6, '沥青', 'ACTIVE', NOW()),
-(6, 'RD-006', '通惠河北路', '次干道', '朝阳区', '东便门', '四惠', 5.0, 4, '沥青', 'ACTIVE', NOW());
+-- Road seed data removed: roads are now auto-created by the detection pipeline
+-- via AmapGeocodeClient reverse geocode → matchNearestRoad → createAutoRoad.
+-- Real road names come from Gaode (Amap) reverse geocoding, not hardcoded here.

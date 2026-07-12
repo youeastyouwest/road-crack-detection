@@ -34,7 +34,7 @@
       <div class="road-list" v-if="!loading">
         <div v-for="road in filteredRoads" :key="road.id" class="road-card">
           <div class="road-left">
-            <div class="health-badge" :class="healthCls(road.healthScore)">{{ healthLabel(road.healthScore) }}</div>
+            <div class="health-badge" :class="healthCls(road.healthScore, road.damageLevel)">{{ healthLabel(road.healthScore, road.damageLevel) }}</div>
             <div class="road-info">
               <div class="road-name">{{ road.roadName }}</div>
               <div class="road-meta">
@@ -126,15 +126,23 @@ const filteredRoads = computed(() => {
   })
 })
 
-function healthCls(score?: number) {
+function healthCls(score?: number, damageLevel?: string) {
+  if (damageLevel === 'HEALTHY') return "health-good"
+  if (damageLevel === 'SUB_HEALTHY') return "health-warn"
+  if (damageLevel === 'UNHEALTHY') return "health-danger"
+  // 回退到 score 判断
   if (score == null) return "health-danger"
-  if (score >= 80) return "health-good"
+  if (score >= 85) return "health-good"
   if (score >= 60) return "health-warn"
   return "health-danger"
 }
-function healthLabel(score?: number) {
+function healthLabel(score?: number, damageLevel?: string) {
+  if (damageLevel === 'HEALTHY') return "优"
+  if (damageLevel === 'SUB_HEALTHY') return "良"
+  if (damageLevel === 'UNHEALTHY') return "差"
+  // 回退到 score 判断
   if (score == null) return "--"
-  if (score >= 80) return "优"
+  if (score >= 85) return "优"
   if (score >= 60) return "良"
   return "差"
 }
@@ -147,14 +155,15 @@ function statusLabel(s?: string) {
   return ({ ACTIVE: '运营中', MAINTAINING: '养护中', CLOSED: '封闭' } as any)[s || ''] || '未知'
 }
 function damageLevelLabel(level?: string) {
-  return ({ LOW: '轻微', MEDIUM: '中等', HIGH: '严重' } as any)[level || ''] || '--'
+  return ({ HEALTHY: '健康', SUB_HEALTHY: '亚健康', UNHEALTHY: '需维修' } as any)[level || ''] || level || '--'
 }
 
 function calcStats() {
   stats.totalRoads = roads.value.length
-  stats.healthy = roads.value.filter(r => (r.healthScore ?? 0) >= 80).length
-  stats.warning = roads.value.filter(r => (r.healthScore ?? 100) >= 60 && (r.healthScore ?? 100) < 80).length
-  stats.danger = roads.value.filter(r => (r.healthScore ?? 100) < 60).length
+  // 使用 damageLevel 字段精确判断（而不是用 healthScore 近似）
+  stats.healthy = roads.value.filter(r => r.damageLevel === 'HEALTHY' || (r.healthScore ?? 100) >= 85).length
+  stats.warning = roads.value.filter(r => r.damageLevel === 'SUB_HEALTHY' || ((r.healthScore ?? 100) >= 60 && (r.healthScore ?? 100) < 85)).length
+  stats.danger = roads.value.filter(r => r.damageLevel === 'UNHEALTHY' || (r.healthScore ?? 100) < 60).length
   stats.totalDamages = roads.value.reduce((sum, r) => sum + (r.currentDamageCount || 0), 0)
 }
 

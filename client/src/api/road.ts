@@ -5,6 +5,9 @@ export const roadApi = {
   list(params: { page?: number; size?: number; roadName?: string; district?: string; roadGrade?: string; status?: string }) {
     return http.get<ApiResponse<PageResponse<RoadResponse>>>("/roads", { params })
   },
+  listWithDetections() {
+    return http.get<ApiResponse<RoadResponse[]>>("/roads/with-detections")
+  },
 }
 
 export const roadHealthArchiveApi = {

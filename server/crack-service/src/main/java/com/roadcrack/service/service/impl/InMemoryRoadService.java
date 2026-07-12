@@ -62,16 +62,28 @@ public class InMemoryRoadService implements RoadService {
         PageResponse<DetectionTaskResponse> page = detectionTaskService.listTasks(1, Integer.MAX_VALUE, DetectionTaskStatus.COMPLETED, null, null, null);
         List<DetectionTaskResponse> completedTasks = page.records();
 
-        // 2. Group completed tasks by matched road
+        // 2. Group completed tasks by matched road (优先使用 task.roadId，其次坐标匹配)
         Map<Long, List<DetectionTaskResponse>> roadTaskMap = new HashMap<>();
         for (DetectionTaskResponse task : completedTasks) {
             if (task.location() == null || task.location().isBlank()) continue;
-            double[] coords = parseLocation(task.location());
-            if (coords == null) continue;
 
-            SeededRoad matched = matchRoad(coords[0], coords[1]);
-            if (matched != null) {
-                roadTaskMap.computeIfAbsent(matched.id, k -> new ArrayList<>()).add(task);
+            Long roadId = null;
+            // 优先使用 task.roadId 直接匹配
+            if (task.roadId() != null && roads.containsKey(task.roadId())) {
+                roadId = task.roadId();
+            } else {
+                // 其次按坐标匹配
+                double[] coords = parseLocation(task.location());
+                if (coords != null) {
+                    SeededRoad matched = matchRoad(coords[0], coords[1]);
+                    if (matched != null) {
+                        roadId = matched.id;
+                    }
+                }
+            }
+
+            if (roadId != null) {
+                roadTaskMap.computeIfAbsent(roadId, k -> new ArrayList<>()).add(task);
             }
         }
 
@@ -129,7 +141,13 @@ public class InMemoryRoadService implements RoadService {
         return result;
     }
 
-            private void seedRoads() {
+            @Override
+    public List<RoadResponse> listRoadsWithDetections() {
+        // 内存模式下返回所有有检测数据的道路
+        return listAll();
+    }
+
+    private void seedRoads() {
         // Beijing area seeded roads for demonstration
         addRoad("ChangAn Street", 39.909, 116.397, new double[][]{{116.38,39.908},{116.42,39.910}});
         addRoad("2nd Ring Road", 39.91, 116.39, new double[][]{{116.37,39.90},{116.37,39.92},{116.41,39.92},{116.41,39.90}});

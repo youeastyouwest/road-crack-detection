@@ -45,11 +45,12 @@
           <div class="form-group">
             <label class="form-label">
               位置
-              <span v-if="form.location" class="loc-badge">已定位</span>
+              <span v-if="form.roadName" class="loc-badge">{{ form.roadName }}</span>
+              <span v-else-if="form.location" class="loc-badge loc-badge-coord">仅坐标</span>
             </label>
             <div class="loc-row">
               <input v-model="form.location" class="form-input" placeholder="点击地图选择位置" readonly @click="focusMap" />
-              <button v-if="form.location" class="loc-clear" @click="form.location='';selectedPos=null">清除</button>
+              <button v-if="form.location" class="loc-clear" @click="form.location='';form.roadName='';selectedPos=null">清除</button>
             </div>
           </div>
 
@@ -175,7 +176,7 @@ import type { DetectionTaskResponse } from "@/types"
 
 declare global { interface Window { AMap: any; _AMapSecurityConfig: any } }
 
-const form = reactive({ dataSourceType: "MANUAL_IMAGE", fileName: "", fileUrl: "", location: "", remark: "" })
+const form = reactive({ dataSourceType: "MANUAL_IMAGE", fileName: "", fileUrl: "", location: "", remark: "", roadName: "" })
 const tasks = ref<DetectionTaskResponse[]>([])
 const loading = ref(false)
 const submitting = ref(false)
@@ -233,7 +234,6 @@ function initMap() {
     map.on("click", (e: any) => {
       const lng = e.lnglat.getLng(), lat = e.lnglat.getLat()
       selectedPos.value = { lng, lat }
-      form.location = lng.toFixed(6) + "," + lat.toFixed(6)
       placeMarker(lng, lat)
       reverseGeocode(lng, lat)
     })
@@ -253,6 +253,13 @@ function reverseGeocode(lng: number, lat: number) {
   geocoder.getAddress([lng, lat], (status: string, result: any) => {
     if (status === "complete" && result.regeocode) {
       selectedAddr.value = result.regeocode.formattedAddress || ""
+      // 从高德逆地理编码结果中提取道路名
+      const street = result.regeocode.addressComponent?.street
+      const roadName = (Array.isArray(street) ? street[0] : street) || ""
+      form.roadName = roadName || ""
+      // 位置输入框显示 "道路名 (经度,纬度)"
+      const coordStr = lng.toFixed(6) + "," + lat.toFixed(6)
+      form.location = roadName ? `${roadName} (${coordStr})` : coordStr
     }
   })
 }
@@ -264,10 +271,11 @@ function doSearch() {
       const poi = result.poiList.pois[0]
       const lng = poi.location.lng, lat = poi.location.lat
       selectedPos.value = { lng, lat }
-      form.location = lng.toFixed(6) + "," + lat.toFixed(6)
-      selectedAddr.value = poi.name + " ? " + (poi.address || "")
+      selectedAddr.value = poi.name + " - " + (poi.address || "")
       placeMarker(lng, lat)
       map.setZoom(15)
+      // 逆地理编码获取道路名
+      reverseGeocode(lng, lat)
     } else {
       ElMessage.warning("请先在地图上选择位置")
     }
@@ -288,11 +296,12 @@ async function submitTask() {
     fd.append("dataSourceType", form.dataSourceType)
     fd.append("location", form.location)
     fd.append("remark", form.remark)
+    if (form.roadName) fd.append("roadName", form.roadName)
     const res = await detectionApi.createWithFile(fd)
     const taskId = res.data.data?.id
     ElMessage.success("任务提交成功，AI 检测中...")
     if (taskId) { startPolling(taskId) }
-    form.fileName = ""; form.fileUrl = ""; form.remark = ""; uploadedFile.value = null
+    form.fileName = ""; form.fileUrl = ""; form.remark = ""; form.roadName = ""; uploadedFile.value = null
   } catch (e: any) { ElMessage.error("提交失败: " + (e?.response?.data?.message || "未知错误")) }
   finally { submitting.value = false }
 }
@@ -373,6 +382,7 @@ onUnmounted(() => {
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .form-label { font-size: 12px; font-weight: 500; color: #475569; display: flex; align-items: center; gap: 6px; }
 .loc-badge { font-size: 10px; color: #059669; background: #ecfdf5; padding: 1px 6px; border-radius: 4px; font-weight: 400; }
+.loc-badge-coord { color: #d97706; background: #fffbeb; }
 .loc-row { display: flex; gap: 6px; }
 .loc-clear { padding: 0 10px; font-size: 11px; color: #ef4444; background: #fef2f2; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; }
 .form-input, .form-select, .form-textarea { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-family: inherit; color: #0f172a; background: #fff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }

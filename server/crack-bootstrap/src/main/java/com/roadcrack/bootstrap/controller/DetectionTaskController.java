@@ -45,6 +45,7 @@ public class DetectionTaskController {
             @RequestParam("dataSourceType") DataSourceType dataSourceType,
             @RequestParam("location") String location,
             @RequestParam(value = "remark", required = false) String remark,
+            @RequestParam(value = "roadName", required = false) String roadName,
             @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
 
         String fileName = file != null ? file.getOriginalFilename() : "unknown";
@@ -60,7 +61,7 @@ public class DetectionTaskController {
         }
 
         CreateDetectionTaskRequest req = new CreateDetectionTaskRequest(
-                dataSourceType, fileName, fileUrl, location, remark
+                dataSourceType, fileName, fileUrl, location, remark, roadName
         );
         DetectionTaskResponse task = detectionTaskService.createTask(req);
         detectionTaskService.executeTask(task.id());

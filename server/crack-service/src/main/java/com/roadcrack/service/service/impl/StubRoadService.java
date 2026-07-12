@@ -28,4 +28,9 @@ public class StubRoadService implements RoadService {
     public List<RoadDiseaseSummaryResponse> getRoadsWithDisease() {
         return new ArrayList<>();
     }
+
+    @Override
+    public List<RoadResponse> listRoadsWithDetections() {
+        return new ArrayList<>();
+    }
 }

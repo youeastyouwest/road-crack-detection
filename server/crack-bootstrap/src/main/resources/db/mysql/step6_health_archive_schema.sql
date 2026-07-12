@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `road_health_archive` (
     `road_id` BIGINT NOT NULL COMMENT '道路ID',
     `archive_date` DATE NOT NULL COMMENT '档案日期',
     `health_score` DECIMAL(5,2) DEFAULT 100.00 COMMENT '健康评分(0-100)',
-    `damage_level` VARCHAR(16) DEFAULT 'LOW' COMMENT '病害等级：LOW/MEDIUM/HIGH',
+    `damage_level` VARCHAR(16) DEFAULT 'HEALTHY' COMMENT '病害等级：HEALTHY/SUB_HEALTHY/UNHEALTHY',
     `total_detection_count` INT DEFAULT 0 COMMENT '累计检测次数',
     `total_damage_count` INT DEFAULT 0 COMMENT '累计病害数',
     `crack_count` INT DEFAULT 0 COMMENT '裂缝数量',

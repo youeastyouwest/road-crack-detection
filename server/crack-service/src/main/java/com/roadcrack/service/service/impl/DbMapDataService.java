@@ -121,10 +121,12 @@ public class DbMapDataService implements MapDataService {
             if (task.getCreatedAt() != null && task.getCreatedAt().toLocalDate().equals(today)) newMarkers++;
         }
         long woCount = workOrderMapper.selectCount(null);
+        long closedCount = workOrderMapper.selectCount(
+            new LambdaQueryWrapper<WorkOrderEntity>().eq(WorkOrderEntity::getStatus, "CLOSED"));
         stats.setTotalMarkers(total);
         stats.setNewMarkers(newMarkers);
-        stats.setRepairedCount(woCount);
-        stats.setPendingRepair(total - woCount);
+        stats.setRepairedCount(closedCount);
+        stats.setPendingRepair(total - closedCount);
         stats.setHighSeverityCount(high);
         stats.setMediumSeverityCount(medium);
         stats.setLowSeverityCount(low);

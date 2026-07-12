@@ -12,6 +12,7 @@ public record DetectionTaskResponse(
         String fileName,
         String fileUrl,
         String location,
+        Long roadId,
         String remark,
         String submittedBy,
         DetectionTaskStatus status,

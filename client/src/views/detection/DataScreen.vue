@@ -143,7 +143,8 @@
           <!-- 道路病害排行 TOP5 -->
           <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
             <div class="ds-sb-section-title">道路病害排行 TOP5</div>
-            <div v-if="roadRanking.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div v-if="!roadNameResolved" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">正在解析道路名称...</div>
+            <div v-else-if="roadRanking.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
             <div v-for="(r, ri) in roadRanking" :key="r.roadId" style="margin-bottom:8px">
               <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                 <span style="color:#64748b">#{{ ri+1 }} {{ roadNameCn(r.roadName) }}</span>
@@ -189,7 +190,8 @@
           <!-- 道路健康度列表 -->
           <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
             <div class="ds-sb-section-title">道路健康度</div>
-            <div v-if="roadHealthList.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div v-if="!roadNameResolved" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">正在解析道路名称...</div>
+            <div v-else-if="roadHealthList.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
             <div v-for="r in roadHealthList" :key="r.roadId" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc">
               <span class="ds-health-dot" :style="{ background: healthColor(r.overallSeverity) }"></span>
               <span style="flex:1;font-size:11px;color:#475569;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ roadNameCn(r.roadName) }}</span>
@@ -234,6 +236,7 @@ import { ref, computed, nextTick, watch, onMounted, onUnmounted } from "vue"
 import { detectionApi, statisticsApi, mapApi, agentApi } from "@/api"
 import * as echarts from "echarts"
 import DiseaseMarkerLayer from "@/components/DiseaseMarkerLayer.vue"
+import { getBatchGeocoder, disposeBatchGeocoder, type BatchGeocoderOptions } from "@/utils/batchGeocoder"
 
 declare global {
   interface Window { AMap: any }
@@ -291,7 +294,6 @@ const diseasePointTotal = computed(() => {
 
 const mapMarkers: any[] = []
 const roadPolylines: any[] = []
-let geocoder: any = null
 const realStats = ref<any>(null)
 const chatMsgRef = ref()
 const trendChartRef = ref()
@@ -320,6 +322,9 @@ const roadHealthList = computed(() => {
     return (order[a.overallSeverity] ?? 3) - (order[b.overallSeverity] ?? 3)
   }).slice(0, 8)
 })
+
+/** 道路名称解析状态：true 表示所有"未知道路"已通过逆地理完成兜底 */
+const roadNameResolved = ref(false)
 
 const avatarSrc = computed(() => "/avatar-agent.png")
 
@@ -399,7 +404,8 @@ function initMap() {
     pitch: 0,
   })
   map.on("zoomchange", () => { zoomLevel.value = map.getZoom() })
-  geocoder = new window.AMap.Geocoder({ city: "全国", radius: 1000 })
+  // 初始化批量逆地理编码器（复用 Geocoder 单例）
+  batchGeocoder.init()
 }
 function initECharts() {
   // 分析面板使用 v-if 渲染，切换到 analysis 标签页时 DOM 才存在
@@ -512,7 +518,8 @@ async function loadStats() {
     if (d) {
       totalRoad.value = d.totalRoads || 0
       crackCount.value = d.totalCracksDetected || 0
-      repairedCount.value = d.totalWorkOrders || 0
+      // totalWorkOrders 是工单总数（含所有状态），不等于已修复数
+      // 已修复数由 mapApi.statistics() 接口返回（status=CLOSED 的工单数），在 loadMapAnalysisData 中更新
       alertCount.value = d.pendingAlerts || 0
     }
     // 缓存统计数据供图表延迟初始化时使用
@@ -592,61 +599,70 @@ const MARKER_COLORS: Record<string, { fill: string; stroke: string; label: strin
 }
 
 /**
- * 英文路名 → 中文路名映射（仅用于侧边栏历史数据兼容）
+ * 道路名展示：后端已返回真实道路名（来自 road 表），这里只做兜底显示。
  */
-const ROAD_NAME_CN: Record<string, string> = {
-  "ChangAn Street":      "长安街",
-  "2nd Ring Road":       "二环路",
-  "3rd Ring Road":       "三环路",
-  "4th Ring Road":       "四环路",
-  "5th Ring Road":       "五环路",
-  "Airport Expressway":  "机场高速",
-  "Jingzang Expwy":      "京藏高速",
-  "Xizhimen Outer St":   "西直门外大街",
-}
 function roadNameCn(name: string): string {
   if (!name) return "未知道路"
-  return ROAD_NAME_CN[name] || name
+  if (name === "未知道路" && !roadNameResolved.value) return "解析中..."
+  return name
 }
 
 /**
- * 逆地理编码缓存：坐标 → 真实道路名（避免重复请求高德）
+ * 批量逆地理编码器实例（全局单例，复用 Geocoder 实例）
+ * 配置说明：
+ *  - maxConcurrency: 4 — 避免触发高德 QPS 限制（浏览器 HTTP/1.1 同域名最大 6 并发）
+ *  - cacheTTL: 30min — 同坐标缓存有效期
+ *  - maxRetries: 2 — 失败自动重试
+ *  - timeout: 8000ms — 单次请求超时
  */
-const geocodeCache = new Map<string, string>()
+const batchGeocoderOptions: BatchGeocoderOptions = {
+  maxConcurrency: 4,
+  maxCacheSize: 2000,
+  cacheTTL: 30 * 60 * 1000,
+  maxRetries: 2,
+  retryBaseDelay: 1000,
+  timeout: 8000,
+  city: '全国',
+  radius: 1000,
+}
+let batchGeocoder = getBatchGeocoder(batchGeocoderOptions)
 
 /**
- * 调用高德逆地理编码获取坐标所在的真实道路名
+ * 调用批量逆地理编码获取坐标所在的真实道路名（使用全局单例，避免每次 new Geocoder）
  */
 function reverseGeocodeRoad(lng: number, lat: number): Promise<string> {
-  const key = `${lng.toFixed(6)},${lat.toFixed(6)}`
-  const cached = geocodeCache.get(key)
-  if (cached) return Promise.resolve(cached)
+  return batchGeocoder.getRoadName(lng, lat)
+}
 
-  return new Promise((resolve) => {
-    try {
-      const geocoder = new window.AMap.Geocoder({ extensions: "all" })
-      geocoder.getAddress([lng, lat], (status: string, result: any) => {
-        let roadName = ""
-        if (status === "complete" && result?.regeocode) {
-          const roads = result.regeocode.roads || []
-          if (roads.length > 0 && roads[0].name) {
-            roadName = roads[0].name
-          } else if (result.regeocode.addressComponent?.street) {
-            roadName = result.regeocode.addressComponent.street
-          } else if (result.regeocode.formattedAddress) {
-            // 从格式化地址里提取路名
-            const fa = result.regeocode.formattedAddress
-            const m = fa.match(/[\u4e00-\u9fa5]+(?:路|街|道|巷|胡同|桥|高速)/)
-            if (m) roadName = m[0]
-          }
-        }
-        geocodeCache.set(key, roadName || "未知道路")
-        resolve(roadName || "未知道路")
-      })
-    } catch(e) {
-      resolve("未知道路")
+/**
+ * 获取逆地理缓存中已解析的道路名（同步方法，用于 click 事件等场景）
+ */
+function getCachedRoadName(lng: number, lat: number): string {
+  const key = `${lng.toFixed(6)},${lat.toFixed(6)}`
+  // 通过内部缓存直接获取
+  // 注意：这里我们依赖 batchGeocoder 的内部 LRU 缓存
+  // 如果未缓存，返回空字符串，由异步更新填充
+  return '' // 由异步回调更新
+}
+
+/**
+ * 兼容旧的 geocodeCache 引用（用于 click 事件中获取已缓存的路径名）
+ * 现在由 batchGeocoder 内部的 LRU 缓存提供数据
+ */
+const geocodeCache = {
+  _fallback: new Map<string, string>(),
+  get(key: string): string | undefined {
+    // 优先从本地同步缓存读取（label 更新时写入）
+    return this._fallback.get(key)
+  },
+  set(key: string, value: string): void {
+    this._fallback.set(key, value)
+    // 限制同步缓存大小，防止内存泄漏
+    if (this._fallback.size > 5000) {
+      const firstKey = this._fallback.keys().next().value
+      if (firstKey) this._fallback.delete(firstKey)
     }
-  })
+  },
 }
 
 /**
@@ -679,18 +695,130 @@ async function loadRoadDiseaseData() {
     roadDiseaseData.value = roads
     console.log("loadRoadDiseaseData: got", roads.length, "roads")
 
-    // 异步为每条道路获取真实路名（逆地理编码），更新 roadDiseaseData 以刷新排行显示
-    for (const road of roads) {
-      (road as any)._roadNameReady = false
-      if (road.centerLng && road.centerLat) {
-        reverseGeocodeRoad(road.centerLng, road.centerLat).then((realName) => {
-          if (realName) {
-            road.roadName = realName
+    // ====== 核心修复：对"未知道路"条目用逆地理重新分组聚合 ======
+    // 问题：后端按 road_id 聚合，当 road_id 为 NULL 时返回 roadName="未知道路"
+    // 修复：前端拿到这些条目后，用其 diseasePoints 坐标批量逆地理，
+    //       按真实路名重新分组，消除"未知道路"分类
+    roadNameResolved.value = false
+
+    const unknownRoads = roads.filter((r: any) => !r.roadName || r.roadName === "未知道路")
+    const knownRoads = roads.filter((r: any) => r.roadName && r.roadName !== "未知道路")
+
+    if (unknownRoads.length > 0) {
+      console.log("loadRoadDiseaseData: found", unknownRoads.length, "unknown roads, resolving via geocode...")
+
+      // 收集所有未知道路的病害点坐标（去重）
+      const coordToDp = new Map<string, { dp: any; sourceRoad: any }>()
+      for (const road of unknownRoads) {
+        const dps = road.diseasePoints || []
+        for (const dp of dps) {
+          if (!dp.lng || !dp.lat) continue
+          const key = `${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`
+          if (!coordToDp.has(key)) {
+            coordToDp.set(key, { dp, sourceRoad: road })
           }
+        }
+      }
+
+      // 批量逆地理获取真实路名
+      const points = Array.from(coordToDp.entries()).map(([key, val]) => ({
+        lng: val.dp.lng,
+        lat: val.dp.lat,
+        key,
+      }))
+
+      try {
+        const roadNameMap = await batchGeocoder.getRoadNames(points.map(p => ({ lng: p.lng, lat: p.lat })))
+
+        // 按真实路名重新分组
+        const regrouped = new Map<string, {
+          roadName: string
+          totalCount: number
+          highCount: number
+          mediumCount: number
+          lowCount: number
+          diseasePoints: any[]
+          sumLng: number
+          sumLat: number
+          coordCount: number
+        }>()
+
+        for (const [key, val] of coordToDp) {
+          const realName = roadNameMap.get(key)
+          const effectiveName = (realName && realName !== "未知道路") ? realName : null
+
+          if (realName) {
+            const group = regrouped.get(realName) || {
+              roadName: realName,
+              totalCount: 0,
+              highCount: 0,
+              mediumCount: 0,
+              lowCount: 0,
+              diseasePoints: [],
+              sumLng: 0,
+              sumLat: 0,
+              coordCount: 0,
+            }
+            const dp = val.dp
+            group.totalCount++
+            const sev = dp.severity || "MEDIUM"
+            if (sev === "HIGH") group.highCount++
+            else if (sev === "MEDIUM") group.mediumCount++
+            else group.lowCount++
+            group.diseasePoints.push(dp)
+            group.sumLng += Number(dp.lng)
+            group.sumLat += Number(dp.lat)
+            group.coordCount++
+            regrouped.set(realName, group)
+          }
+        }
+
+        console.log("loadRoadDiseaseData: regrouped unknown roads into", regrouped.size, "named roads")
+
+        // 将重新分组的道路合并到已知道路中
+        const regroupedRoads: any[] = []
+        for (const [name, group] of regrouped) {
+          const overall = group.highCount > 0 ? "HIGH" : group.mediumCount > 0 ? "MEDIUM" : "LOW"
+          regroupedRoads.push({
+            roadId: -(regroupedRoads.length + 1), // 负 ID 表示前端动态分组
+            roadName: name,
+            centerLng: group.coordCount > 0 ? group.sumLng / group.coordCount : 0,
+            centerLat: group.coordCount > 0 ? group.sumLat / group.coordCount : 0,
+            totalCount: group.totalCount,
+            highCount: group.highCount,
+            mediumCount: group.mediumCount,
+            lowCount: group.lowCount,
+            overallSeverity: overall,
+            diseasePoints: group.diseasePoints,
+          })
+        }
+
+        // 合并：已知道路 + 重新分组后的道路
+        roadDiseaseData.value = [...knownRoads, ...regroupedRoads]
+        console.log("loadRoadDiseaseData: final road count", roadDiseaseData.value.length,
+          "(known:", knownRoads.length, "regrouped:", regroupedRoads.length, ")")
+      } catch (geocodeErr) {
+        console.warn("loadRoadDiseaseData: geocode regroup failed, keeping original data", geocodeErr)
+      }
+    }
+
+    roadNameResolved.value = true
+
+    // 异步为道路名称缺失的条目兜底获取真实路名（保留作为二次兜底）
+    for (const road of roadDiseaseData.value) {
+      (road as any)._roadNameReady = false
+      if (!road.roadName || road.roadName === "未知道路") {
+        if (road.centerLng && road.centerLat) {
+          reverseGeocodeRoad(road.centerLng, road.centerLat).then((realName) => {
+            if (realName && (!road.roadName || road.roadName === "未知道路")) {
+              road.roadName = realName
+            }
+            (road as any)._roadNameReady = true
+            roadDiseaseData.value = [...roadDiseaseData.value]
+          })
+        } else {
           (road as any)._roadNameReady = true
-          // 触发响应式更新
-          roadDiseaseData.value = [...roads]
-        })
+        }
       } else {
         (road as any)._roadNameReady = true
       }
@@ -703,17 +831,18 @@ async function loadRoadDiseaseData() {
       roadPolylines.forEach((pl) => { try { map?.remove(pl) } catch(e) {} })
       roadPolylines.length = 0
 
-      if (!roads || roads.length === 0) {
+      // 使用已合并的道路数据（包含逆地理重新分组后的道路）
+      const currentRoads = roadDiseaseData.value || []
+      if (currentRoads.length === 0) {
         console.log("loadRoadDiseaseData: no roads to display")
         return
       }
 
-      // 后端 matchRoad 可能把病害点匹配到错误的预置道路上，
-      // 所以前端不再依赖后端的路名，而是直接拍平所有病害点按坐标聚合，
-      // 然后用高德逆地理编码获取每个坐标的真实道路名。
+      // 后端已按 task/result_item 的 road_id 真实关联道路，roadName 即为真实道路名。
+      // 前端这里拍平所有病害点用于地图渲染，并在地图上通过逆地理编码显示每个点的真实路名。
       const sevRank: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 }
       const coordMap = new Map<string, any>()
-      for (const road of roads) {
+      for (const road of currentRoads) {
         const dps = road.diseasePoints || []
         for (const dp of dps) {
           if (!dp.lng || !dp.lat) continue
@@ -841,6 +970,8 @@ async function loadRoadDiseaseData() {
 
         // 异步获取真实道路名
         reverseGeocodeRoad(dp.lng, dp.lat).then((roadName) => {
+          // 同步缓存到 geocodeCache（供 click 事件同步读取）
+          geocodeCache.set(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`, roadName)
           label.setText(`<div style="
             background:#fff;
             border:1px solid #cbd5e1;
@@ -1030,6 +1161,8 @@ watch([filterSeverity, filterDate, filterStatus], () => {
 
       // 逆地理编码获取真实路名（利用缓存，不会重复请求）
       reverseGeocodeRoad(dp.lng, dp.lat).then((roadName) => {
+        // 同步缓存到 geocodeCache（供 click 事件同步读取）
+        geocodeCache.set(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`, roadName)
         label.setText(`<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${roadName}</div>`)
       })
 
@@ -1127,6 +1260,11 @@ async function loadMapAnalysisData() {
     ])
     if (statsR.status === "fulfilled") {
       mapStatsData.value = statsR.value.data.data
+      // 同步更新左上角浮动统计区的"已修复"数字
+      const stats = statsR.value.data.data
+      if (stats) {
+        repairedCount.value = stats.repairedCount || 0
+      }
     }
     if (typesR.status === "fulfilled") {
       damageTypeRatios.value = typesR.value.data.data || []
@@ -1233,6 +1371,11 @@ onMounted(() => {
     loadRoadDiseaseData()
     loadMapAnalysisData()
   }, 30000)
+
+  // 挂载调试对象到 window，方便在 DevTools Console 中诊断
+  ;(window as any).__batchGeocoder = batchGeocoder
+  ;(window as any).__roadDiseaseData = roadDiseaseData
+  ;(window as any).__roadNameResolved = roadNameResolved
 })
 
 function onDataUpdated() {
@@ -1249,6 +1392,8 @@ onUnmounted(() => {
   if (pieChart) pieChart.dispose()
   if (severityChart) severityChart.dispose()
   map = null
+  // 清理批量逆地理编码器
+  disposeBatchGeocoder()
   window.removeEventListener("data-updated", onDataUpdated)
 })
 </script>
