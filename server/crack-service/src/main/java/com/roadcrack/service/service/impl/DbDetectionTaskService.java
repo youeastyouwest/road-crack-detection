@@ -263,6 +263,8 @@ public class DbDetectionTaskService implements DetectionTaskService {
         resultEntity.setHighestSeverity(resolveHighestSeverity(analysisResult.items()));
         resultEntity.setAvgConfidence(calculateAverageConfidence(analysisResult.items()));
         resultEntity.setGeneratedWorkOrderId(generatedWorkOrderId);
+        // imageBase64 字段已被 HttpAlgorithmClient 转换为 /uploads/result/xxx.png URL
+        resultEntity.setAnnotatedImageUrl(analysisResult.imageBase64());
         resultEntity.setCompletedAt(now);
         resultEntity.setCreatedAt(now);
         resultEntity.setUpdatedAt(now);
@@ -373,7 +375,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 items,
                 resultEntity.getGeneratedWorkOrderId(),
                 resultEntity.getCompletedAt(),
-                null
+                resultEntity.getAnnotatedImageUrl()
         );
     }
 

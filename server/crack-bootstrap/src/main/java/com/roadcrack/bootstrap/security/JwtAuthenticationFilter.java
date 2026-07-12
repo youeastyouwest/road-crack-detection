@@ -28,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/register",
             "/api/auth/send-code",
             "/api/auth/refresh",
+            "/api/auth/reset-password",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
@@ -35,13 +36,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/favicon.ico",
             "/error",
             "/actuator/**"
-    );
-
-    private static final List<String> PROTECTED_PATTERNS = List.of(
-            "/api/auth/change-password",
-            "/api/user/**",
-            "/api/role/**",
-            "/api/department/**"
     );
 
     private final JwtUtils jwtUtils;
@@ -57,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String requestUri = request.getRequestURI();
-        if (isWhiteListed(requestUri) || !isProtected(requestUri)) {
+        if (isWhiteListed(requestUri) || !requestUri.startsWith("/api/")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -79,10 +73,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isWhiteListed(String uri) {
         return WHITE_LIST.stream().anyMatch(pattern -> pathMatcher.match(pattern, uri));
-    }
-
-    private boolean isProtected(String uri) {
-        return PROTECTED_PATTERNS.stream().anyMatch(pattern -> pathMatcher.match(pattern, uri));
     }
 
     private String extractToken(HttpServletRequest request) {

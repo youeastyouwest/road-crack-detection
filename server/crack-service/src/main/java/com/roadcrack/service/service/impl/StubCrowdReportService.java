@@ -6,10 +6,12 @@ import com.roadcrack.api.request.crowdreport.ReviewCrowdReportRequest;
 import com.roadcrack.api.response.crowdreport.CrowdReportResponse;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.service.service.CrowdReportService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import java.util.Collections;
 
 @Service
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = false)
 public class StubCrowdReportService implements CrowdReportService {
     @Override
     public CrowdReportResponse submitReport(CreateCrowdReportRequest request) {

@@ -41,7 +41,7 @@
     <div v-else class="dr-list">
       <div v-for="t in filteredTasks" :key="t.id" class="dr-card" @click="viewResult(t)">
         <div class="dr-thumb">
-          <img v-if="t.dataSourceType==='MANUAL_IMAGE'" :src="t.fileUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNNjAgMTAwIFEyMDAgOTAgMzQwIDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCAxNDAgUTIyMCAxMzAgMzMwIDE0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTAgMTgwIFExODAgMTcwIDM1MCAxODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSIzIiBmaWxsPSIjZGMyNjI2Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM1IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzNSIgcj0iMiIgZmlsbD0iI2Y1OWUwYiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6YGT6Lev6KOC57yd5qOA5rWLPC90ZXh0Pjwvc3ZnPg=='" class="dr-thumb-img" @error="imgLoadError($event)" />
+          <img v-if="t.dataSourceType==='MANUAL_IMAGE'" :src="thumbSrc(t)" class="dr-thumb-img" @error="imgLoadError($event)" />
           <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         </div>
         <div class="dr-card-content">
@@ -52,11 +52,11 @@
         <div class="dr-card-body">
           <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ t.location || '未填写' }}</div>
           <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {{ formatTime(t.createdAt) }}</div>
-          <div v-if="t.crackCount !== undefined" class="dr-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 识别病害 <strong>{{ t.crackCount }}</strong> 处</div>
+          <div v-if="taskDamageCount(t) > 0" class="dr-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 识别病害 <strong>{{ taskDamageCount(t) }}</strong> 处</div>
         </div>
         </div>
         <div class="dr-card-foot">
-          <span v-if="t.severityLevel" :class="['dr-sev', 'sev-'+t.severityLevel.toLowerCase()]">{{ {HIGH:'严重',MEDIUM:'中等',LOW:'轻微'}[t.severityLevel] || t.severityLevel }}</span>
+          <span v-if="taskSeverityLevel(t)" :class="['dr-sev', 'sev-'+taskSeverityLevel(t)?.toLowerCase()]">{{ severityLabel(taskSeverityLevel(t)!) }}</span>
           <span class="dr-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
       </div>
@@ -86,8 +86,8 @@
               </div>
             </div>
             <!-- File Preview -->
-            <div v-if="resultData?.imageBase64 || modalTask?.fileUrl" class="res-file-preview">
-              <img v-if="resultData?.imageBase64" :src="'data:image/jpeg;base64,' + resultData.imageBase64" class="res-preview-img" alt="Detection Result" />
+            <div v-if="resultImageUrl || modalTask?.fileUrl" class="res-file-preview">
+              <img v-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" />
               <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" />
               <video v-else-if="modalTask?.dataSourceType==='MANUAL_VIDEO'" :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
               <div class="res-file-name">{{ modalTask.fileName || (resultData.items?.length || 0) + ' 项检测' }}</div>
@@ -166,9 +166,46 @@ const severityTags = [
 const filteredTasks = computed(() => {
   let list = tasks.value.filter(t => t.dataSourceType === activeCat.value)
   if (activeSev.value) {
-    list = list.filter(t => t.severityLevel === activeSev.value)
+    list = list.filter(t => taskSeverityLevel(t) === activeSev.value)
   }
   return list
+})
+
+function taskSeverityLevel(t: DetectionTaskResponse) {
+  const items = t.result?.items
+  if (!items || items.length === 0) return null
+  const score: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
+  let top = items[0]
+  for (const item of items) {
+    if ((score[item.severityLevel] || 0) > (score[top.severityLevel] || 0)) {
+      top = item
+    }
+  }
+  return top.severityLevel
+}
+
+function taskDamageCount(t: DetectionTaskResponse) {
+  return t.result?.items?.length ?? 0
+}
+
+function thumbSrc(t: DetectionTaskResponse) {
+  const annotated = t.result?.imageBase64
+  if (annotated) {
+    // 后端可能返回 base64 字符串，也可能返回 /uploads/result/xxx.png 形式的 URL
+    if (annotated.startsWith('/') || annotated.startsWith('http')) return annotated
+    return 'data:image/jpeg;base64,' + annotated
+  }
+  return t.fileUrl || defaultRoadImg
+}
+
+/**
+ * 模态框中的检测结果图。兼容 base64 字符串和 /uploads/... 形式的 URL。
+ */
+const resultImageUrl = computed(() => {
+  const v = resultData.value?.imageBase64
+  if (!v) return ''
+  if (v.startsWith('/') || v.startsWith('http')) return v
+  return 'data:image/jpeg;base64,' + v
 })
 
 onMounted(() => loadTasks())
@@ -215,12 +252,14 @@ function severityLabel(s: string) {
 
 function damageTypeDesc(t: string) {
   const m: Record<string,string> = {
+    CRACK:"裂缝 - 路面出现裂缝，需进一步判定裂缝类型",
     TRANSVERSE_CRACK:"横向裂缝 - 路面出现垂直于行车方向的裂缝，通常由温度变化或路基不均匀沉降引起",
     LONGITUDINAL_CRACK:"纵向裂缝 - 路面出现平行于行车方向的裂缝，通常由施工接缝或荷载疲劳引起",
     NET_CRACK:"网状裂缝 - 路面呈龟壳状开裂，通常由路基强度不足或沥青老化引起",
     POTHOLE:"坑槽 - 路面局部凹陷或坑洞，影响行车安全",
     MARKING_DAMAGE:"标线损坏 - 交通标线磨损或脱落",
     ROAD_SPILL:"路面抛洒 - 路面有杂物或油污等抛洒物",
+    UNKNOWN:"未知病害",
     OTHER:"其他病害"
   };
   return m[t] || t;
@@ -234,7 +273,7 @@ function severityDesc(s: string) {
   return m[s] || s;
 }
 function damageTypeLabel(t: string) {
-  return { TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", OTHER: "其他" }[t] || t
+  return { CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知", OTHER: "其他" }[t] || t
 }
 
 function canDispatch(data: DetectionResultResponse) {

@@ -31,6 +31,9 @@ public class DetectionResultEntity {
     @TableField("generated_work_order_id")
     private Long generatedWorkOrderId;
 
+    @TableField("annotated_image_url")
+    private String annotatedImageUrl;
+
     @TableField("completed_at")
     private LocalDateTime completedAt;
 
@@ -94,6 +97,14 @@ public class DetectionResultEntity {
 
     public void setGeneratedWorkOrderId(Long generatedWorkOrderId) {
         this.generatedWorkOrderId = generatedWorkOrderId;
+    }
+
+    public String getAnnotatedImageUrl() {
+        return annotatedImageUrl;
+    }
+
+    public void setAnnotatedImageUrl(String annotatedImageUrl) {
+        this.annotatedImageUrl = annotatedImageUrl;
     }
 
     public LocalDateTime getCompletedAt() {

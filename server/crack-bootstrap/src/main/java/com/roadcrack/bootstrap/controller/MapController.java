@@ -38,12 +38,13 @@ public class MapController {
     }
 
     @GetMapping("/markers")
-    public ApiResponse<List<MapMarkerResponse>> listMarkers(@RequestParam(required = false) DamageType damageType,
-                                                            @RequestParam(required = false) SeverityLevel severityLevel,
-                                                            @RequestParam(required = false) WorkOrderStatus status,
-                                                            @RequestParam(required = false) Boolean hasWorkOrder,
-                                                            @RequestParam(required = false) Boolean onlyWithCoordinates,
-                                                            @RequestParam(required = false) String keyword) {
+    public ApiResponse<List<MapMarkerResponse>> listMarkers(
+            @RequestParam(value = "damageType", required = false) DamageType damageType,
+            @RequestParam(value = "severityLevel", required = false) SeverityLevel severityLevel,
+            @RequestParam(value = "status", required = false) WorkOrderStatus status,
+            @RequestParam(value = "hasWorkOrder", required = false) Boolean hasWorkOrder,
+            @RequestParam(value = "onlyWithCoordinates", required = false) Boolean onlyWithCoordinates,
+            @RequestParam(value = "keyword", required = false) String keyword) {
         return ApiResponse.success(mapDataService.listMarkers(
                 damageType,
                 severityLevel,
@@ -55,7 +56,7 @@ public class MapController {
     }
 
     @GetMapping("/markers/{markerId}")
-    public ApiResponse<MapMarkerDetailResponse> getMarkerDetail(@PathVariable Long markerId) {
+    public ApiResponse<MapMarkerDetailResponse> getMarkerDetail(@PathVariable("markerId") Long markerId) {
         return ApiResponse.success(mapDataService.getMarkerDetail(markerId));
     }
 
@@ -65,7 +66,7 @@ public class MapController {
     }
 
     @GetMapping("/trend")
-    public ApiResponse<List<MapTrendPointResponse>> getTrend(@RequestParam(defaultValue = "7") int days) {
+    public ApiResponse<List<MapTrendPointResponse>> getTrend(@RequestParam(value = "days", defaultValue = "7") int days) {
         return ApiResponse.success(mapDataService.getTrend(days));
     }
 

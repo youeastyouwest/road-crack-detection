@@ -19,6 +19,7 @@ import com.roadcrack.dao.mapper.UserMapper;
 import com.roadcrack.dao.mapper.UserRoleMapper;
 import com.roadcrack.dao.mapper.VerificationCodeMapper;
 import com.roadcrack.service.security.JwtUtils;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.AuthService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
@@ -35,7 +36,8 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")public class DbAuthService implements AuthService {
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
+public class DbAuthService implements AuthService {
 
     private static final int REGISTER_CODE_TYPE = 1;
     private static final int RESET_PASSWORD_CODE_TYPE = 2;
@@ -45,6 +47,7 @@ import java.util.concurrent.ThreadLocalRandom;
     private final VerificationCodeMapper verificationCodeMapper;
     private final RoleMapper roleMapper;
     private final JwtUtils jwtUtils;
+    private final AuditLogService auditLogService;
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final String mailFrom;
@@ -56,6 +59,7 @@ import java.util.concurrent.ThreadLocalRandom;
                          VerificationCodeMapper verificationCodeMapper,
                          RoleMapper roleMapper,
                          JwtUtils jwtUtils,
+                         AuditLogService auditLogService,
                          ObjectProvider<JavaMailSender> mailSenderProvider,
                          @Value("${spring.mail.username:}") String mailFrom,
                          @Value("${security.login.max-fail-count:5}") int maxFailCount,
@@ -65,6 +69,7 @@ import java.util.concurrent.ThreadLocalRandom;
         this.verificationCodeMapper = verificationCodeMapper;
         this.roleMapper = roleMapper;
         this.jwtUtils = jwtUtils;
+        this.auditLogService = auditLogService;
         this.mailSenderProvider = mailSenderProvider;
         this.mailFrom = mailFrom;
         this.maxFailCount = maxFailCount;
@@ -101,6 +106,13 @@ import java.util.concurrent.ThreadLocalRandom;
                 user.setLockUntil(LocalDateTime.now().plusMinutes(lockDurationMinutes));
             }
             userMapper.updateById(user);
+
+            auditLogService.record(
+                    request.username(), "AUTH", "LOGIN",
+                    "用户登录失败: " + request.username() + " (密码错误)",
+                    ipAddress, 0L, "FAIL", "invalid password"
+            );
+
             throw new BusinessException(ResultCode.USER_PASSWORD_ERROR, "invalid username or password");
         }
 
@@ -110,6 +122,12 @@ import java.util.concurrent.ThreadLocalRandom;
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(ipAddress);
         userMapper.updateById(user);
+
+        auditLogService.record(
+                user.getUsername(), "AUTH", "LOGIN",
+                "用户登录成功: " + user.getUsername() + " (" + (user.getRealName() != null ? user.getRealName() : "") + ")",
+                ipAddress, 0L, "SUCCESS", ""
+        );
 
         return buildLoginResponse(user);
     }

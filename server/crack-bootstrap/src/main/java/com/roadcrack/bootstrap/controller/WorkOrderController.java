@@ -37,35 +37,41 @@ public class WorkOrderController {
     }
 
     @GetMapping
-    public ApiResponse<PageResponse<WorkOrderResponse>> listWorkOrders(@RequestParam(defaultValue = "1") int page,
-                                                                       @RequestParam(defaultValue = "10") int size,
-                                                                       @RequestParam(required = false) WorkOrderStatus status,
-                                                                       @RequestParam(required = false) DepartmentCode departmentCode,
-                                                                       @RequestParam(required = false) SeverityLevel severityLevel,
-                                                                       @RequestParam(required = false) String assignee,
-                                                                       @RequestParam(required = false) String keyword) {
+    public ApiResponse<PageResponse<WorkOrderResponse>> listWorkOrders(@RequestParam(value = "page", defaultValue = "1") int page,
+                                                                       @RequestParam(value = "size", defaultValue = "10") int size,
+                                                                       @RequestParam(value = "status", required = false) WorkOrderStatus status,
+                                                                       @RequestParam(value = "departmentCode", required = false) DepartmentCode departmentCode,
+                                                                       @RequestParam(value = "severityLevel", required = false) SeverityLevel severityLevel,
+                                                                       @RequestParam(value = "assignee", required = false) String assignee,
+                                                                       @RequestParam(value = "keyword", required = false) String keyword) {
         return ApiResponse.success(workOrderService.listWorkOrders(page, size, status, departmentCode, severityLevel, assignee, keyword));
     }
 
     @GetMapping("/{workOrderId}")
-    public ApiResponse<WorkOrderResponse> getWorkOrder(@PathVariable Long workOrderId) {
+    public ApiResponse<WorkOrderResponse> getWorkOrder(@PathVariable("workOrderId") Long workOrderId) {
         return ApiResponse.success(workOrderService.getWorkOrder(workOrderId));
     }
 
     @PutMapping("/{workOrderId}/assign")
-    public ApiResponse<WorkOrderResponse> assignWorkOrder(@PathVariable Long workOrderId,
+    public ApiResponse<WorkOrderResponse> assignWorkOrder(@PathVariable("workOrderId") Long workOrderId,
                                                           @Valid @RequestBody AssignWorkOrderRequest request) {
         return ApiResponse.success(workOrderService.assignWorkOrder(workOrderId, request));
     }
 
+    @PutMapping("/{workOrderId}/assign-worker")
+    public ApiResponse<WorkOrderResponse> assignWorker(@PathVariable("workOrderId") Long workOrderId,
+                                                       @RequestParam("assignee") String assignee) {
+        return ApiResponse.success(workOrderService.assignWorker(workOrderId, assignee));
+    }
+
     @PutMapping("/{workOrderId}/status")
-    public ApiResponse<WorkOrderResponse> updateStatus(@PathVariable Long workOrderId,
+    public ApiResponse<WorkOrderResponse> updateStatus(@PathVariable("workOrderId") Long workOrderId,
                                                        @Valid @RequestBody UpdateWorkOrderStatusRequest request) {
         return ApiResponse.success(workOrderService.updateStatus(workOrderId, request));
     }
 
     @PutMapping("/{workOrderId}/cancel")
-    public ApiResponse<WorkOrderResponse> cancelWorkOrder(@PathVariable Long workOrderId,
+    public ApiResponse<WorkOrderResponse> cancelWorkOrder(@PathVariable("workOrderId") Long workOrderId,
                                                           @Valid @RequestBody CancelWorkOrderRequest request) {
         return ApiResponse.success(workOrderService.cancelWorkOrder(workOrderId, request));
     }

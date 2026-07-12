@@ -25,12 +25,31 @@
         <button class="ds-vc-btn ds-vc-locate" @click="locateMe" title="定位"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <div ref="mapContainer" class="ds-map"></div>
+      <!-- 病害点分布图例 -->
+      <div class="ds-heatmap-legend">
+        <div class="ds-legend-title">病害点分布</div>
+        <div class="ds-legend-items">
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#ef4444"></span><span>严重</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#f59e0b"></span><span>中等</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#22c55e"></span><span>轻微</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#cbd5e1"></span><span>畅通</span></div>
+        </div>
+      </div>
+      <DiseaseMarkerLayer
+        :roads="roadDiseaseData"
+        :visible="false"
+        :map-instance="map"
+      />
       <div v-if="selectedDisease" class="ds-popup">
         <div class="ds-popup-head"><span>病害详情</span><span style="font-size:11px;color:#64748b;font-weight:400">{{ (selectedDisease as any)?._roadName || (selectedDisease as any)?.location || "" }}</span><button @click="selectedDisease = null">x</button></div>
         <div class="ds-popup-body">
-          <div v-if="(selectedDisease as any)?._loading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div><div v-else class="ds-popup-img"><svg width="100%" height="100" viewBox="0 0 200 100" fill="none"><rect width="200" height="100" rx="6" fill="#eef2ff"/><text x="100" y="45" text-anchor="middle" fill="#4361ee" font-size="12" font-weight="600">病害标注示意图</text><text x="100" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">（此处展示 AI 识别分割掩码）</text></svg></div>
+          <div v-if="(selectedDisease as any)?._loading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div>
+          <div v-else class="ds-popup-img">
+            <img v-if="(selectedDisease as any)?._imageSrc" :src="(selectedDisease as any)?._imageSrc" alt="AI识别结果图" style="width:100%;height:100%;object-fit:cover;border-radius:6px" />
+            <svg v-else width="100%" height="100" viewBox="0 0 200 100" fill="none"><rect width="200" height="100" rx="6" fill="#eef2ff"/><text x="100" y="45" text-anchor="middle" fill="#4361ee" font-size="12" font-weight="600">暂无图片</text><text x="100" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">该病害点未上传图片</text></svg>
+          </div>
           <div class="ds-popup-info">
-            <div class="ds-popup-row"><span class="ds-popup-label">病害类型</span><strong>{{ selectedDisease.type }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">病害类型</span><strong>{{ damageTypeLabel(selectedDisease.type) }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">严重等级</span><strong><span class="ds-sev-dot" :style="{background: severityColor(selectedDisease.severity)}"></span>{{ selectedDisease.severity }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">检测时间</span><strong>{{ selectedDisease.time }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">道路</span><strong>{{ selectedDisease.location }}</strong></div>
@@ -62,12 +81,12 @@
           <button class="ds-btn ds-btn-primary" @click="exportReport">导出数据</button>
         </div>
       </div>
-  </div>
+    </div>
 
-  <div :class="['ds-sidebar', { collapsed: sidebarCollapsed }]">
+    <div :class="['ds-sidebar', { collapsed: sidebarCollapsed }]">
       <div class="ds-sidebar-inner">
         <div class="ds-sb-header"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>地图面板</div>
-                <div class="ds-sb-tabs">
+        <div class="ds-sb-tabs">
           <button :class="['ds-sb-tab', { active: activeTab === 'map' }]" @click="activeTab = 'map'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg>
             <span>图层</span>
@@ -84,25 +103,113 @@
         <div v-if="activeTab === 'map'" class="ds-tab-panel">
           <div class="ds-sb-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" placeholder="搜索道路、地点..." /></div>
           <div class="ds-sb-section"><div class="ds-sb-section-title">图层</div>
+            <div class="ds-layer-item">
+              <div class="ds-layer-toggle">
+                <span class="ds-tt-label" style="font-size:12px;color:#0f172a;font-weight:600">病害标注点</span>
+                <span class="ds-layer-count" style="margin-left:auto;font-size:11px;color:#94a3b8">{{ diseasePointTotal }}</span>
+                <label class="ds-switch">
+                  <input type="checkbox" v-model="showDiseaseMarkers" />
+                  <span class="ds-switch-slider"></span>
+                </label>
+              </div>
+            </div>
             <div v-for="layer in layers" :key="layer.id" class="ds-layer-item">
-              <label class="ds-layer-label"><input type="checkbox" v-model="layer.visible" /><span class="ds-layer-dot" :style="{ background: layer.color }"></span>{{ layer.label }}<span class="ds-layer-count">{{ layer.count }}</span></label>
+              <label class="ds-layer-label"><input type="checkbox" :checked="layer.visible" @change="toggleLayerVisibility(layer.id)" /><span class="ds-layer-dot" :style="{ background: layer.color }"></span>{{ layer.label }}<span class="ds-layer-count">{{ layer.count }}</span></label>
             </div>
           </div>
           <div class="ds-sb-section"><div class="ds-sb-section-title">筛选条件</div>
-            <div class="ds-filter-row"><label>严重程度</label><select v-model="filterSeverity"><option value="">全部</option><option value="严重">严重</option><option value="中等">中等</option><option value="轻微">轻微</option></select></div>
+            <div class="ds-filter-row"><label>严重程度</label><select v-model="filterSeverity"><option value="">全部</option><option value="HIGH">严重</option><option value="MEDIUM">中等</option><option value="LOW">轻微</option></select></div>
             <div class="ds-filter-row"><label>检测日期</label><input type="date" v-model="filterDate" /></div>
-            <div class="ds-filter-row"><label>修复状态</label><select v-model="filterStatus"><option value="">全部</option><option value="待修复">待修复</option><option value="已派单">已派单</option><option value="已完成">已完成</option></select></div>
+            <div class="ds-filter-row"><label>修复状态</label><select v-model="filterStatus"><option value="">全部</option><option value="PENDING">待修复</option><option value="ASSIGNED">已派单</option><option value="COMPLETED">已完成</option></select></div>
+            <div class="ds-filter-row" v-if="filterSeverity || filterDate || filterStatus" style="margin-top:8px"><button class="ds-sb-btn" style="width:100%;font-size:11px" @click="filterSeverity = ''; filterDate = ''; filterStatus = ''">清除筛选</button></div>
           </div>
           <div class="ds-sb-actions"><button class="ds-sb-btn primary" @click="refreshMapData">刷新数据</button><div style="display:flex;gap:6px"><button class="ds-sb-btn" style="flex:1" @click="showCapacity = true">存储</button><button class="ds-sb-btn" style="flex:1" @click="exportReport">导出</button></div></div>
         </div>
         <div v-if="activeTab === 'analysis'" class="ds-tab-panel">
+          <!-- 病害总数统计卡片 -->
           <div class="ds-an-section">
-            <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eef2ff;color:#4361ee"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val">{{ weeklyTotal }}</span><span class="ds-an-card-lbl">本周检测总数</span></div></div>
-            <div class="ds-an-card" style="margin-top:6px"><div class="ds-an-card-icon" style="background:#fef3c7;color:#d97706"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val">{{ pendingRepair }}</span><span class="ds-an-card-lbl">待维修</span></div></div>
+            <div class="ds-sb-section-title">病害统计</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eef2ff;color:#4361ee"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val">{{ totalDiseaseCount }}</span><span class="ds-an-card-lbl">病害总数</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#fef2f2;color:#f53f3f"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#f53f3f">{{ highCount }}</span><span class="ds-an-card-lbl">严重</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#fefce8;color:#f59e0b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#f59e0b">{{ mediumCount }}</span><span class="ds-an-card-lbl">中等</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eff6ff;color:#1677ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#1677ff">{{ lowCount }}</span><span class="ds-an-card-lbl">轻微</span></div></div>
+            </div>
           </div>
-          <div class="ds-an-section"><div class="ds-sb-section-title">本周趋势</div><div ref="trendChartRef" style="height:110px;margin-top:4px"></div></div>
-          <div class="ds-an-section" style="border-top:1px solid #eef0f4"><div class="ds-sb-section-title">病害类型占比</div><div ref="pieChartRef" style="height:130px;margin-top:4px"></div></div>
+          <!-- 病害类型分布饼图 -->
+          <div class="ds-an-section"><div class="ds-sb-section-title">病害类型分布</div><div ref="pieChartRef" style="height:130px;margin-top:4px"></div></div>
+          <!-- 严重等级分布柱图 -->
           <div class="ds-an-section"><div class="ds-sb-section-title">严重等级分布</div><div ref="severityChartRef" style="height:90px;margin-top:4px"></div></div>
+          <!-- 道路病害排行 TOP5 -->
+          <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
+            <div class="ds-sb-section-title">道路病害排行 TOP5</div>
+            <div v-if="roadRanking.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div v-for="(r, ri) in roadRanking" :key="r.roadId" style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+                <span style="color:#64748b">#{{ ri+1 }} {{ roadNameCn(r.roadName) }}</span>
+                <span v-if="!r._roadNameReady" style="font-size:9px;color:#cbd5e1;margin-left:2px">...</span>
+                <span style="font-weight:700;color:#0f172a">{{ r.totalCount }}处</span>
+              </div>
+              <div style="display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden;background:#f1f5f9">
+                <div :style="{flex:r.highCount,background:'#f53f3f',minWidth:r.highCount>0?'2px':'0'}"></div>
+                <div :style="{flex:r.mediumCount,background:'#f59e0b',minWidth:r.mediumCount>0?'2px':'0'}"></div>
+                <div :style="{flex:r.lowCount,background:'#1677ff',minWidth:r.lowCount>0?'2px':'0'}"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:2px;font-size:10px;color:#94a3b8">
+                <span>重{{ r.highCount }}</span><span>中{{ r.mediumCount }}</span><span>轻{{ r.lowCount }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- 病害趋势图 -->
+          <div class="ds-an-section"><div class="ds-sb-section-title">病害趋势</div><div ref="trendChartRef" style="height:110px;margin-top:4px"></div></div>
+          <!-- 地图标记统计卡片 -->
+          <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
+            <div class="ds-sb-section-title">地图标记统计</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#4361ee">{{ mapStatsData?.totalMarkers ?? 0 }}</span><span class="ds-an-mini-lbl">标记总数</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#16a34a">{{ mapStatsData?.newMarkers ?? 0 }}</span><span class="ds-an-mini-lbl">新增标记</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#15803d">{{ mapStatsData?.repairedCount ?? 0 }}</span><span class="ds-an-mini-lbl">已修复</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#d97706">{{ mapStatsData?.pendingRepair ?? 0 }}</span><span class="ds-an-mini-lbl">待修复</span></div>
+            </div>
+          </div>
+          <!-- 病害类型占比明细 -->
+          <div class="ds-an-section">
+            <div class="ds-sb-section-title">病害类型占比</div>
+            <div v-if="damageTypeRatios.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div v-for="dt in damageTypeRatios" :key="dt.damageType" style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+                <span style="color:#475569;font-weight:500">{{ damageTypeLabel(dt.damageType) }}</span>
+                <span style="color:#94a3b8">{{ dt.count }}处 ({{ (dt.ratio * 100).toFixed(1) }}%)</span>
+              </div>
+              <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden">
+                <div :style="{height:'100%',width:(dt.ratio*100)+'%',background:'#4361ee',borderRadius:'3px'}"></div>
+              </div>
+            </div>
+          </div>
+          <!-- 道路健康度列表 -->
+          <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
+            <div class="ds-sb-section-title">道路健康度</div>
+            <div v-if="roadHealthList.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div v-for="r in roadHealthList" :key="r.roadId" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc">
+              <span class="ds-health-dot" :style="{ background: healthColor(r.overallSeverity) }"></span>
+              <span style="flex:1;font-size:11px;color:#475569;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ roadNameCn(r.roadName) }}</span>
+              <span style="font-size:10px;color:#94a3b8">{{ r.totalCount }}处</span>
+              <span class="ds-health-badge" :style="{ background: healthBg(r.overallSeverity), color: healthColor(r.overallSeverity) }">{{ healthLabel(r.overallSeverity) }}</span>
+            </div>
+          </div>
+          <!-- 实时告警列表 -->
+          <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span class="ds-sb-section-title" style="margin-bottom:0">实时告警</span>
+              <span v-if="alertMarkers.length > 0" style="font-size:10px;color:#ef4444;font-weight:600">{{ alertMarkers.length }}条</span>
+            </div>
+            <div v-if="alertMarkers.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无告警</div>
+            <div v-for="(am, ai) in alertMarkers.slice(0, 8)" :key="am.id" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc;animation:rowIn .35s ease both" :style="{ animationDelay: ai * 0.05 + 's' }">
+              <span class="ds-alert-dot" :style="{ background: sevDotColor(am.severity) }"></span>
+              <span style="flex:1;font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ am.roadName || am.address || (am.longitude ? '(' + Number(am.longitude).toFixed(4) + ', ' + Number(am.latitude).toFixed(4) + ')' : '--') }}</span>
+              <span class="ds-alert-type" :style="{ background: sevBgColor(am.severity), color: sevTextColor(am.severity) }">{{ damageTypeLabel(am.damageType) }}</span>
+            </div>
+          </div>
         </div>
         <div v-if="activeTab === 'chat'" class="ds-tab-panel ds-chat-panel" style="display:flex;flex-direction:column;overflow:hidden;">
           <div class="ds-sb-header" style="flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI 助手<button class="ds-chat-clear" @click="chatMessages = [{role:'ai', text:'您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。'}]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div>
@@ -123,9 +230,10 @@
   </button>
 </template>
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from "vue"
-import { detectionApi, statisticsApi } from "@/api"
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from "vue"
+import { detectionApi, statisticsApi, mapApi, agentApi } from "@/api"
 import * as echarts from "echarts"
+import DiseaseMarkerLayer from "@/components/DiseaseMarkerLayer.vue"
 
 declare global {
   interface Window { AMap: any }
@@ -134,6 +242,7 @@ declare global {
 const mapContainer = ref()
 const sidebarCollapsed = ref(false)
 const showCapacity = ref(false)
+const showDiseaseMarkers = ref(true)
 const zoomLevel = ref(12)
 const viewMode3D = ref(false)
 const pitchLevel = ref(0)
@@ -144,11 +253,11 @@ const filterDate = ref("")
 const filterStatus = ref("")
 const searchQuery = ref("")
 const layers = ref([
-  { id: "crack", label: "裂缝", color: "#ef4444", count: 0, visible: true },
-  { id: "repair", label: "修复", color: "#10b981", count: 892, visible: true },
-  { id: "alert", label: "告警", color: "#f59e0b", count: 0, visible: true },
+  { id: "sev_high", label: "严重", color: "#ef4444", count: 0, visible: true },
+  { id: "sev_medium", label: "中等", color: "#f59e0b", count: 0, visible: true },
+  { id: "sev_low", label: "轻微", color: "#22c55e", count: 0, visible: true },
 ])
-const selectedDisease = ref(null)
+const selectedDisease = ref<any>(null)
 const currentPoints = ref(0)
 const maxPoints = ref(5000)
 const chatMessages = ref([{ role: "ai", text: "您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。" }])
@@ -156,55 +265,105 @@ const chatInput = ref("")
 const chatTyping = ref(false)
 const diseaseMarkers = ref<any[]>([])
 const diseaseList = ref<any[]>([])
+const roadDiseaseData = ref<any[]>([])
+
+const totalDiseaseCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.totalCount || 0), 0))
+const highCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.highCount || 0), 0))
+const mediumCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.mediumCount || 0), 0))
+const lowCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.lowCount || 0), 0))
+const roadRanking = computed(() => [...(roadDiseaseData.value || [])].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0)).slice(0, 5))
+
+/**
+ * 地图上实际绘制的病害标注点数量（按坐标去重后的数量）
+ * 和 loadRoadDiseaseData 里的聚合逻辑一致
+ */
+const diseasePointTotal = computed(() => {
+  const coordSet = new Set<string>()
+  for (const road of (roadDiseaseData.value || [])) {
+    for (const dp of (road.diseasePoints || [])) {
+      if (dp.lng && dp.lat) {
+        coordSet.add(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`)
+      }
+    }
+  }
+  return coordSet.size
+})
+
 const mapMarkers: any[] = []
+const roadPolylines: any[] = []
 let geocoder: any = null
 const realStats = ref<any>(null)
 const chatMsgRef = ref()
 const trendChartRef = ref()
 const pieChartRef = ref()
 const severityChartRef = ref()
-const weeklyTotal = ref(381)
-const pendingRepair = ref(127)
+const weeklyTotal = ref(0)
+const pendingRepair = ref(0)
 const totalRoad = ref(0)
 const crackCount = ref(0)
 const repairedCount = ref(0)
 const alertCount = ref(0)
 
-let map = null
-let trendChart = null
-let pieChart = null
-let severityChart = null
-let timeInterval = null
+let map: any = null
+let trendChart: any = null
+let pieChart: any = null
+let severityChart: any = null
+let timeInterval: any = null
+let refreshTimer: any = null
+
+const mapStatsData = ref<any>(null)
+const damageTypeRatios = ref<any[]>([])
+const alertMarkers = ref<any[]>([])
+const roadHealthList = computed(() => {
+  return [...(roadDiseaseData.value || [])].sort((a: any, b: any) => {
+    const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+    return (order[a.overallSeverity] ?? 3) - (order[b.overallSeverity] ?? 3)
+  }).slice(0, 8)
+})
 
 const avatarSrc = computed(() => "/avatar-agent.png")
 
+/**
+ * 解析后端返回的检测结果图字段。
+ * 后端可能返回 base64 字符串，也可能返回 /uploads/result/xxx.jpg 形式的 URL。
+ */
+function resolveImgSrc(imageBase64?: string, fileUrl?: string): string {
+  if (imageBase64) {
+    if (imageBase64.startsWith('/') || imageBase64.startsWith('http')) return imageBase64
+    return 'data:image/jpeg;base64,' + imageBase64
+  }
+  return fileUrl || ''
+}
+
 const trendOption = computed(() => ({
   grid: { left: 30, right: 8, top: 10, bottom: 20 },
-  xAxis: { type: "category", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], axisLabel: { fontSize: 10, color: "#94a3b8" }, axisLine: { show: false }, axisTick: { show: false } },
-  yAxis: { type: "value", splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } }, axisLabel: { fontSize: 9, color: "#94a3b8" }, min: 0 },
-  series: [{ type: "line", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], smooth: true, lineStyle: { color: "#4361ee", width: 2 }, itemStyle: { color: "#4361ee" }, areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(67,97,238,0.25)" }, { offset: 1, color: "rgba(67,97,238,0.04)" }] } }, symbol: "circle", symbolSize: 5 }],
-  tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 } },
+  xAxis: { type: "category", data: [], axisLabel: { fontSize: 10, color: "#94a3b8" }, axisLine: { show: false }, axisTick: { show: false } },
+  yAxis: { type: "value", splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } }, axisLabel: { fontSize: 9, color: "#94a3b8" }, min: 0, minInterval: 1 },
+  series: [{ type: "line", data: [], smooth: true, lineStyle: { color: "#4361ee", width: 2 }, itemStyle: { color: "#4361ee" }, areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(67,97,238,0.25)" }, { offset: 1, color: "rgba(67,97,238,0.04)" }] } }, symbol: "circle", symbolSize: 5 }],
+  tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 }, formatter: (p: any) => p[0]?.name + '<br/>' + p[0]?.value + '处' },
 }))
 
 const pieOption = computed(() => ({
-  tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 }, formatter: "{b}: {c} ({d}%)" },
+  tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 }, formatter: "{b}: {c}处 ({d}%)" },
+  legend: { orient: "vertical", right: 0, top: "center", itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10, color: "#64748b" } },
   series: [{
-    type: "pie", radius: ["35%", "68%"], center: ["50%", "50%"],
+    type: "pie", radius: ["30%", "60%"], center: ["35%", "50%"],
     color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [],
-    label: { show: false },
+    label: { show: true, fontSize: 10, color: "#475569", formatter: "{c}处" },
+    labelLine: { show: true, length: 5, length2: 8 },
     emphasis: { label: { show: true, fontSize: 11, fontWeight: "bold" }, itemStyle: { shadowBlur: 4, shadowColor: "rgba(0,0,0,0.08)" } },
   }],
 }))
 
 const severityOption = computed(() => ({
-  grid: { left: 50, right: 20, top: 5, bottom: 5 },
+  grid: { left: 45, right: 35, top: 5, bottom: 5 },
   xAxis: { type: "value", splitLine: { lineStyle: { color: "#f1f5f9" } }, axisLabel: { fontSize: 9, color: "#94a3b8" }, axisLine: { show: false }, axisTick: { show: false } },
-  yAxis: { type: "category", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], axisLabel: { fontSize: 11, color: "#475569" }, axisLine: { show: false }, axisTick: { show: false } },
-  series: [{ type: "bar", color: ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"], data: [], barWidth: 12, label: { show: true, position: "right", fontSize: 10, color: "#475569", fontWeight: 600, formatter: (p) => p.value + "处" } }],
+  yAxis: { type: "category", data: [], axisLabel: { fontSize: 11, color: "#475569", fontWeight: 600 }, axisLine: { show: false }, axisTick: { show: false } },
+  series: [{ type: "bar", data: [], barWidth: 14, label: { show: true, position: "right", fontSize: 10, color: "#475569", fontWeight: 600, formatter: (p: any) => p.value + "处" }, itemStyle: { borderRadius: [0, 4, 4, 0] } }],
   tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 } },
 }))
 
-function severityColor(sev) { const m = { 严重: "#ef4444", 中等: "#f59e0b", 轻微: "#10b981" }; return m[sev] || "#94a3b8" }
+function severityColor(sev: string) { const m: Record<string, string> = { "严重": "#ef4444", "中等": "#f59e0b", "轻微": "#10b981" }; return m[sev] || "#94a3b8" }
 function zoomIn() { zoomLevel.value = Math.min(zoomLevel.value + 1, 20); if (map) map.setZoom(zoomLevel.value) }
 function zoomOut() { zoomLevel.value = Math.max(zoomLevel.value - 1, 3); if (map) map.setZoom(zoomLevel.value) }
 function toggle3D() {
@@ -231,14 +390,114 @@ function locateMe() {
 }
 function initMap() {
   if (!mapContainer.value || !window.AMap) return
-  map = new window.AMap.Map(mapContainer.value, { zoom: zoomLevel.value, center: [116.397428, 39.90923], features: ["bg", "road", "building", "point"], resizeEnable: true, viewMode: "3D", pitch: 0,  })
+  map = new window.AMap.Map(mapContainer.value, {
+    zoom: zoomLevel.value,
+    center: [116.397428, 39.90923],
+    features: ["bg", "road", "building", "point"],
+    resizeEnable: true,
+    viewMode: "3D",
+    pitch: 0,
+  })
   map.on("zoomchange", () => { zoomLevel.value = map.getZoom() })
   geocoder = new window.AMap.Geocoder({ city: "全国", radius: 1000 })
-
 }
+function initECharts() {
+  // 分析面板使用 v-if 渲染，切换到 analysis 标签页时 DOM 才存在
+  // 每次调用都检查 refs 是否可用，避免重复初始化
+  if (trendChartRef.value && !trendChart) { trendChart = echarts.init(trendChartRef.value); trendChart.setOption(trendOption.value) }
+  if (pieChartRef.value && !pieChart) { pieChart = echarts.init(pieChartRef.value); pieChart.setOption(pieOption.value) }
+  if (severityChartRef.value && !severityChart) { severityChart = echarts.init(severityChartRef.value); severityChart.setOption(severityOption.value) }
+  // 如果图表已存在但 DOM 重新渲染了（v-if 切换），需要重新创建
+  if (trendChartRef.value && trendChart && trendChart.isDisposed()) { trendChart = echarts.init(trendChartRef.value); trendChart.setOption(trendOption.value) }
+  if (pieChartRef.value && pieChart && pieChart.isDisposed()) { pieChart = echarts.init(pieChartRef.value); pieChart.setOption(pieOption.value) }
+  if (severityChartRef.value && severityChart && severityChart.isDisposed()) { severityChart = echarts.init(severityChartRef.value); severityChart.setOption(severityOption.value) }
+}
+
+// 监听标签页切换：当离开"分析"面板时销毁图表实例（v-if 会销毁 DOM）
+watch(activeTab, (newTab, oldTab) => {
+  if (oldTab === 'analysis' && newTab !== 'analysis') {
+    // 离开分析面板：销毁图表，下次回来时重新创建
+    if (trendChart) { trendChart.dispose(); trendChart = null }
+    if (pieChart) { pieChart.dispose(); pieChart = null }
+    if (severityChart) { severityChart.dispose(); severityChart = null }
+  }
+  if (newTab === 'analysis') {
+    nextTick(() => {
+      initECharts()
+      refreshChartsFromData()
+    })
+  }
+})
+
+/**
+ * 用已加载的统计数据刷新所有图表（不重新请求后端）
+ * 在图表刚初始化、需要把已有数据灌入时调用
+ */
+function refreshChartsFromData() {
+  if (!realStats.value) return
+  const d = realStats.value
+  // 趋势图
+  if (d.trend && d.trend.length && trendChart) {
+    trendChart.setOption({
+      xAxis: { data: d.trend.map((t: any) => t.date?.slice(5) || "") },
+      series: [{ data: d.trend.map((t: any) => t.count) }]
+    })
+  }
+  // 病害类型饼图
+  if (d.crackTypes && d.crackTypes.length && pieChart) {
+    const colors = ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"]
+    pieChart.setOption({
+      series: [{
+        data: d.crackTypes.map((t: any, i: number) => ({
+          name: damageTypeLabel(t.type), value: t.count,
+          itemStyle: { color: colors[i % colors.length] }
+        }))
+      }]
+    })
+  }
+  // 严重等级柱图
+  if (d.severity && d.severity.length && severityChart) {
+    const sevColors: Record<string, string> = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" }
+    const sevLabel: Record<string, string> = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }
+    // 确保顺序为 严重 > 中等 > 轻微
+    const ordered = [...d.severity].sort((a: any, b: any) => {
+      const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+      return (order[a.level] ?? 3) - (order[b.level] ?? 3)
+    })
+    severityChart.setOption({
+      yAxis: { data: ordered.map((s: any) => sevLabel[s.level] || s.level) },
+      series: [{
+        data: ordered.map((s: any) => ({
+          value: s.count,
+          itemStyle: { color: sevColors[s.level] || "#6ab04c", borderRadius: [0, 4, 4, 0] }
+        }))
+      }]
+    })
+  }
+}
+function refreshMapData() {
+  loadStats()
+  loadDiseaseData()
+  loadRoadDiseaseData()
+  loadMapAnalysisData()
+}
+function exportReport() { selectedDisease.value = null; showCapacity.value = false }
+function createWorkOrder() { if (selectedDisease.value) { (selectedDisease.value as any).orderId = "WO-2026" + Date.now().toString().slice(-6) } }
+
 function startTimeUpdate() {
-  const update = () => { const n = new Date(); currentTime.value = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0") + " " + String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0") + ":" + String(n.getSeconds()).padStart(2, "0") }
-  update(); timeInterval = setInterval(update, 1000)
+  const update = () => {
+    const n = new Date()
+    currentTime.value = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0") + " " + String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0") + ":" + String(n.getSeconds()).padStart(2, "0")
+  }
+  update()
+  timeInterval = setInterval(update, 1000)
+}
+
+let mapReady = false
+function waitForMap(cb: () => void, attempts = 30) {
+  if (map) { cb(); return }
+  if (attempts <= 0) { console.error("Map not ready after 30 attempts"); return }
+  setTimeout(() => waitForMap(cb, attempts - 1), 200)
 }
 
 async function loadStats() {
@@ -256,7 +515,14 @@ async function loadStats() {
       repairedCount.value = d.totalWorkOrders || 0
       alertCount.value = d.pendingAlerts || 0
     }
-    // Update trend chart
+    // 缓存统计数据供图表延迟初始化时使用
+    realStats.value = {
+      dashboard: d,
+      trend: trendR.data.data || [],
+      crackTypes: typeR.data.data || [],
+      severity: sevR.data.data || [],
+    }
+    // 如果图表已经初始化（用户在分析面板），直接更新
     if (trendR.data.data?.length && trendChart) {
       const trend = trendR.data.data
       trendChart.setOption({
@@ -264,28 +530,30 @@ async function loadStats() {
         series: [{ data: trend.map((t: any) => t.count) }]
       })
     }
-    // Update pie chart
     if (typeR.data.data?.length && pieChart) {
       const types = typeR.data.data
       const colors = ["#4361ee","#f72585","#06d6a0","#ffd166","#7209b7","#118ab2"]
       pieChart.setOption({
         series: [{
           data: types.map((t: any, i: number) => ({
-            name: t.type, value: t.count,
+            name: damageTypeLabel(t.type), value: t.count,
             itemStyle: { color: colors[i % colors.length] }
           }))
         }]
       })
     }
-    // Update severity chart
     if (sevR.data.data?.length && severityChart) {
       const sv = sevR.data.data
-      const sevColors: any = { HIGH: "#ee5a24", MEDIUM: "#f0932b", LOW: "#6ab04c" }
-      const sevLabel: any = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }
+      const sevColors: Record<string, string> = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" }
+      const sevLabel: Record<string, string> = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }
+      const ordered = [...sv].sort((a: any, b: any) => {
+        const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+        return (order[a.level] ?? 3) - (order[b.level] ?? 3)
+      })
       severityChart.setOption({
-        yAxis: { data: sv.map((s: any) => sevLabel[s.level] || s.level) },
+        yAxis: { data: ordered.map((s: any) => sevLabel[s.level] || s.level) },
         series: [{
-          data: sv.map((s: any) => ({
+          data: ordered.map((s: any) => ({
             value: s.count,
             itemStyle: { color: sevColors[s.level] || "#6ab04c", borderRadius: [0, 4, 4, 0] }
           }))
@@ -295,84 +563,694 @@ async function loadStats() {
   } catch {}
 }
 
-let mapReady = false
-function waitForMap(cb, attempts = 30) {
-  if (map) { cb(); return }
-  if (attempts <= 0) { console.error("Map not ready after 30 attempts"); return }
-  setTimeout(() => waitForMap(cb, attempts - 1), 200)
-}
-
 async function loadDiseaseData() {
   try {
     const res = await detectionApi.list({ status: "COMPLETED", size: 100 })
     const tasks = res.data.data?.records || []
     diseaseList.value = tasks
     console.log("loadDiseaseData: got", tasks.length, "completed tasks")
-    
+
+    // 旧版小圆点标记已下线：病害点现在统一由 loadRoadDiseaseData 用兰图绘风格水滴标记渲染
     waitForMap(() => {
-      // Clear old markers first
       mapMarkers.forEach((m) => { try { map?.remove(m) } catch(e) {} })
       mapMarkers.length = 0
-      
-      if (tasks.length === 0) {
-        console.log("loadDiseaseData: no completed tasks to display")
+    })
+  } catch(e) {
+    console.error("loadDiseaseData error:", e)
+  }
+}
+
+/**
+ * 兰图绘风格：病害点标记 + 辐射范围
+ * 颜色按病害严重等级区分
+ */
+const MARKER_COLORS: Record<string, { fill: string; stroke: string; label: string }> = {
+  HIGH:     { fill: "#ef4444", stroke: "#b91c1c", label: "严重" },
+  MEDIUM:   { fill: "#f59e0b", stroke: "#b45309", label: "中等" },
+  LOW:      { fill: "#22c55e", stroke: "#15803d", label: "轻微" },
+  REPAIRED: { fill: "#3b82f6", stroke: "#1d4ed8", label: "已维修" },
+}
+
+/**
+ * 英文路名 → 中文路名映射（仅用于侧边栏历史数据兼容）
+ */
+const ROAD_NAME_CN: Record<string, string> = {
+  "ChangAn Street":      "长安街",
+  "2nd Ring Road":       "二环路",
+  "3rd Ring Road":       "三环路",
+  "4th Ring Road":       "四环路",
+  "5th Ring Road":       "五环路",
+  "Airport Expressway":  "机场高速",
+  "Jingzang Expwy":      "京藏高速",
+  "Xizhimen Outer St":   "西直门外大街",
+}
+function roadNameCn(name: string): string {
+  if (!name) return "未知道路"
+  return ROAD_NAME_CN[name] || name
+}
+
+/**
+ * 逆地理编码缓存：坐标 → 真实道路名（避免重复请求高德）
+ */
+const geocodeCache = new Map<string, string>()
+
+/**
+ * 调用高德逆地理编码获取坐标所在的真实道路名
+ */
+function reverseGeocodeRoad(lng: number, lat: number): Promise<string> {
+  const key = `${lng.toFixed(6)},${lat.toFixed(6)}`
+  const cached = geocodeCache.get(key)
+  if (cached) return Promise.resolve(cached)
+
+  return new Promise((resolve) => {
+    try {
+      const geocoder = new window.AMap.Geocoder({ extensions: "all" })
+      geocoder.getAddress([lng, lat], (status: string, result: any) => {
+        let roadName = ""
+        if (status === "complete" && result?.regeocode) {
+          const roads = result.regeocode.roads || []
+          if (roads.length > 0 && roads[0].name) {
+            roadName = roads[0].name
+          } else if (result.regeocode.addressComponent?.street) {
+            roadName = result.regeocode.addressComponent.street
+          } else if (result.regeocode.formattedAddress) {
+            // 从格式化地址里提取路名
+            const fa = result.regeocode.formattedAddress
+            const m = fa.match(/[\u4e00-\u9fa5]+(?:路|街|道|巷|胡同|桥|高速)/)
+            if (m) roadName = m[0]
+          }
+        }
+        geocodeCache.set(key, roadName || "未知道路")
+        resolve(roadName || "未知道路")
+      })
+    } catch(e) {
+      resolve("未知道路")
+    }
+  })
+}
+
+/**
+ * 生成自定义水滴标记的 SVG 字符串
+ */
+function createPinIcon(color: string): string {
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <defs>
+        <filter id="shadow" x="-30%" y="-20%" width="160%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.28)"/>
+        </filter>
+      </defs>
+      <path fill="${color}"
+        d="M14 34C5 24 0 19 0 12C0 5.4 6.3 0 14 0C21.7 0 28 5.4 28 12C28 19 23 24 14 34Z"
+        filter="url(#shadow)"/>
+      <circle cx="14" cy="12" r="5.5" fill="#fff"/>
+    </svg>
+  `.replace(/#/g, "%23")
+}
+
+/**
+ * 加载道路病害数据，并用兰图绘风格渲染：
+ * 每个病害点 → 水滴标记 + 半透明辐射圆
+ */
+async function loadRoadDiseaseData() {
+  try {
+    const res = await mapApi.roadsWithDisease()
+    const roads = res.data.data || []
+    roadDiseaseData.value = roads
+    console.log("loadRoadDiseaseData: got", roads.length, "roads")
+
+    // 异步为每条道路获取真实路名（逆地理编码），更新 roadDiseaseData 以刷新排行显示
+    for (const road of roads) {
+      (road as any)._roadNameReady = false
+      if (road.centerLng && road.centerLat) {
+        reverseGeocodeRoad(road.centerLng, road.centerLat).then((realName) => {
+          if (realName) {
+            road.roadName = realName
+          }
+          (road as any)._roadNameReady = true
+          // 触发响应式更新
+          roadDiseaseData.value = [...roads]
+        })
+      } else {
+        (road as any)._roadNameReady = true
+      }
+    }
+
+    // 各等级图层数字在下方去重计算后更新
+
+    waitForMap(async () => {
+      // 清除旧的标记和辐射圆
+      roadPolylines.forEach((pl) => { try { map?.remove(pl) } catch(e) {} })
+      roadPolylines.length = 0
+
+      if (!roads || roads.length === 0) {
+        console.log("loadRoadDiseaseData: no roads to display")
         return
       }
-      
-      tasks.forEach((task) => {
-        if (!task.location) return
-        const parts = task.location.split(",")
-        if (parts.length < 2) return
-        const lng = parseFloat(parts[0]), lat = parseFloat(parts[1])
-        if (isNaN(lng) || isNaN(lat)) {
-          console.warn("Invalid coordinates for task", task.id, task.location)
-          return
+
+      // 后端 matchRoad 可能把病害点匹配到错误的预置道路上，
+      // 所以前端不再依赖后端的路名，而是直接拍平所有病害点按坐标聚合，
+      // 然后用高德逆地理编码获取每个坐标的真实道路名。
+      const sevRank: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 }
+      const coordMap = new Map<string, any>()
+      for (const road of roads) {
+        const dps = road.diseasePoints || []
+        for (const dp of dps) {
+          if (!dp.lng || !dp.lat) continue
+          const key = `${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`
+          const existing = coordMap.get(key)
+          if (!existing) {
+            coordMap.set(key, dp)
+          } else {
+            const existingSev = existing.severity || "MEDIUM"
+            const currentSev = dp.severity || "MEDIUM"
+            if ((sevRank[currentSev] ?? 0) > (sevRank[existingSev] ?? 0)) {
+              coordMap.set(key, dp)
+            }
+          }
         }
-        
-        const sevColor = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" }
-        const items = task.result?.items || []
-        const first = items[0] || {}
-        const topSev = first.severityLevel || "MEDIUM"
-        const color = sevColor[topSev] || "#3b82f6"
-        const label = first.damageType || "未知"
-        
-        // Use AMap.LabelMarker for richer content, or enhanced Marker
-        const markerContent = '<div style="width:28px;height:28px;background:' + color + ';border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;font-weight:bold;font-size:16px;color:#fff;display:flex;align-items:center;justify-content:center">!</div>'
-        
-        const marker = new window.AMap.Marker({
-          position: [lng, lat],
-          content: markerContent,
-          offset: new window.AMap.Pixel(-14, -14),
-          zIndex: 100
+      }
+      const dedupedDps = Array.from(coordMap.values())
+      console.log("loadRoadDiseaseData: deduped to", dedupedDps.length, "unique points")
+
+      // === 筛选条件过滤 ===
+      // 1. 严重程度：filterSeverity 值为 HIGH / MEDIUM / LOW（空=全部）
+      // 2. 检测日期：filterDate 格式 yyyy-mm-dd，匹配 detectionTime 的日期部分
+      // 3. 修复状态：filterStatus 值为 PENDING / ASSIGNED / COMPLETED
+      //    PENDING = workOrderNo 为空（待修复）
+      //    ASSIGNED = workOrderNo 非空且未完成（已派单）
+      //    COMPLETED = workOrderNo 非空且已完成（已完成）
+      const filteredDps = dedupedDps.filter((dp: any) => {
+        // 严重程度筛选
+        if (filterSeverity.value) {
+          const dpSev = dp.severity || "MEDIUM"
+          if (dpSev !== filterSeverity.value) return false
+        }
+        // 检测日期筛选
+        if (filterDate.value) {
+          const dpTime = dp.detectionTime || ""
+          // detectionTime 格式 "yyyy-MM-dd HH:mm:ss"，取前10位日期部分
+          const dpDate = dpTime.substring(0, 10)
+          if (dpDate !== filterDate.value) return false
+        }
+        // 修复状态筛选
+        if (filterStatus.value) {
+          const woNo = dp.workOrderNo || ""
+          if (filterStatus.value === "PENDING" && woNo) return false
+          if (filterStatus.value === "ASSIGNED" && !woNo) return false
+          if (filterStatus.value === "COMPLETED" && woNo !== "COMPLETED" && woNo !== "CLOSED") return false
+        }
+        return true
+      })
+      console.log("loadRoadDiseaseData: filtered to", filteredDps.length, "points (from", dedupedDps.length, ")")
+
+      // 按严重等级统计数量（基于筛选后数据），更新侧边栏图层数字
+      const sevCounts: Record<string, number> = { HIGH: 0, MEDIUM: 0, LOW: 0 }
+      for (const dp of filteredDps) {
+        const sev = dp.severity || "MEDIUM"
+        if (sevCounts[sev] !== undefined) sevCounts[sev]++
+      }
+      const highLayer = layers.value.find(l => l.id === "sev_high")
+      if (highLayer) highLayer.count = sevCounts.HIGH
+      const mediumLayer = layers.value.find(l => l.id === "sev_medium")
+      if (mediumLayer) mediumLayer.count = sevCounts.MEDIUM
+      const lowLayer = layers.value.find(l => l.id === "sev_low")
+      if (lowLayer) lowLayer.count = sevCounts.LOW
+
+      const allMarkers: any[] = []
+
+      for (const dp of filteredDps) {
+        const sev = dp.severity || "MEDIUM"
+        const isRepaired = (dp.workOrderNo === "CLOSED" || dp.workOrderNo === "COMPLETED")
+        const colorInfo = isRepaired ? MARKER_COLORS.REPAIRED : (MARKER_COLORS[sev] || MARKER_COLORS.MEDIUM)
+
+        // 1. 辐射范围：半透明圆形覆盖（默认 800 米）
+        const circle = new window.AMap.Circle({
+          center: [dp.lng, dp.lat],
+          radius: (dp as any).radius ? (dp as any).radius : 800,
+          fillColor: colorInfo.fill,
+          fillOpacity: 0.18,
+          strokeColor: colorInfo.stroke,
+          strokeWeight: 1,
+          strokeOpacity: 0.4,
+          zIndex: 50,
+          extData: { dp, colorInfo, _sevLevel: sev },
         })
-        
-        marker.setExtData({ taskId: task.id, task: task })
-        marker.on("click", () => {
+        map?.add(circle)
+        roadPolylines.push(circle)
+
+        // 2. 位置符号：自定义水滴标记
+        const icon = new window.AMap.Icon({
+          image: `data:image/svg+xml,${createPinIcon(colorInfo.fill)}`,
+          size: new window.AMap.Size(28, 36),
+          imageSize: new window.AMap.Size(28, 36),
+          imageOffset: new window.AMap.Pixel(0, 0),
+        })
+
+        const marker = new window.AMap.Marker({
+          position: [dp.lng, dp.lat],
+          icon,
+          offset: new window.AMap.Pixel(-14, -36),
+          anchor: 'bottom-center',
+          zIndex: 100,
+          extData: { dp, colorInfo, _sevLevel: sev },
+        })
+
+        // 文字标签：先显示"加载中..."，逆地理编码返回后更新为真实道路名
+        const label = new window.AMap.Text({
+          position: [dp.lng, dp.lat],
+          text: `<div style="
+            background:#fff;
+            border:1px solid #cbd5e1;
+            border-radius:8px;
+            padding:3px 8px;
+            font-size:11px;
+            font-weight:600;
+            color:#334155;
+            box-shadow:0 2px 6px rgba(0,0,0,0.1);
+            white-space:nowrap;
+            max-width:140px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+          ">加载中...</div>`,
+          offset: new window.AMap.Pixel(16, -28),
+          anchor: "middle-left",
+          zIndex: 110,
+          extData: { _sevLevel: sev },
+        })
+
+        // 异步获取真实道路名
+        reverseGeocodeRoad(dp.lng, dp.lat).then((roadName) => {
+          label.setText(`<div style="
+            background:#fff;
+            border:1px solid #cbd5e1;
+            border-radius:8px;
+            padding:3px 8px;
+            font-size:11px;
+            font-weight:600;
+            color:#334155;
+            box-shadow:0 2px 6px rgba(0,0,0,0.1);
+            white-space:nowrap;
+            max-width:140px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+          ">${roadName}</div>`)
+        })
+
+        marker.on('click', () => {
+          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+          // 优先使用 AI 识别结果图（imageBase64），其次使用原始上传图（fileUrl）
+          let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
+          const woNo = dp.workOrderNo || ""
+          const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
           selectedDisease.value = {
-            type: first.damageType || "未知",
-            severity: first.severityLevel || "MEDIUM",
-            time: task.createdAt ? task.createdAt.replace("T", " ").substring(0, 16) : "--",
-            location: task.location || "",
-            confidence: first.confidence ? (first.confidence * 100).toFixed(1) + "%" : "--",
-            size: "--",
-            orderId: task.result?.generatedWorkOrderId ? "WO-" + task.result.generatedWorkOrderId : "未生成",
-            _suggestion: first.suggestion || "建议尽快安排修复处理"
+            type: dp.damageType || '道路病害',
+            severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            time: dp.detectionTime || '--',
+            location: roadName,
+            confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
+            size: dp.bbox || '--',
+            orderId: woNo || '未生成',
+            _roadName: roadName,
+            _isRoad: false,
+            _loading: false,
+            _imageSrc: imageSrc,
           }
         })
+
+        circle.on('click', () => {
+          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+          let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
+          const woNo = dp.workOrderNo || ""
+          const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+          selectedDisease.value = {
+            type: dp.damageType || '道路病害',
+            severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            time: dp.detectionTime || '--',
+            location: roadName,
+            confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
+            size: dp.bbox || '--',
+            orderId: woNo || '未生成',
+            _roadName: roadName,
+            _isRoad: false,
+            _loading: false,
+            _imageSrc: imageSrc,
+          }
+        })
+
         map?.add(marker)
-        mapMarkers.push(marker)
-        console.log("Added marker for task", task.id, "at", lng, lat, "type:", label)
-      })
-      
-      // Fit view to all markers
-      if (mapMarkers.length > 0) {
-        map?.setFitView(mapMarkers, false, [50, 50, 50, 50])
+        map?.add(label)
+        roadPolylines.push(marker)
+        roadPolylines.push(label)
+        allMarkers.push(marker)
       }
+
+      // 自适应视野到所有标记
+      if (allMarkers.length > 0) {
+        try { map?.setFitView(allMarkers, false, [80, 80, 80, 80]) } catch(e) {}
+      }
+
+      console.log("Drew", roadPolylines.length, "disease markers and circles")
     })
-  } catch(e) { console.error("loadDiseaseData error:", e) }
+  } catch(e) {
+    console.warn("[DiseaseLayer] 加载道路病害数据失败:", e)
+  }
 }
-onMounted(() => { nextTick(() => { initMap(); initECharts(); }); startTimeUpdate(); loadStats(); loadDiseaseData(); window.addEventListener("data-updated", () => { loadStats(); loadDiseaseData() }) })
-onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (trendChart) trendChart.dispose(); if (pieChart) pieChart.dispose(); if (severityChart) severityChart.dispose(); map = null; window.removeEventListener("data-updated", loadStats) })
+
+function toggleLayerVisibility(layerId: string) {
+  const layer = layers.value.find(l => l.id === layerId)
+  if (!layer) return
+  layer.visible = !layer.visible
+
+  // layerId 格式: sev_high / sev_medium / sev_low
+  const sevLevel = layerId.replace("sev_", "").toUpperCase()
+  roadPolylines.forEach((pl: any) => {
+    const extData = pl.getExtData?.() || {}
+    if (extData._sevLevel === sevLevel) {
+      if (layer.visible) { try { pl.show() } catch(e) {} }
+      else { try { pl.hide() } catch(e) {} }
+    }
+  })
+}
+
+// --- 筛选条件变化时重新渲染地图标记 ---
+// 不重新请求后端数据，只对已有数据重新过滤并重绘标记
+watch([filterSeverity, filterDate, filterStatus], () => {
+  if (!map) return
+  // 清除旧标记
+  roadPolylines.forEach((pl) => { try { map?.remove(pl) } catch(e) {} })
+  roadPolylines.length = 0
+
+  const roads = roadDiseaseData.value || []
+  if (roads.length === 0) return
+
+  waitForMap(async () => {
+    // 重新执行去重 + 筛选（与 loadRoadDiseaseData 内部逻辑一致）
+    const sevRank: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 }
+    const coordMap = new Map<string, any>()
+    for (const road of roads) {
+      for (const dp of (road.diseasePoints || [])) {
+        if (!dp.lng || !dp.lat) continue
+        const key = `${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`
+        const existing = coordMap.get(key)
+        if (!existing) coordMap.set(key, dp)
+        else if ((sevRank[dp.severity || "MEDIUM"] ?? 0) > (sevRank[existing.severity || "MEDIUM"] ?? 0))
+          coordMap.set(key, dp)
+      }
+    }
+    const dedupedDps = Array.from(coordMap.values())
+
+    // 应用筛选
+    const filteredDps = dedupedDps.filter((dp: any) => {
+      if (filterSeverity.value && (dp.severity || "MEDIUM") !== filterSeverity.value) return false
+      if (filterDate.value && (dp.detectionTime || "").substring(0, 10) !== filterDate.value) return false
+      if (filterStatus.value) {
+        const woNo = dp.workOrderNo || ""
+        if (filterStatus.value === "PENDING" && woNo) return false
+        if (filterStatus.value === "ASSIGNED" && !woNo) return false
+        if (filterStatus.value === "COMPLETED" && woNo !== "COMPLETED") return false
+      }
+      return true
+    })
+
+    // 更新图层数字
+    const sevCounts: Record<string, number> = { HIGH: 0, MEDIUM: 0, LOW: 0 }
+    for (const dp of filteredDps) {
+      const sev = dp.severity || "MEDIUM"
+      if (sevCounts[sev] !== undefined) sevCounts[sev]++
+    }
+    const hl = layers.value.find(l => l.id === "sev_high"); if (hl) hl.count = sevCounts.HIGH
+    const ml = layers.value.find(l => l.id === "sev_medium"); if (ml) ml.count = sevCounts.MEDIUM
+    const ll = layers.value.find(l => l.id === "sev_low"); if (ll) ll.count = sevCounts.LOW
+
+    const allMarkers: any[] = []
+    for (const dp of filteredDps) {
+      const sev = dp.severity || "MEDIUM"
+      const isRepaired = (dp.workOrderNo === "CLOSED" || dp.workOrderNo === "COMPLETED")
+      const colorInfo = isRepaired ? MARKER_COLORS.REPAIRED : (MARKER_COLORS[sev] || MARKER_COLORS.MEDIUM)
+
+      const circle = new window.AMap.Circle({
+        center: [dp.lng, dp.lat],
+        radius: (dp as any).radius ? (dp as any).radius : 800,
+        fillColor: colorInfo.fill,
+        fillOpacity: 0.18,
+        strokeColor: colorInfo.stroke,
+        strokeWeight: 1,
+        strokeOpacity: 0.4,
+        zIndex: 50,
+        extData: { dp, colorInfo, _sevLevel: sev },
+      })
+      map?.add(circle)
+      roadPolylines.push(circle)
+
+      const icon = new window.AMap.Icon({
+        image: `data:image/svg+xml,${createPinIcon(colorInfo.fill)}`,
+        size: new window.AMap.Size(28, 36),
+        imageSize: new window.AMap.Size(28, 36),
+        imageOffset: new window.AMap.Pixel(0, 0),
+      })
+
+      const marker = new window.AMap.Marker({
+        position: [dp.lng, dp.lat],
+        icon,
+        offset: new window.AMap.Pixel(-14, -36),
+        anchor: 'bottom-center',
+        zIndex: 100,
+        extData: { dp, colorInfo, _sevLevel: sev },
+      })
+
+      const label = new window.AMap.Text({
+        position: [dp.lng, dp.lat],
+        text: `<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">加载中...</div>`,
+        offset: new window.AMap.Pixel(16, -28),
+        anchor: "middle-left",
+        zIndex: 110,
+        extData: { _sevLevel: sev },
+      })
+
+      // 逆地理编码获取真实路名（利用缓存，不会重复请求）
+      reverseGeocodeRoad(dp.lng, dp.lat).then((roadName) => {
+        label.setText(`<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${roadName}</div>`)
+      })
+
+      marker.on('click', () => {
+        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+        let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
+        const woNo = dp.workOrderNo || ""
+        const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+        selectedDisease.value = {
+          type: dp.damageType || '道路病害',
+          severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+          time: dp.detectionTime || '--',
+          location: roadName,
+          confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
+          size: dp.bbox || '--',
+          orderId: woNo || '未生成',
+          _roadName: roadName,
+          _isRoad: false,
+          _loading: false,
+          _imageSrc: imageSrc,
+        }
+      })
+
+      circle.on('click', () => {
+        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+        let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
+        const woNo = dp.workOrderNo || ""
+        const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+        selectedDisease.value = {
+          type: dp.damageType || '道路病害',
+          severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+          time: dp.detectionTime || '--',
+          location: roadName,
+          confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
+          size: dp.bbox || '--',
+          orderId: woNo || '未生成',
+          _roadName: roadName,
+          _isRoad: false,
+          _loading: false,
+          _imageSrc: imageSrc,
+        }
+      })
+
+      map?.add(marker)
+      map?.add(label)
+      roadPolylines.push(marker)
+      roadPolylines.push(label)
+      allMarkers.push(marker)
+
+      // 应用图层可见性（如果某等级被关闭了，新绘制的标记也要隐藏）
+      const layerId = `sev_${sev.toLowerCase()}`
+      const layer = layers.value.find(l => l.id === layerId)
+      if (layer && !layer.visible) {
+        try { circle.hide() } catch(e) {}
+        try { marker.hide() } catch(e) {}
+        try { label.hide() } catch(e) {}
+      }
+    }
+
+    if (allMarkers.length > 0) {
+      try { map?.setFitView(allMarkers, false, [80, 80, 80, 80]) } catch(e) {}
+    }
+  })
+})
+
+// --- Analysis Tab Helpers ---
+function damageTypeLabel(t: string) {
+  return ({ CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知" } as any)[t] || t || "--"
+}
+function healthColor(s: string) {
+  return ({ HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" } as any)[s] || "#94a3b8"
+}
+function healthBg(s: string) {
+  return ({ HIGH: "#fef2f2", MEDIUM: "#fffbeb", LOW: "#f0fdf4" } as any)[s] || "#f8f9fc"
+}
+function healthLabel(s: string) {
+  return ({ HIGH: "严重", MEDIUM: "中等", LOW: "良好" } as any)[s] || "未知"
+}
+function sevDotColor(s: string) {
+  return ({ HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" } as any)[s] || "#94a3b8"
+}
+function sevBgColor(s: string) {
+  return ({ HIGH: "#fef2f2", MEDIUM: "#fffbeb", LOW: "#f0fdf4" } as any)[s] || "#f8f9fc"
+}
+function sevTextColor(s: string) {
+  return ({ HIGH: "#ef4444", MEDIUM: "#d97706", LOW: "#16a34a" } as any)[s] || "#64748b"
+}
+
+async function loadMapAnalysisData() {
+  try {
+    const [statsR, typesR, markersR] = await Promise.allSettled([
+      mapApi.statistics(),
+      mapApi.damageTypes(),
+      mapApi.markers({ onlyWithCoordinates: true }),
+    ])
+    if (statsR.status === "fulfilled") {
+      mapStatsData.value = statsR.value.data.data
+    }
+    if (typesR.status === "fulfilled") {
+      damageTypeRatios.value = typesR.value.data.data || []
+    }
+    if (markersR.status === "fulfilled") {
+      const markers = markersR.value.data.data || []
+      // 只展示严重和中等的标记作为告警
+      const alerts = markers.filter((m: any) => m.severity === "HIGH" || m.severity === "MEDIUM")
+      // 为每个告警标记异步获取真实道路名（利用逆地理编码缓存）
+      alertMarkers.value = alerts.map((m: any) => ({
+        ...m,
+        roadName: m.roadName || "",  // 先置空，逆地理编码返回后更新
+        _roadNameLoading: true,
+      }))
+      // 异步逆地理编码获取路名
+      for (const am of alertMarkers.value) {
+        if (am.longitude && am.latitude) {
+          reverseGeocodeRoad(am.longitude, am.latitude).then((roadName) => {
+            am.roadName = roadName
+            am._roadNameLoading = false
+          })
+        }
+      }
+    }
+  } catch {}
+}
+
+async function sendChat() {
+  const msg = chatInput.value.trim()
+  if (!msg || chatTyping.value) return
+  chatMessages.value.push({ role: "user", text: msg })
+  chatInput.value = ""
+  chatTyping.value = true
+  setTimeout(() => { if (chatMsgRef.value) chatMsgRef.value.scrollTop = chatMsgRef.value.scrollHeight }, 50)
+
+  try {
+    // 调用后端 AI 接口（和左侧 AgentChat.vue 一样）
+    const res = await agentApi.chat({ message: msg, includeContext: true })
+    const data = res.data.data
+    let reply = data?.answer || ""
+
+    // 如果后端没有返回有效回复，基于当前地图数据生成本地回复
+    if (!reply || reply.trim() === "") {
+      const rd = roadDiseaseData.value || []
+      const total = rd.reduce((s: number, r: any) => s + (r.totalCount || 0), 0)
+      const high = rd.reduce((s: number, r: any) => s + (r.highCount || 0), 0)
+      const medium = rd.reduce((s: number, r: any) => s + (r.mediumCount || 0), 0)
+      const low = rd.reduce((s: number, r: any) => s + (r.lowCount || 0), 0)
+      const m = msg.toLowerCase()
+
+      if (m.includes("最多") || m.includes("top") || m.includes("排行")) {
+        const sorted = [...rd].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0))
+        reply = "病害最多的道路排行：<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + "：" + r.totalCount + "处（严重" + r.highCount + "处）").join("<br>")
+      } else if (m.includes("严重") || m.includes("high")) {
+        const hasHigh = rd.filter((r: any) => (r.highCount || 0) > 0)
+        reply = hasHigh.length > 0 ? "存在严重病害的道路：<br>" + hasHigh.map((r: any) => roadNameCn(r.roadName) + "：" + r.highCount + "处").join("<br>") : "当前没有严重病害道路"
+      } else if (m.includes("统计") || m.includes("总数") || m.includes("多少")) {
+        reply = "当前病害统计数据：<br>- 病害总数: " + total + " 处<br>- 严重: " + high + " 处<br>- 中等: " + medium + " 处<br>- 轻微: " + low + " 处"
+      } else {
+        reply = "我是道路病害 AI 助手，您可以问我：<br>- 病害最多的道路<br>- 严重病害分布<br>- 病害统计数据<br>- 道路病害排行"
+      }
+    }
+
+    chatMessages.value.push({ role: "ai", text: reply })
+  } catch(e) {
+    // 后端不可用时，基于地图数据生成本地回复
+    const rd = roadDiseaseData.value || []
+    const total = rd.reduce((s: number, r: any) => s + (r.totalCount || 0), 0)
+    const high = rd.reduce((s: number, r: any) => s + (r.highCount || 0), 0)
+    const medium = rd.reduce((s: number, r: any) => s + (r.mediumCount || 0), 0)
+    const low = rd.reduce((s: number, r: any) => s + (r.lowCount || 0), 0)
+    const m = msg.toLowerCase()
+
+    let reply = ""
+    if (m.includes("最多") || m.includes("top") || m.includes("排行")) {
+      const sorted = [...rd].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0))
+      reply = sorted.length > 0
+        ? "病害最多的道路排行：<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + "：" + r.totalCount + "处（严重" + r.highCount + "处）").join("<br>")
+        : "暂无道路病害数据"
+    } else if (m.includes("严重") || m.includes("high")) {
+      const hasHigh = rd.filter((r: any) => (r.highCount || 0) > 0)
+      reply = hasHigh.length > 0 ? "存在严重病害的道路：<br>" + hasHigh.map((r: any) => roadNameCn(r.roadName) + "：" + r.highCount + "处").join("<br>") : "当前没有严重病害道路"
+    } else if (m.includes("统计") || m.includes("总数") || m.includes("多少")) {
+      reply = "当前病害统计数据：<br>- 病害总数: " + total + " 处<br>- 严重: " + high + " 处<br>- 中等: " + medium + " 处<br>- 轻微: " + low + " 处"
+    } else {
+      reply = "AI 服务暂时不可用，以下是基于当前地图数据的回复：<br>- 病害总数: " + total + " 处<br>- 严重: " + high + " 处<br>- 中等: " + medium + " 处<br>- 轻微: " + low + " 处<br><br>您可以问我：病害最多的道路、严重病害分布、病害统计数据等"
+    }
+    chatMessages.value.push({ role: "ai", text: reply })
+  }
+  chatTyping.value = false
+  setTimeout(() => { if (chatMsgRef.value) chatMsgRef.value.scrollTop = chatMsgRef.value.scrollHeight }, 50)
+}
+
+onMounted(() => {
+  nextTick(() => { initMap(); initECharts(); })
+  startTimeUpdate()
+  loadStats()
+  loadDiseaseData()
+  loadRoadDiseaseData()
+  loadMapAnalysisData()
+  window.addEventListener("data-updated", onDataUpdated)
+  refreshTimer = setInterval(() => {
+    loadStats()
+    loadRoadDiseaseData()
+    loadMapAnalysisData()
+  }, 30000)
+})
+
+function onDataUpdated() {
+  loadStats()
+  loadDiseaseData()
+  loadRoadDiseaseData()
+  loadMapAnalysisData()
+}
+
+onUnmounted(() => {
+  if (timeInterval) clearInterval(timeInterval)
+  if (refreshTimer) clearInterval(refreshTimer)
+  if (trendChart) trendChart.dispose()
+  if (pieChart) pieChart.dispose()
+  if (severityChart) severityChart.dispose()
+  map = null
+  window.removeEventListener("data-updated", onDataUpdated)
+})
 </script>
 <style scoped>
 .ds-container { display:flex; height:100vh; margin:-24px; width:calc(100% + 48px); background:#f5f7fa; font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif; overflow:hidden; position:relative; }
@@ -396,7 +1274,7 @@ onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (trendChar
 .ds-sidebar-inner { width:340px; height:100%; display:flex; flex-direction:column; overflow-y:auto; }
 .ds-sidebar-inner::-webkit-scrollbar { width:3px; }
 .ds-sidebar-inner::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:2px; }
-.ds-sb-header { display:none; }
+.ds-sb-header { display:flex; align-items:center; gap:8px; padding:16px; border-bottom:1px solid #f0f2f5; font-size:14px; font-weight:700; color:#0f172a; }
 .ds-sb-header svg { color:#4361ee; }
 .ds-sb-tabs { display:flex; margin:0 16px; padding:0; border-bottom:1px solid #f0f2f5; background:none; border-radius:0; gap:0; }
 .ds-sb-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 8px 10px; text-align:center; font-size:13px; font-weight:500; color:#94a3b8; cursor:pointer; transition:all .2s; background:transparent; font-family:inherit; border:none; border-bottom:3px solid transparent; margin-bottom:-1px; line-height:1.3; }
@@ -481,20 +1359,62 @@ onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (trendChar
 .ds-chat-send:hover { background:#3651d4; }
 .ds-chat-send:disabled { background:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
 .ds-chat-avatar .avatar-video-wrap { width:28px; height:28px; border-radius:8px; overflow:hidden; border:1px solid rgba(183,36,255,.25); box-shadow:0 0 4px #b724ff1f; flex-shrink:0; display:flex; }
-
 .ds-vc-sep { height:1px; background:#eef0f4; margin:3px 6px; }
 .ds-vc-btn.active { background:#eef2ff; color:#2563eb; }
 .ds-vc-pitch-row { display:flex; align-items:center; gap:4px; padding:4px 8px; }
 .ds-vc-slider { width:60px; height:3px; -webkit-appearance:none; appearance:none; background:#e2e8f0; border-radius:2px; outline:none; cursor:pointer; }
 .ds-vc-slider::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:#4361ee; border-radius:50%; cursor:pointer; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
 .ds-vc-slider-label { font-size:10px; font-weight:600; color:#94a3b8; min-width:22px; text-align:right; }
+
+/* 图层开关样式 */
+.ds-layer-toggle {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 14px; margin-bottom:4px;
+}
+.ds-tt-label { display:flex; align-items:center; gap:6px; }
+.ds-switch {
+  position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0;
+}
+.ds-switch input { opacity:0; width:0; height:0; }
+.ds-switch-slider {
+  position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+  background:#cbd5e1; border-radius:20px; transition:0.2s;
+}
+.ds-switch-slider::before {
+  content:""; position:absolute; height:14px; width:14px; left:3px; bottom:3px;
+  background:#fff; border-radius:50%; transition:0.2s;
+}
+.ds-switch input:checked + .ds-switch-slider { background:#4361ee; }
+.ds-switch input:checked + .ds-switch-slider::before { transform:translateX(16px); }
+
+/* Analysis Tab - Map Stats Mini Cards */
+.ds-an-card-mini { display:flex; flex-direction:column; align-items:center; padding:10px 8px; background:#f8f9fc; border-radius:8px; }
+.ds-an-mini-val { font-size:18px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+.ds-an-mini-lbl { font-size:10px; color:#94a3b8; margin-top:3px; }
+
+/* Road Health Dot */
+.ds-health-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.ds-health-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:600; }
+
+/* Alert Dot */
+.ds-alert-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.ds-alert-type { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:600; flex-shrink:0; }
+
+/* Heatmap Legend */
+.ds-heatmap-legend {
+  position:absolute; left:14px; bottom:30px; z-index:15;
+  background:rgba(255,255,255,0.95); border:1px solid #e2e8f0;
+  border-radius:10px; padding:10px 14px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  backdrop-filter:blur(8px);
+}
+.ds-legend-title {
+  font-size:11px; font-weight:700; color:#0f172a; margin-bottom:8px;
+  letter-spacing:0.02em;
+}
+.ds-legend-items { display:flex; gap:12px; }
+.ds-legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:#64748b; }
+.ds-legend-bar {
+  display:inline-block; width:20px; height:4px; border-radius:2px;
+}
 </style>
-
-
-
-
-
-
-
-
-

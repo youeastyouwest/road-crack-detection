@@ -67,6 +67,9 @@ public class RoadDiseaseSummaryResponse {
         private String detectionTime;
         private String address;
         private String workOrderNo;
+        private String imageBase64;
+        private String fileUrl;
+        private String bbox;
 
         public DiseasePoint() {}
 
@@ -106,5 +109,11 @@ public class RoadDiseaseSummaryResponse {
         public void setAddress(String address) { this.address = address; }
         public String getWorkOrderNo() { return workOrderNo; }
         public void setWorkOrderNo(String workOrderNo) { this.workOrderNo = workOrderNo; }
+        public String getImageBase64() { return imageBase64; }
+        public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
+        public String getFileUrl() { return fileUrl; }
+        public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+        public String getBbox() { return bbox; }
+        public void setBbox(String bbox) { this.bbox = bbox; }
     }
 }

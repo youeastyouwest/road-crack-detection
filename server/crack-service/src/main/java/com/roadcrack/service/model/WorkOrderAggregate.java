@@ -72,6 +72,12 @@ public class WorkOrderAggregate {
         statusLogs.add(new WorkOrderStatusLogResponse(previous, this.status, "工单已分配给 " + assignee, this.updatedAt));
     }
 
+    public void assignWorker(String assignee) {
+        this.assignee = assignee;
+        this.updatedAt = LocalDateTime.now();
+        statusLogs.add(new WorkOrderStatusLogResponse(this.status, this.status, "分配维修工: " + assignee, this.updatedAt));
+    }
+
     public void updateStatus(WorkOrderStatus targetStatus, String note) {
         if (targetStatus == WorkOrderStatus.CANCELLED) {
             throw new BusinessException(ResultCode.CONFLICT, "取消工单请调用专用取消接口");
@@ -96,8 +102,8 @@ public class WorkOrderAggregate {
     }
 
     public void closeByReport(String note) {
-        if (status != WorkOrderStatus.COMPLETED) {
-            throw new BusinessException(ResultCode.CONFLICT, "仅已完成工单可通过维修报告关闭");
+        if (status != WorkOrderStatus.PENDING_ADMIN_REVIEW) {
+            throw new BusinessException(ResultCode.CONFLICT, "仅待终审工单可通过维修报告关闭");
         }
         changeStatus(WorkOrderStatus.CLOSED, note);
     }
@@ -114,7 +120,10 @@ public class WorkOrderAggregate {
             case PENDING_ASSIGNMENT -> target == WorkOrderStatus.CANCELLED;
             case ASSIGNED -> target == WorkOrderStatus.IN_PROGRESS || target == WorkOrderStatus.CANCELLED;
             case IN_PROGRESS -> target == WorkOrderStatus.COMPLETED || target == WorkOrderStatus.CANCELLED;
-            case COMPLETED -> target == WorkOrderStatus.CANCELLED;
+            case COMPLETED -> target == WorkOrderStatus.PENDING_DEPT_REVIEW || target == WorkOrderStatus.CANCELLED;
+            case PENDING_DEPT_REVIEW -> target == WorkOrderStatus.PENDING_ADMIN_REVIEW || target == WorkOrderStatus.REJECTED;
+            case PENDING_ADMIN_REVIEW -> target == WorkOrderStatus.REJECTED;
+            case REJECTED -> target == WorkOrderStatus.PENDING_DEPT_REVIEW;
             case CLOSED, CANCELLED -> false;
         };
     }

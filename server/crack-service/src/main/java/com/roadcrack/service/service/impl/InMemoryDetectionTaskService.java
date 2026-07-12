@@ -1,9 +1,11 @@
 package com.roadcrack.service.service.impl;
 
+import com.roadcrack.api.enums.DamageType;
 import com.roadcrack.api.enums.DataSourceType;
 import com.roadcrack.api.enums.DetectionTaskStatus;
 import com.roadcrack.api.enums.SeverityLevel;
 import com.roadcrack.api.request.detection.CreateDetectionTaskRequest;
+import com.roadcrack.api.response.detection.BoundingBoxResponse;
 import com.roadcrack.api.response.detection.DetectionItemResponse;
 import com.roadcrack.api.response.detection.DetectionProgressMessage;
 import com.roadcrack.api.response.detection.DetectionResultResponse;
@@ -55,6 +57,55 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
         this.workOrderService = workOrderService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
+        seedTasks();
+    }
+
+    private void seedTasks() {
+        // Seed some completed demo tasks so the data-screen has data to show
+        LocalDateTime now = LocalDateTime.now();
+        record Seed(String location, DamageType type, SeverityLevel level) {}
+        List<Seed> seeds = List.of(
+                new Seed("116.397,39.909", DamageType.CRACK, SeverityLevel.HIGH),
+                new Seed("116.40,39.91", DamageType.POTHOLE, SeverityLevel.MEDIUM),
+                new Seed("116.42,39.93", DamageType.CRACK, SeverityLevel.LOW),
+                new Seed("116.35,39.95", DamageType.ROAD_SPILL, SeverityLevel.HIGH)
+        );
+
+        for (int i = 0; i < seeds.size(); i++) {
+            Seed s = seeds.get(i);
+            long id = idGenerator.getAndIncrement();
+            LocalDateTime createdAt = now.minusDays(seeds.size() - i);
+            DetectionTaskAggregate aggregate = new DetectionTaskAggregate(
+                    id,
+                    buildCode(id, createdAt.toLocalDate()),
+                    DataSourceType.MANUAL_IMAGE,
+                    "demo-image-" + id + ".jpg",
+                    "/uploads/demo-image-" + id + ".jpg",
+                    s.location,
+                    "演示数据：" + s.type.name() + " @ " + s.level.name(),
+                    DEFAULT_SUBMITTED_BY,
+                    createdAt
+            );
+            List<DetectionItemResponse> items = List.of(
+                    new DetectionItemResponse(
+                            s.type,
+                            s.level,
+                            0.85 + i * 0.03,
+                            new BoundingBoxResponse(120 + i * 20, 80 + i * 10, 80, 60),
+                            "建议尽快安排修复处理"
+                    )
+            );
+            DetectionResultResponse result = new DetectionResultResponse(
+                    id,
+                    "检测到 " + s.type.name() + "，严重等级 " + s.level.name(),
+                    items,
+                    null,
+                    createdAt,
+                    null
+            );
+            aggregate.markCompleted(result);
+            store.put(id, aggregate);
+        }
     }
 
     @Override

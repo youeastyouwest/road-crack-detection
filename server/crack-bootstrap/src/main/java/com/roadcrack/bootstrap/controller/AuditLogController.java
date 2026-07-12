@@ -21,10 +21,10 @@ public class AuditLogController {
 
     @GetMapping("/page")
     public ApiResponse<PageResponse<AuditLogResponse>> page(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String module,
-            @RequestParam(required = false) String status) {
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "module", required = false) String module,
+            @RequestParam(value = "status", required = false) String status) {
         return ApiResponse.success(auditLogService.page(page, size, module, status));
     }
 }

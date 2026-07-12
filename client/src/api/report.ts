@@ -1,5 +1,5 @@
-﻿import http from "./index"
-import type { ApiResponse, PageResponse, MaintenanceReportResponse, CreateMaintenanceReportRequest } from "@/types"
+import http from "./index"
+import type { ApiResponse, PageResponse, MaintenanceReportResponse, CreateMaintenanceReportRequest, ReviewRequest } from "@/types"
 
 export const reportApi = {
   create(data: CreateMaintenanceReportRequest) {
@@ -10,5 +10,11 @@ export const reportApi = {
   },
   get(reportId: number) {
     return http.get<ApiResponse<MaintenanceReportResponse>>("/maintenance-reports/" + reportId)
+  },
+  deptReview(reportId: number, data: ReviewRequest) {
+    return http.put<ApiResponse<MaintenanceReportResponse>>(`/maintenance-reports/${reportId}/dept-review`, data)
+  },
+  adminReview(reportId: number, data: ReviewRequest) {
+    return http.put<ApiResponse<MaintenanceReportResponse>>(`/maintenance-reports/${reportId}/admin-review`, data)
   },
 }

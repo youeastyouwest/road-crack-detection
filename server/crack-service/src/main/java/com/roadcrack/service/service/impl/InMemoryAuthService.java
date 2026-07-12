@@ -5,48 +5,62 @@ import com.roadcrack.api.request.auth.LoginRequest;
 import com.roadcrack.api.request.auth.RegisterRequest;
 import com.roadcrack.api.request.auth.ResetPasswordRequest;
 import com.roadcrack.api.response.auth.LoginResponse;
+import com.roadcrack.common.model.BusinessException;
+import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.dao.entity.UserEntity;
 import com.roadcrack.service.service.AuthService;
+import com.roadcrack.service.service.UserService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryAuthService implements AuthService {
 
-    private final Map<String, LoginResponse> userStore = new ConcurrentHashMap<>();
+    private final UserService userService;
 
-    public InMemoryAuthService() {
-        long now = System.currentTimeMillis();
-        userStore.put("admin", new LoginResponse(
-            "mock-token-admin-" + now, "mock-refresh-admin", "Bearer", 7200,
-            1L, "admin", "超级管理员", List.of("ROLE_ADMIN")
-        ));
-        userStore.put("roadadmin", new LoginResponse(
-            "mock-token-roadadmin-" + now, "mock-refresh-roadadmin", "Bearer", 7200,
-            2L, "roadadmin", "周道路", List.of("ROLE_ROAD_ADMIN")
-        ));
-        userStore.put("sanitadmin", new LoginResponse(
-            "mock-token-sanitadmin-" + now, "mock-refresh-sanitadmin", "Bearer", 7200,
-            3L, "sanitadmin", "吴环卫", List.of("ROLE_SANIT_ADMIN")
-        ));
+    public InMemoryAuthService(UserService userService) {
+        this.userService = userService;
     }
 
     @Override
     public LoginResponse login(LoginRequest request, String ipAddress) {
         String username = request.username();
-        LoginResponse existing = userStore.get(username);
-        if (existing != null) {
-            return existing;
+        String password = request.password();
+
+        // Validate credentials against InMemoryUserService
+        com.roadcrack.service.service.impl.InMemoryUserService memUserService =
+            (com.roadcrack.service.service.impl.InMemoryUserService) userService;
+        UserEntity user = memUserService.findByUsername(username);
+
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_PASSWORD_ERROR, "用户名或密码错误");
         }
+        if (user.getStatus() != null && user.getStatus() != 1) {
+            throw new BusinessException(ResultCode.USER_DISABLED, "账号已被禁用");
+        }
+        if (!password.equals(user.getPassword())) {
+            throw new BusinessException(ResultCode.USER_PASSWORD_ERROR, "用户名或密码错误");
+        }
+
+        // Update last login
+        user.setLastLoginTime(LocalDateTime.now());
+        user.setLastLoginIp(ipAddress);
+
+        List<String> roleCodes = userService.getUserRoleCodes(user.getId());
+        if (roleCodes.isEmpty()) {
+            roleCodes = List.of("ROLE_ADMIN");
+        }
+
         long now = System.currentTimeMillis();
         return new LoginResponse(
             "mock-token-" + username + "-" + now,
-            "mock-refresh-" + username,
-            "Bearer", 7200, 1L, username, username,
-            List.of("ROLE_ADMIN")
+            "mock-refresh-" + username + "-" + now,
+            "Bearer", 7200,
+            user.getId(), user.getUsername(), user.getRealName() != null ? user.getRealName() : username,
+            roleCodes
         );
     }
 

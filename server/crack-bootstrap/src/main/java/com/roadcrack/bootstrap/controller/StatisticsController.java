@@ -30,7 +30,7 @@ public class StatisticsController {
 
     @GetMapping("/trend")
     public ApiResponse<java.util.List<TrendResponse.TrendItem>> trend(
-            @RequestParam(defaultValue = "30") int days
+            @RequestParam(value = "days", defaultValue = "30") int days
     ) {
         TrendResponse r = statisticsService.getTrend(days);
         return ApiResponse.success(r.items());

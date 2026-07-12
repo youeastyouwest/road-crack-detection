@@ -11,9 +11,11 @@ import com.roadcrack.service.service.AgentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 @Service
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = false)
 public class StubAgentService implements AgentService {
 
     private static final Logger log = LoggerFactory.getLogger(StubAgentService.class);

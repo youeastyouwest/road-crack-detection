@@ -33,6 +33,8 @@ public interface WorkOrderService {
 
     WorkOrderResponse assignWorkOrder(Long workOrderId, AssignWorkOrderRequest request);
 
+    WorkOrderResponse assignWorker(Long workOrderId, String assignee);
+
     WorkOrderResponse updateStatus(Long workOrderId, UpdateWorkOrderStatusRequest request);
 
     WorkOrderResponse cancelWorkOrder(Long workOrderId, CancelWorkOrderRequest request);

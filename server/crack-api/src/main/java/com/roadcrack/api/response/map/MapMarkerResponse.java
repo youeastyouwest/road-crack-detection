@@ -11,6 +11,8 @@ public class MapMarkerResponse {
     private String status;
     private Long taskId;
     private String address;
+    private String imageBase64;
+    private String fileUrl;
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Double getLongitude() { return longitude; }
@@ -29,4 +31,8 @@ public class MapMarkerResponse {
     public void setTaskId(Long taskId) { this.taskId = taskId; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+    public String getImageBase64() { return imageBase64; }
+    public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
 }

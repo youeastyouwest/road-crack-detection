@@ -12,9 +12,10 @@ export default defineConfig({
       name: "serve-uploads",
       configureServer(server) {
         server.middlewares.use("/uploads/", (req, res, next) => {
-          const filename = req.url?.replace(/^\//, "") || ""
+          const rawUrl = req.url || ""
+          const filename = decodeURIComponent(rawUrl.replace(/^\//, "").split("?")[0]) || ""
           const filePath = resolve(uploadsDir, filename)
-          if (filePath.startsWith(uploadsDir) && fs.existsSync(filePath)) {
+          if (filePath.startsWith(uploadsDir) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
             const ext = filename.split(".").pop()?.toLowerCase() || ""
             const mime = {jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",bmp:"image/bmp"}
             res.setHeader("Content-Type", mime[ext] || "application/octet-stream")

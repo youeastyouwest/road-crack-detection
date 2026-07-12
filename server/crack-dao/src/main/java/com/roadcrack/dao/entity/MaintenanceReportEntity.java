@@ -34,6 +34,16 @@ public class MaintenanceReportEntity {
     @TableField("finished_at")
     private LocalDateTime finishedAt;
 
+    private String status;
+
+    @TableField("review_remark")
+    private String reviewRemark;
+
+    private String reviewer;
+
+    @TableField("reviewed_at")
+    private LocalDateTime reviewedAt;
+
     @TableField("created_at")
     private LocalDateTime createdAt;
 
@@ -126,5 +136,37 @@ public class MaintenanceReportEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getReviewRemark() {
+        return reviewRemark;
+    }
+
+    public void setReviewRemark(String reviewRemark) {
+        this.reviewRemark = reviewRemark;
+    }
+
+    public String getReviewer() {
+        return reviewer;
+    }
+
+    public void setReviewer(String reviewer) {
+        this.reviewer = reviewer;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 }

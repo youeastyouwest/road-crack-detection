@@ -127,8 +127,8 @@
                 <span class="res-sev-desc">{{ severityDesc(resultData.items[0].severityLevel) }}</span>
               </div>
             </div>
-            <div v-if="resultData?.imageBase64" class="res-file-preview">
-              <img :src="'data:image/jpeg;base64,' + resultData.imageBase64" class="res-preview-img" alt="Detection Result" />
+            <div v-if="resultImageUrl" class="res-file-preview">
+              <img :src="resultImageUrl" class="res-preview-img" alt="Detection Result" />
               <div class="res-file-name">{{ resultData.items?.length || 0 }} 项检测</div>
             </div>
             <div class="result-items">
@@ -168,7 +168,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from "vue"
+import { ref, reactive, onMounted, onUnmounted, computed } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { detectionApi, workOrderApi } from "@/api"
 import type { DetectionTaskResponse } from "@/types"
@@ -188,6 +188,16 @@ const showResultModal = ref(false)
 const resultLoading = ref(false)
 const resultTask = ref<any>(null)
 const resultData = ref<any>(null)
+
+/**
+ * 检测结果标注图。后端可能返回 base64 字符串或 /uploads/... 形式的 URL。
+ */
+const resultImageUrl = computed(() => {
+  const v = resultData.value?.imageBase64
+  if (!v) return ''
+  if (v.startsWith('/') || v.startsWith('http')) return v
+  return 'data:image/jpeg;base64,' + v
+})
 
 // AMap state
 const searchKeyword = ref("")
@@ -211,9 +221,10 @@ function handleDrop(e: DragEvent) {
 }
 
 function initMap() {
-  if (typeof window.AMap === "undefined") { setTimeout(initMap, 500); return }
+  const container = document.getElementById("collectionMap")
+  if (typeof window.AMap === "undefined" || !container) { setTimeout(initMap, 500); return }
   try {
-    map = new window.AMap.Map("collectionMap", {
+    map = new window.AMap.Map(container, {
       zoom: 13, center: [116.397428, 39.90923],
       features: ["bg","road","building"],
     })

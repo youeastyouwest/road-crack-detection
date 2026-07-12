@@ -3,12 +3,14 @@ package com.roadcrack.service.service.impl;
 import com.roadcrack.api.response.alert.AlertResponse;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.service.service.AlertService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Service
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = false)
 public class StubAlertService implements AlertService {
     @Override
     public PageResponse<AlertResponse> page(int page, int size, String alertLevel, String alertType, String status) {

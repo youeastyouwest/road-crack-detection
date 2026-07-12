@@ -22,12 +22,12 @@ public class RoadController {
 
     @GetMapping
     public ApiResponse<PageResponse<RoadResponse>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String roadName,
-            @RequestParam(required = false) String district,
-            @RequestParam(required = false) String roadGrade,
-            @RequestParam(required = false) String status
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "roadName", required = false) String roadName,
+            @RequestParam(value = "district", required = false) String district,
+            @RequestParam(value = "roadGrade", required = false) String roadGrade,
+            @RequestParam(value = "status", required = false) String status
     ) {
         return ApiResponse.success(roadService.page(page, size, roadName, district, roadGrade, status));
     }

@@ -56,7 +56,7 @@ public class DetectionTaskController {
             String storedName = UUID.randomUUID().toString().substring(0, 8) + "_" + (fileName != null ? fileName : "upload");
             Path targetPath = uploadPath.resolve(storedName);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            fileUrl = targetPath.toAbsolutePath().toString();
+            fileUrl = "/uploads/" + storedName;
         }
 
         CreateDetectionTaskRequest req = new CreateDetectionTaskRequest(
@@ -68,34 +68,34 @@ public class DetectionTaskController {
     }
 
     @PostMapping("/{taskId}/execute")
-    public ApiResponse<Void> executeTask(@PathVariable Long taskId) {
+    public ApiResponse<Void> executeTask(@PathVariable("taskId") Long taskId) {
         detectionTaskService.executeTask(taskId);
         return ApiResponse.success(null);
     }
 
     @GetMapping
     public ApiResponse<PageResponse<DetectionTaskResponse>> listTasks(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) DetectionTaskStatus status,
-            @RequestParam(required = false) DataSourceType dataSourceType,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false) String submittedBy) {
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "status", required = false) DetectionTaskStatus status,
+            @RequestParam(value = "dataSourceType", required = false) DataSourceType dataSourceType,
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "submittedBy", required = false) String submittedBy) {
         return ApiResponse.success(detectionTaskService.listTasks(page, size, status, dataSourceType, location, submittedBy));
     }
 
     @GetMapping("/{taskId}")
-    public ApiResponse<DetectionTaskResponse> getTask(@PathVariable Long taskId) {
+    public ApiResponse<DetectionTaskResponse> getTask(@PathVariable("taskId") Long taskId) {
         return ApiResponse.success(detectionTaskService.getTask(taskId));
     }
 
     @GetMapping("/{taskId}/result")
-    public ApiResponse<DetectionResultResponse> getResult(@PathVariable Long taskId) {
+    public ApiResponse<DetectionResultResponse> getResult(@PathVariable("taskId") Long taskId) {
         return ApiResponse.success(detectionTaskService.getResult(taskId));
     }
 
     @DeleteMapping("/{taskId}")
-    public ApiResponse<Void> deleteTask(@PathVariable Long taskId) {
+    public ApiResponse<Void> deleteTask(@PathVariable("taskId") Long taskId) {
         detectionTaskService.deleteTask(taskId);
         return ApiResponse.success(null);
     }

@@ -5,11 +5,13 @@ import com.roadcrack.api.response.healtharchive.RoadHealthArchiveDashboardRespon
 import com.roadcrack.api.response.healtharchive.RoadHealthArchiveResponse;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.service.service.RoadHealthArchiveService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.Collections;
 
 @Service
+@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = false)
 public class StubRoadHealthArchiveService implements RoadHealthArchiveService {
     @Override
     public RoadHealthArchiveResponse generateArchive(GenerateRoadHealthArchiveRequest request) {

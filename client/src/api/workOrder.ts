@@ -33,6 +33,9 @@ export const workOrderApi = {
   assign(workOrderId: number, data: AssignWorkOrderRequest) {
     return http.put<ApiResponse<WorkOrderResponse>>(`/work-orders/${workOrderId}/assign`, data)
   },
+  assignWorker(workOrderId: number, assignee: string) {
+    return http.put<ApiResponse<WorkOrderResponse>>(`/work-orders/${workOrderId}/assign-worker`, null, { params: { assignee } })
+  },
   updateStatus(workOrderId: number, data: UpdateWorkOrderStatusRequest) {
     return http.put<ApiResponse<WorkOrderResponse>>(`/work-orders/${workOrderId}/status`, data)
   },

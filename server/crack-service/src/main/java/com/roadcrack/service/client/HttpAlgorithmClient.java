@@ -7,6 +7,8 @@ import com.roadcrack.api.response.detection.DetectionItemResponse;
 import com.roadcrack.service.config.AlgorithmClientProperties;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,10 +27,14 @@ public class HttpAlgorithmClient implements AlgorithmClient {
 
     private static final Logger log = LoggerFactory.getLogger(HttpAlgorithmClient.class);
     private final AlgorithmClientProperties props;
+    @org.springframework.beans.factory.annotation.Value("${crack.upload.dir:uploads}")
+    private String uploadDir;
 
     public HttpAlgorithmClient(AlgorithmClientProperties props) {
         this.props = props;
     }
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public DetectionAnalysisResult analyze(DetectionTaskAggregate task) {
@@ -56,6 +62,19 @@ public class HttpAlgorithmClient implements AlgorithmClient {
                         } else {
                             log.warn("HTTP download failed: {} returned {}", fileUrl, responseCode);
                         }
+                    } else if (fileUrl.startsWith("/uploads/") || fileUrl.startsWith("/")) {
+                        // Relative URL exposed to frontend; resolve to configured upload dir
+                        String subPath = fileUrl.startsWith("/uploads/")
+                                ? fileUrl.substring("/uploads/".length())
+                                : fileUrl.substring(1);
+                        java.nio.file.Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+                        java.nio.file.Path imgPath = uploadPath.resolve(subPath);
+                        if (Files.exists(imgPath)) {
+                            byte[] imgBytes = Files.readAllBytes(imgPath);
+                            b64 = Base64.getEncoder().encodeToString(imgBytes);
+                        } else {
+                            log.warn("Image file not found: {}", imgPath);
+                        }
                     } else {
                         // Read from local file path
                         java.nio.file.Path imgPath = Paths.get(fileUrl);
@@ -82,7 +101,7 @@ public class HttpAlgorithmClient implements AlgorithmClient {
             body.put("iou_threshold", 0.45);
 
             log.info("Calling YOLOv8 at {} for task {} (file: {})", url, task.getId(), task.getFileName());
-            String json = simpleToJson(body);
+            String json = objectMapper.writeValueAsString(body);
             HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -110,38 +129,74 @@ public class HttpAlgorithmClient implements AlgorithmClient {
     @SuppressWarnings("unchecked")
     private DetectionAnalysisResult parseResponse(DetectionTaskAggregate task, String json) {
         try {
-            Map<String, Object> root = simpleJsonParse(json);
-            boolean success = (Boolean) root.getOrDefault("success", false);
+            JsonNode root = objectMapper.readTree(json);
+            boolean success = root.path("success").asBoolean(false);
             if (!success) {
-                String msg = (String) root.getOrDefault("message", "Detection failed");
+                String msg = root.path("message").asText("Detection failed");
                 log.warn("YOLOv8 returned unsuccessful: {}", msg);
                 return fallbackResult(task);
             }
-            // Response: { success:true, data: { detections: [...], num_detections: ..., ... } }
-            Map<String, Object> data = (Map<String, Object>) root.get("data");
-            if (data == null) {
+            JsonNode data = root.path("data");
+            if (data.isMissingNode() || data.isNull()) {
                 return fallbackResult(task);
             }
-            List<Map<String, Object>> detections = (List<Map<String, Object>>) data.getOrDefault("detections", Collections.emptyList());
+            JsonNode detections = data.path("detections");
             List<DetectionItemResponse> items = new ArrayList<>();
-            for (Map<String, Object> d : detections) {
-                String typeStr = (String) d.getOrDefault("class_name", "CRACK");
-                double confidence = ((Number) d.getOrDefault("confidence", 0.0)).doubleValue();
-                String severityStr = resolveSeverityFromConfidence(confidence);
-                List<Number> bboxRaw = (List<Number>) d.getOrDefault("bbox", List.of(0, 0, 0, 0));
-                BoundingBoxResponse bbox = bboxRaw.size() >= 4
-                    ? new BoundingBoxResponse(bboxRaw.get(0).intValue(), bboxRaw.get(1).intValue(), bboxRaw.get(2).intValue(), bboxRaw.get(3).intValue())
-                    : new BoundingBoxResponse(0, 0, 0, 0);
-                String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
-                items.add(new DetectionItemResponse(parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
+            if (detections.isArray()) {
+                for (JsonNode d : detections) {
+                    String typeStr = d.path("class_name").asText("CRACK");
+                    double confidence = d.path("confidence").asDouble(0.0);
+                    String severityStr = resolveSeverityFromConfidence(confidence);
+                    JsonNode bboxRaw = d.path("bbox");
+                    BoundingBoxResponse bbox;
+                    if (bboxRaw.isArray() && bboxRaw.size() >= 4) {
+                        bbox = new BoundingBoxResponse(
+                            bboxRaw.get(0).asInt(),
+                            bboxRaw.get(1).asInt(),
+                            bboxRaw.get(2).asInt(),
+                            bboxRaw.get(3).asInt()
+                        );
+                    } else {
+                        bbox = new BoundingBoxResponse(0, 0, 0, 0);
+                    }
+                    String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
+                    items.add(new DetectionItemResponse(parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
+                }
             }
-            int total = ((Number) data.getOrDefault("num_detections", items.size())).intValue();
+            int total = data.path("num_detections").asInt(items.size());
             String summary = "YOLOv8 detection complete: " + total + " items found";
-            String imageBase64 = (String) data.get("image_base64");
-            return new DetectionAnalysisResult(summary, items, imageBase64);
+            String imageBase64 = data.path("image_base64").asText(null);
+            // 解码 base64 写成文件，返回 URL（避免 200KB+ 字符串进数据库/响应体）
+            String imageUrl = persistAnnotatedImage(task, imageBase64);
+            return new DetectionAnalysisResult(summary, items, imageUrl);
         } catch (Exception e) {
             log.error("Failed to parse YOLOv8 response: {}", e.getMessage());
             return fallbackResult(task);
+        }
+    }
+
+    /**
+     * 把 YOLO 返回的标注图 base64 解码为 PNG，写入 uploads/result/task_{id}_{ts}.png。
+     * 失败时返回 null（不影响检测结果数据）。
+     */
+    private String persistAnnotatedImage(DetectionTaskAggregate task, String imageBase64) {
+        if (imageBase64 == null || imageBase64.isBlank()) {
+            return null;
+        }
+        try {
+            byte[] bytes = Base64.getDecoder().decode(imageBase64);
+            java.nio.file.Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+            java.nio.file.Path resultDir = uploadPath.resolve("result");
+            Files.createDirectories(resultDir);
+            String fileName = "task_" + task.getId() + "_" + System.currentTimeMillis() + ".jpg";
+            java.nio.file.Path target = resultDir.resolve(fileName);
+            Files.write(target, bytes);
+            String url = "/uploads/result/" + fileName;
+            log.info("Persisted annotated image for task {} -> {} ({} bytes)", task.getId(), url, bytes.length);
+            return url;
+        } catch (Exception e) {
+            log.error("Failed to persist annotated image for task {}: {}", task.getId(), e.getMessage());
+            return null;
         }
     }
 
@@ -168,127 +223,11 @@ public class HttpAlgorithmClient implements AlgorithmClient {
     }
 
     private String simpleToJson(Map<String, Object> map) {
-        StringBuilder sb = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, Object> e : map.entrySet()) {
-            if (!first) sb.append(",");
-            first = false;
-            sb.append("\"").append(escapeJson(e.getKey())).append("\":");
-            Object v = e.getValue();
-            if (v instanceof String) sb.append("\"").append(escapeJson((String) v)).append("\"");
-            else if (v instanceof Number || v instanceof Boolean) sb.append(v);
-            else sb.append("\"\"");
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            return "{}";
         }
-        sb.append("}");
-        return sb.toString();
-    }
-
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> simpleJsonParse(String json) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        if (json == null || json.trim().isEmpty()) return result;
-        json = json.trim();
-        if (!json.startsWith("{") || !json.endsWith("}")) return result;
-        json = json.substring(1, json.length() - 1).trim();
-        int i = 0;
-        while (i < json.length()) {
-            if (json.charAt(i) == ',' || json.charAt(i) == ' ') { i++; continue; }
-            if (json.charAt(i) == '"') {
-                int keyEnd = json.indexOf('"', i + 1);
-                if (keyEnd < 0) break;
-                String key = json.substring(i + 1, keyEnd);
-                i = keyEnd + 1;
-                while (i < json.length() && json.charAt(i) != ':') i++;
-                i++;
-                while (i < json.length() && json.charAt(i) == ' ') i++;
-                if (i >= json.length()) break;
-                char c = json.charAt(i);
-                if (c == '"') {
-                    int valEnd = i + 1;
-                    boolean escaped = false;
-                    while (valEnd < json.length()) {
-                        if (!escaped && json.charAt(valEnd) == '\\') { escaped = true; valEnd++; continue; }
-                        if (!escaped && json.charAt(valEnd) == '"') break;
-                        escaped = false;
-                        valEnd++;
-                    }
-                    result.put(key, json.substring(i + 1, valEnd));
-                    i = valEnd + 1;
-                } else if (c == '{') {
-                    int brace = 1, j = i + 1;
-                    while (j < json.length() && brace > 0) {
-                        if (json.charAt(j) == '{') brace++;
-                        else if (json.charAt(j) == '}') brace--;
-                        j++;
-                    }
-                    result.put(key, simpleJsonParse(json.substring(i, j)));
-                    i = j;
-                } else if (c == '[') {
-                    int bracket = 1, j = i + 1;
-                    while (j < json.length() && bracket > 0) {
-                        if (json.charAt(j) == '[') bracket++;
-                        else if (json.charAt(j) == ']') bracket--;
-                        j++;
-                    }
-                    result.put(key, parseJsonArray(json.substring(i, j)));
-                    i = j;
-                } else {
-                    int j2 = i;
-                    while (j2 < json.length() && json.charAt(j2) != ',' && json.charAt(j2) != '}' && json.charAt(j2) != ' ') j2++;
-                    String raw = json.substring(i, j2).trim();
-                    if ("true".equals(raw)) result.put(key, true);
-                    else if ("false".equals(raw)) result.put(key, false);
-                    else if ("null".equals(raw)) result.put(key, null);
-                    else try { result.put(key, Double.parseDouble(raw)); } catch (Exception e) { result.put(key, raw); }
-                    i = j2;
-                }
-            } else i++;
-        }
-        return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Object> parseJsonArray(String json) {
-        List<Object> list = new ArrayList<>();
-        json = json.trim();
-        if (!json.startsWith("[")) return list;
-        json = json.substring(1, json.lastIndexOf(']')).trim();
-        if (json.isEmpty()) return list;
-        int i = 0;
-        while (i < json.length()) {
-            if (json.charAt(i) == ',' || json.charAt(i) == ' ') { i++; continue; }
-            char c = json.charAt(i);
-            if (c == '"') {
-                int end = json.indexOf('"', i + 1);
-                if (end < 0) break;
-                list.add(json.substring(i + 1, end));
-                i = end + 1;
-            } else if (c == '{') {
-                int brace = 1, j = i + 1;
-                while (j < json.length() && brace > 0) {
-                    if (json.charAt(j) == '{') brace++;
-                    else if (json.charAt(j) == '}') brace--;
-                    j++;
-                }
-                list.add(simpleJsonParse(json.substring(i, j)));
-                i = j;
-            } else {
-                int j2 = i;
-                while (j2 < json.length() && json.charAt(j2) != ',' && json.charAt(j2) != ']') j2++;
-                String raw = json.substring(i, j2).trim();
-                if ("true".equals(raw)) list.add(true);
-                else if ("false".equals(raw)) list.add(false);
-                else if ("null".equals(raw)) list.add(null);
-                else try { list.add(Double.parseDouble(raw)); } catch (Exception e) { list.add(raw); }
-                i = j2;
-            }
-        }
-        return list;
     }
 
     private DamageType parseDamageType(String s) {

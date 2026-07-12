@@ -69,9 +69,3 @@ CREATE TABLE IF NOT EXISTS verification_code (
     PRIMARY KEY (id),
     KEY idx_verification_email_type (email, type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO role (name, code) VALUES ('ADMIN','ROLE_ADMIN'), ('ROAD_ADMIN','ROLE_ROAD_ADMIN'), ('SANIT_ADMIN','ROLE_SANIT_ADMIN'), ('TRAFFIC_ADMIN','ROLE_TRAFFIC_ADMIN'), ('MAINTAINER','ROLE_MAINTAINER'), ('CROWDSOURCE','ROLE_CROWDSOURCE')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
-
-INSERT INTO `user` (username,password,real_name,status) VALUES ('admin','$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy','超级管理员',1)
-ON DUPLICATE KEY UPDATE username=username;

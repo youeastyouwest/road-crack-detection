@@ -8,7 +8,7 @@ import com.roadcrack.common.model.ResultCode;
 import com.roadcrack.dao.entity.UserEntity;
 import com.roadcrack.service.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +26,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class UserController {
 
     private final UserService userService;
@@ -41,7 +40,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Map<String, Object>> detail(@PathVariable Long id) {
+    public ApiResponse<Map<String, Object>> detail(@PathVariable("id") Long id) {
         UserEntity user = userService.getById(id);
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND, "user not found: " + id);
@@ -51,40 +50,40 @@ public class UserController {
 
     @PostMapping
     public ApiResponse<Void> create(@Valid @RequestBody UserEntity user,
-                                    @RequestParam(required = false) List<Long> roleIds) {
+                                    @RequestParam(value = "roleIds", required = false) List<Long> roleIds) {
         userService.createUser(user, roleIds);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Void> update(@PathVariable Long id,
+    public ApiResponse<Void> update(@PathVariable("id") Long id,
                                     @Valid @RequestBody UserEntity user,
-                                    @RequestParam(required = false) List<Long> roleIds) {
+                                    @RequestParam(value = "roleIds", required = false) List<Long> roleIds) {
         user.setId(id);
         userService.updateUser(user, roleIds);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         userService.deleteUser(id);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/status")
-    public ApiResponse<Void> toggleStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public ApiResponse<Void> toggleStatus(@PathVariable("id") Long id, @RequestParam(value = "status") Integer status) {
         userService.toggleStatus(id, status);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/reset-password")
-    public ApiResponse<Void> resetPassword(@PathVariable Long id) {
+    public ApiResponse<Void> resetPassword(@PathVariable("id") Long id) {
         userService.resetUserPassword(id);
         return ApiResponse.success(null);
     }
 
     @GetMapping("/current")
-    public ApiResponse<Map<String, Object>> current(@RequestAttribute Long userId) {
+    public ApiResponse<Map<String, Object>> current(@RequestAttribute("userId") Long userId) {
         UserEntity user = userService.getById(userId);
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND, "user not found: " + userId);

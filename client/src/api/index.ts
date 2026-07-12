@@ -17,6 +17,10 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (userId && config.headers) {
     config.headers["X-User-Id"] = userId
   }
+  const userName = localStorage.getItem("realName") || localStorage.getItem("username")
+  if (userName && config.headers) {
+    config.headers["X-User-Name"] = userName
+  }
   return config
 })
 

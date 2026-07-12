@@ -145,14 +145,46 @@ public class DbWorkOrderService implements WorkOrderService {
         entity.setUpdatedAt(now);
         workOrderMapper.updateById(entity);
 
+        String assignee = request.assignee();
+        String assignNote = (assignee != null && !assignee.isBlank())
+                ? "assigned to " + assignee
+                : "assigned to department " + request.departmentCode();
+
         insertFlow(entity.getId(),
                 WorkOrderStatus.PENDING_ASSIGNMENT,
                 WorkOrderStatus.ASSIGNED,
                 "ASSIGN",
                 DEFAULT_OPERATOR,
                 request.departmentCode(),
-                request.assignee(),
-                "assigned to " + request.assignee(),
+                assignee,
+                assignNote,
+                now);
+
+        return publishAndReturn(entity.getId());
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderResponse assignWorker(Long workOrderId, String assignee) {
+        WorkOrderEntity entity = getRequired(workOrderId);
+        WorkOrderStatus currentStatus = WorkOrderStatus.valueOf(entity.getStatus());
+        if (currentStatus != WorkOrderStatus.ASSIGNED && currentStatus != WorkOrderStatus.REJECTED) {
+            throw new BusinessException(ResultCode.CONFLICT, "only ASSIGNED or REJECTED work orders can have worker reassigned");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        entity.setAssignee(assignee);
+        entity.setUpdatedAt(now);
+        workOrderMapper.updateById(entity);
+
+        insertFlow(entity.getId(),
+                currentStatus,
+                currentStatus,
+                "ASSIGN_WORKER",
+                DEFAULT_OPERATOR,
+                entity.getDepartmentCode() == null ? null : DepartmentCode.valueOf(entity.getDepartmentCode()),
+                assignee,
+                "assigned worker: " + assignee,
                 now);
 
         return publishAndReturn(entity.getId());
@@ -234,8 +266,8 @@ public class DbWorkOrderService implements WorkOrderService {
     public void closeByReport(Long workOrderId, String note) {
         WorkOrderEntity entity = getRequired(workOrderId);
         WorkOrderStatus currentStatus = WorkOrderStatus.valueOf(entity.getStatus());
-        if (currentStatus != WorkOrderStatus.COMPLETED) {
-            throw new BusinessException(ResultCode.CONFLICT, "only completed work orders can be closed by maintenance report");
+        if (currentStatus != WorkOrderStatus.PENDING_ADMIN_REVIEW) {
+            throw new BusinessException(ResultCode.CONFLICT, "only admin-reviewed work orders can be closed by maintenance report");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -301,7 +333,10 @@ public class DbWorkOrderService implements WorkOrderService {
             case PENDING_ASSIGNMENT -> targetStatus == WorkOrderStatus.CANCELLED;
             case ASSIGNED -> targetStatus == WorkOrderStatus.IN_PROGRESS || targetStatus == WorkOrderStatus.CANCELLED;
             case IN_PROGRESS -> targetStatus == WorkOrderStatus.COMPLETED || targetStatus == WorkOrderStatus.CANCELLED;
-            case COMPLETED -> targetStatus == WorkOrderStatus.CANCELLED;
+            case COMPLETED -> targetStatus == WorkOrderStatus.PENDING_DEPT_REVIEW || targetStatus == WorkOrderStatus.CANCELLED;
+            case PENDING_DEPT_REVIEW -> targetStatus == WorkOrderStatus.PENDING_ADMIN_REVIEW || targetStatus == WorkOrderStatus.REJECTED;
+            case PENDING_ADMIN_REVIEW -> targetStatus == WorkOrderStatus.REJECTED;
+            case REJECTED -> targetStatus == WorkOrderStatus.PENDING_DEPT_REVIEW;
             case CLOSED, CANCELLED -> false;
         };
     }

@@ -94,7 +94,7 @@ public class InMemoryRoadService implements RoadService {
                     else if (severityScore == 2) mediumCount++;
                     else lowCount++;
 
-                    points.add(new DiseasePoint(
+                    DiseasePoint dp = new DiseasePoint(
                             task.id(),
                             coords != null ? coords[0] : 0,
                             coords != null ? coords[1] : 0,
@@ -102,7 +102,15 @@ public class InMemoryRoadService implements RoadService {
                             item.severityLevel() != null ? item.severityLevel().name() : "UNKNOWN",
                             item.damageType() != null ? item.confidence() : 0,
                             task.createdAt() != null ? task.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : ""
-                    ));
+                    );
+                    // 传入 AI 识别结果图和原始上传图
+                    dp.setImageBase64(task.result().imageBase64() != null ? task.result().imageBase64() : "");
+                    dp.setFileUrl(task.fileUrl() != null ? task.fileUrl() : "");
+                    // 传入病害区域尺寸
+                    if (item.boundingBox() != null) {
+                        dp.setBbox(item.boundingBox().width() + "x" + item.boundingBox().height() + " px");
+                    }
+                    points.add(dp);
                 }
             }
 
@@ -116,29 +124,21 @@ public class InMemoryRoadService implements RoadService {
             ));
         }
 
-        // 4. Also add roads with no disease
-        for (SeededRoad road : roads.values()) {
-            if (!roadTaskMap.containsKey(road.id)) {
-                result.add(new RoadDiseaseSummaryResponse(
-                        road.id, road.name, road.centerLng, road.centerLat,
-                        road.path, "LOW", 0, 0, 0, 0, new ArrayList<>()
-                ));
-            }
-        }
+
 
         return result;
     }
 
-    private void seedRoads() {
-        // Beijing area roads with approximate polyline paths
-        addRoad("长安街", 39.909, 116.397, new double[][]{{116.38,39.908},{116.42,39.910}});
-        addRoad("二环路", 39.91, 116.39, new double[][]{{116.37,39.90},{116.37,39.92},{116.41,39.92},{116.41,39.90}});
-        addRoad("三环路", 39.91, 116.40, new double[][]{{116.38,39.89},{116.38,39.93},{116.42,39.93},{116.42,39.89}});
-        addRoad("机场高速", 39.95, 116.43, new double[][]{{116.42,39.91},{116.44,39.98}});
-        addRoad("京藏高速", 39.95, 116.35, new double[][]{{116.35,39.88},{116.35,39.98}});
-        addRoad("通惠河北路", 39.905, 116.42, new double[][]{{116.40,39.906},{116.44,39.904}});
-        addRoad("学院路", 39.96, 116.35, new double[][]{{116.35,39.94},{116.35,39.98}});
-        addRoad("西直门外大街", 39.94, 116.35, new double[][]{{116.33,39.94},{116.37,39.94}});
+            private void seedRoads() {
+        // Beijing area seeded roads for demonstration
+        addRoad("ChangAn Street", 39.909, 116.397, new double[][]{{116.38,39.908},{116.42,39.910}});
+        addRoad("2nd Ring Road", 39.91, 116.39, new double[][]{{116.37,39.90},{116.37,39.92},{116.41,39.92},{116.41,39.90}});
+        addRoad("3rd Ring Road", 39.91, 116.40, new double[][]{{116.38,39.89},{116.38,39.93},{116.42,39.93},{116.42,39.89}});
+        addRoad("4th Ring Road", 39.95, 116.43, new double[][]{{116.42,39.91},{116.44,39.98}});
+        addRoad("5th Ring Road", 39.95, 116.35, new double[][]{{116.35,39.88},{116.35,39.98}});
+        addRoad("Airport Expressway", 39.905, 116.42, new double[][]{{116.40,39.906},{116.44,39.904}});
+        addRoad("Jingzang Expwy", 39.96, 116.35, new double[][]{{116.35,39.94},{116.35,39.98}});
+        addRoad("Xizhimen Outer St", 39.94, 116.35, new double[][]{{116.33,39.94},{116.37,39.94}});
     }
 
     private void addRoad(String name, double centerLat, double centerLng, double[][] pathPoints) {
@@ -160,8 +160,8 @@ public class InMemoryRoadService implements RoadService {
                 best = road;
             }
         }
-        // Only match if within 50 meters
-        return bestDist < 0.3 ? best : null;
+        // Match if within 2km of nearest seeded road
+        return bestDist < 2.0 ? best : null;
     }
 
     private double haversineToPolyline(double lng, double lat, List<double[]> polyline) {
@@ -239,17 +239,17 @@ public class InMemoryRoadService implements RoadService {
             r.setId(id);
             r.setRoadCode("RD-" + String.format("%04d", id));
             r.setRoadName(name);
-            r.setRoadGrade("城市主干道");
-            r.setDistrict("北京市");
+            r.setRoadGrade("Arterial Road");
+            r.setDistrict("Beijing");
             r.setStartPoint(centerLat + "," + centerLng);
             r.setEndPoint(centerLat + "," + centerLng);
             r.setLengthKm(new BigDecimal("2.5"));
             r.setLaneCount(6);
-            r.setSurfaceType("沥青");
+            r.setSurfaceType("Asphalt");
             r.setBuiltYear(2010);
             r.setLastMaintained(LocalDateTime.now().minusMonths(3));
             r.setHealthScore(new BigDecimal("85.0"));
-            r.setDamageLevel("良好");
+            r.setDamageLevel("Good");
             r.setLatestDetectionAt(LocalDateTime.now());
             r.setTotalDetectionCount(0);
             r.setCurrentDamageCount(0);

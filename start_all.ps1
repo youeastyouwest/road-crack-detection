@@ -12,7 +12,7 @@ Start-Sleep -Seconds 5
 
 # 2. Backend
 Write-Host "[2/3] 启动 Java 后端服务..." -ForegroundColor Yellow
-$backend = Start-Process -WindowStyle Hidden -FilePath "java" -ArgumentList "-jar server\crack-bootstrap\target\crack-bootstrap-0.1.0-SNAPSHOT.jar --crack.persistence.mode=memory --crack.algorithm.mock-enabled=false --crack.algorithm.base-url=http://localhost:8000" -WorkingDirectory "D:\road-crack-detection" -PassThru
+$backend = Start-Process -WindowStyle Hidden -FilePath "java" -ArgumentList "-Dserver.port=8080 -jar server\crack-bootstrap\target\crack-bootstrap-0.1.0-SNAPSHOT.jar --crack.persistence.mode=db --crack.algorithm.mock-enabled=false --crack.algorithm.base-url=http://localhost:8000" -WorkingDirectory "D:\road-crack-detection" -PassThru
 Write-Host "  Backend PID: $($backend.Id)" -ForegroundColor Green
 
 Start-Sleep -Seconds 10

@@ -84,3 +84,28 @@ target/
 
 # === Additional local temp directories ===
 tmp/
+
+# === 临时脚本 & 修复脚本（不提交）===
+_fix*.py
+fix_beans_quick.py
+fix_stubs_quick.py
+safe_patch.py
+client/fix_*.cjs
+client/rewrite_*.cjs
+
+# === 临时任务/数据文件 ===
+tasks_tmp*.json
+nul
+
+# === Vite 缓存 ===
+.vite/
+
+# === 运行时产物 ===
+server/backend.pid
+server/temp_rebuild/
+runs/
+python-service/runs/
+uploads/
+
+# === 测试文件 ===
+server/crack-service/src/main/java/com/roadcrack/service/service/impl/test.txt

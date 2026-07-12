@@ -1,9 +1,9 @@
 # Start Backend (DB mode)
 param(
-    [string]$Mode = "memory",
-    [string]$DbUrl = "jdbc:mysql://localhost:3306/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true",
+    [string]$Mode = "db",
+    [string]$DbUrl = "jdbc:mysql://localhost:3308/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true",
     [string]$DbUser = "root",
-    [string]$DbPass = "root"
+    [string]$DbPass = "123456"
 )
 
 $Jar = "D:\road-crack-detection\server\crack-bootstrap\target\crack-bootstrap-0.1.0-SNAPSHOT.jar"
@@ -15,15 +15,9 @@ if (-not (Test-Path $Jar)) {
 }
 
 if ($Mode -eq "db") {
-    $env:DB_URL = $DbUrl
-    $env:DB_USERNAME = $DbUser
-    $env:DB_PASSWORD = $DbPass
-    $env:DB_INIT_MODE = "always"
-    
-    Write-Host "Starting backend with MySQL: $DbUser@$DbUrl"
+    Write-Host "Starting backend with MySQL: $DbUser @ port 3308"
 } else {
-    
     Write-Host "Starting backend in MEMORY mode (no DB required)"
 }
 
-java -jar $Jar --crack.persistence.mode=$Mode
+java -Dserver.port=8080 -jar $Jar --crack.persistence.mode=$Mode

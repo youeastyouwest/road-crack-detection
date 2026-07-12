@@ -5,6 +5,7 @@ import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.dao.entity.UserEntity;
 
 import java.util.List;
+import com.roadcrack.dao.entity.UserEntity;
 
 public interface UserService {
 
@@ -25,4 +26,6 @@ public interface UserService {
     List<Long> getUserRoleIds(Long userId);
 
     List<String> getUserRoleCodes(Long userId);
+
+    UserEntity findByUsername(String username);
 }

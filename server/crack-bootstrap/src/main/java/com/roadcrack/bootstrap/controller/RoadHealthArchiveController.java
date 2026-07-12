@@ -36,19 +36,19 @@ public class RoadHealthArchiveController {
 
     @GetMapping
     public ApiResponse<PageResponse<RoadHealthArchiveResponse>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Long roadId,
-            @RequestParam(required = false) String damageLevel,
-            @RequestParam(required = false)
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "roadId", required = false) Long roadId,
+            @RequestParam(value = "damageLevel", required = false) String damageLevel,
+            @RequestParam(value = "startDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false)
+            @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ApiResponse.success(archiveService.listArchives(page, size, roadId, damageLevel, startDate, endDate));
     }
 
     @GetMapping("/{archiveId}")
-    public ApiResponse<RoadHealthArchiveResponse> get(@PathVariable Long archiveId) {
+    public ApiResponse<RoadHealthArchiveResponse> get(@PathVariable("archiveId") Long archiveId) {
         return ApiResponse.success(archiveService.getArchive(archiveId));
     }
 

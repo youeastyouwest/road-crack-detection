@@ -34,7 +34,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ApiResponse<LoginResponse> refresh(@RequestParam String refreshToken) {
+    public ApiResponse<LoginResponse> refresh(@RequestParam(value = "refreshToken") String refreshToken) {
         return ApiResponse.success(authService.refreshToken(refreshToken));
     }
 
@@ -45,14 +45,14 @@ public class AuthController {
     }
 
     @PostMapping("/send-code")
-    public ApiResponse<String> sendCode(@RequestParam String email,
-                                        @RequestParam(defaultValue = "1") Integer type) {
+    public ApiResponse<String> sendCode(@RequestParam(value = "email") String email,
+                                        @RequestParam(value = "type", defaultValue = "1") Integer type) {
         authService.sendVerificationCode(email, type);
         return ApiResponse.success("verification code accepted", null);
     }
 
     @PutMapping("/change-password")
-    public ApiResponse<Void> changePassword(@RequestAttribute Long userId,
+    public ApiResponse<Void> changePassword(@RequestAttribute("userId") Long userId,
                                             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(userId, request);
         return ApiResponse.success(null);

@@ -1,5 +1,9 @@
 CREATE TABLE IF NOT EXISTS detection_task (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_code VARCHAR(64) NULL,
+    source_type VARCHAR(20) NULL,
+    source_ref_id BIGINT NULL,
+    device_id BIGINT NULL,
     road_id BIGINT NULL,
     road_segment_id BIGINT NULL,
     location VARCHAR(255) NOT NULL,
@@ -34,6 +38,7 @@ CREATE TABLE IF NOT EXISTS detection_result (
     highest_severity VARCHAR(20) NULL,
     avg_confidence DECIMAL(5,4) NULL,
     generated_work_order_id BIGINT NULL,
+    annotated_image_url VARCHAR(500) NULL,
     completed_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,

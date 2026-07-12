@@ -6,7 +6,7 @@ import com.roadcrack.common.model.ResultCode;
 import com.roadcrack.dao.entity.RoleEntity;
 import com.roadcrack.service.service.RoleService;
 import jakarta.validation.Valid;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +20,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/role")
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class RoleController {
 
     private final RoleService roleService;
@@ -35,7 +34,7 @@ public class RoleController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<RoleEntity> detail(@PathVariable Long id) {
+    public ApiResponse<RoleEntity> detail(@PathVariable("id") Long id) {
         RoleEntity role = roleService.getById(id);
         if (role == null) {
             throw new BusinessException(ResultCode.ROLE_NOT_FOUND, "role not found: " + id);
@@ -50,14 +49,14 @@ public class RoleController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Void> update(@PathVariable Long id, @Valid @RequestBody RoleEntity role) {
+    public ApiResponse<Void> update(@PathVariable("id") Long id, @Valid @RequestBody RoleEntity role) {
         role.setId(id);
         roleService.updateRole(role);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         roleService.deleteRole(id);
         return ApiResponse.success(null);
     }

@@ -400,7 +400,7 @@ async def detect_file(
         det = get_detector()
         result = det.detect(
             source=img,
-            conf_threshold=request.conf_threshold or settings.CONF_THRESHOLD,
+            conf_threshold=conf_threshold or settings.CONF_THRESHOLD,
             iou_threshold=iou_threshold or det.iou_threshold,
         )
         result.image_path = str(upload_path)

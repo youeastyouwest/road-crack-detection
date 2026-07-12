@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router"
+﻿import { createRouter, createWebHistory } from "vue-router"
 import type { RouteRecordRaw } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { RoleCode, MAINTENANCE_ROLES, DEPT_ADMIN_ROLES } from "@/types"
@@ -54,6 +54,12 @@ const routes: RouteRecordRaw[] = [
         name: "MapView",
         component: () => import("@/views/map/MapView.vue"),
         meta: { title: "地图点位", icon: "MapLocation", roles: [RoleCode.ADMIN] },
+      },
+      {
+        path: "road-heatmap",
+        name: "RoadHeatmap",
+        component: () => import("@/views/map/RoadHeatmapView.vue"),
+        meta: { title: "道路热力图", icon: "HeatMap", roles: [RoleCode.ADMIN] },
       },
       {
         path: "data-screen",
@@ -143,10 +149,10 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "部门工单", icon: "List", roles: DEPT_ADMIN_ROLES },
       },
       {
-        path: "dept-orders-assign",
-        name: "DeptOrdersAssign",
-        component: () => import("@/views/worker/MyWorkOrders.vue"),
-        meta: { title: "分配维修工", icon: "UserFilled", roles: DEPT_ADMIN_ROLES },
+        path: "dept-report-review",
+        name: "DeptReportReview",
+        component: () => import("@/views/dept/DeptReportReview.vue"),
+        meta: { title: "报告审核", icon: "EditPen", roles: DEPT_ADMIN_ROLES },
       },
 
       // ===== MAINTAINER routes =====
@@ -161,6 +167,12 @@ const routes: RouteRecordRaw[] = [
         name: "SubmitReport",
         component: () => import("@/views/worker/SubmitReport.vue"),
         meta: { title: "提交维修报告", icon: "EditPen", roles: [RoleCode.MAINTAINER] },
+      },
+      {
+        path: "my-reports",
+        name: "MyReports",
+        component: () => import("@/views/worker/MyReports.vue"),
+        meta: { title: "完成报告", icon: "Document", roles: [RoleCode.MAINTAINER] },
       },
 
       // ===== CROWDSOURCE routes =====

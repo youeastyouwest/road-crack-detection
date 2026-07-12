@@ -1,5 +1,5 @@
-﻿import http from "./index"
-import type { ApiResponse, MapMarkerResponse, MapMarkerDetailResponse, MapStatisticsResponse, MapTrendPointResponse, MapDamageTypeRatioResponse, DamageType, SeverityLevel } from "@/types"
+import http from "./index"
+import type { ApiResponse, MapMarkerResponse, RoadDiseaseSummaryResponse, MapMarkerDetailResponse, MapStatisticsResponse, MapTrendPointResponse, MapDamageTypeRatioResponse, DamageType, SeverityLevel } from "@/types"
 
 export const mapApi = {
   markers(params?: { damageType?: DamageType; severityLevel?: SeverityLevel; status?: string; hasWorkOrder?: boolean; onlyWithCoordinates?: boolean; keyword?: string }) {
@@ -14,6 +14,10 @@ export const mapApi = {
   trend(days?: number) {
     return http.get<ApiResponse<MapTrendPointResponse[]>>("/map/trend", { params: { days: days || 7 } })
   },
+  roadsWithDisease() {
+    return http.get<ApiResponse<RoadDiseaseSummaryResponse[]>>("/map/roads-with-disease")
+  },
+
   damageTypes() {
     return http.get<ApiResponse<MapDamageTypeRatioResponse[]>>("/map/damage-types")
   },

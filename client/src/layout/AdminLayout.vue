@@ -98,7 +98,7 @@ const deptAdminNav: NavGroup[] = [
   coreGroup,
   { label: "部门工单", items: [
     { path: "/dept-orders", title: "部门工单管理", icon: "List" },
-    { path: "/dept-orders-assign", title: "分配维修工", icon: "UserFilled" },
+    { path: "/dept-report-review", title: "报告审核", icon: "EditPen" },
   ]},
   { label: "我的", items: [
     { path: "/user-profile", title: "个人中心", icon: "User" },
@@ -110,6 +110,7 @@ const maintainerNav: NavGroup[] = [
   { label: "工单处理", items: [
     { path: "/my-work-orders", title: "我的工单", icon: "List" },
     { path: "/submit-report", title: "提交维修报告", icon: "EditPen" },
+    { path: "/my-reports", title: "完成报告", icon: "Document" },
   ]},
   { label: "我的", items: [
     { path: "/user-profile", title: "个人中心", icon: "User" },

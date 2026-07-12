@@ -34,24 +34,24 @@ public class CrowdReportController {
 
     @GetMapping
     public ApiResponse<PageResponse<CrowdReportResponse>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String reporterPhone,
-            @RequestParam(required = false) String location) {
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "reporterPhone", required = false) String reporterPhone,
+            @RequestParam(value = "location", required = false) String location) {
         return ApiResponse.success(crowdReportService.listReports(page, size, status, reporterPhone, location));
     }
 
     @GetMapping("/{reportId}")
-    public ApiResponse<CrowdReportResponse> get(@PathVariable Long reportId) {
+    public ApiResponse<CrowdReportResponse> get(@PathVariable("reportId") Long reportId) {
         return ApiResponse.success(crowdReportService.getReport(reportId));
     }
 
     @PutMapping("/{reportId}/review")
     public ApiResponse<CrowdReportResponse> review(
-            @PathVariable Long reportId,
+            @PathVariable("reportId") Long reportId,
             @Valid @RequestBody ReviewCrowdReportRequest request,
-            @RequestParam(defaultValue = "admin") String reviewer) {
+            @RequestParam(value = "reviewer", defaultValue = "admin") String reviewer) {
         return ApiResponse.success(crowdReportService.reviewReport(reportId, request, reviewer));
     }
 }
