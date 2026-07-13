@@ -3,7 +3,7 @@
     <div class="page-head">
       <div>
         <h2 class="page-title">维修报告</h2>
-        <p class="page-desc">审核工人提交的维修报告，归档已确认的报告</p>
+        <p class="page-desc">终审已通过部门审核的维修报告，归档已确认的报告</p>
       </div>
       <div class="tab-bar">
         <button :class="['tab-btn', activeTab==='pending'?'active':'']" @click="activeTab='pending'">
@@ -55,8 +55,8 @@
           </div>
           <div class="ri-right">
             <button class="action-btn" @click="viewDetail(r)">详情</button>
-            <button v-if="!isArchived(r)" class="action-btn action-approve" @click="approveReport(r)" :disabled="reviewing">通过</button>
-            <button v-if="!isArchived(r)" class="action-btn action-reject" @click="rejectReport(r)" :disabled="reviewing">拒绝</button>
+            <button v-if="r.status === 'DEPT_APPROVED'" class="action-btn action-approve" @click="approveReport(r)" :disabled="reviewing">通过</button>
+            <button v-if="r.status === 'DEPT_APPROVED'" class="action-btn action-reject" @click="rejectReport(r)" :disabled="reviewing">拒绝</button>
           </div>
         </div>
         <div v-if="!loading && displayReports.length === 0" class="empty-state">
@@ -102,8 +102,8 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" @click="showDetail=false">关闭</button>
-          <button v-if="detailTarget && !isArchived(detailTarget)" class="btn-success" @click="approveReport(detailTarget)" :disabled="reviewing">通过审核</button>
-          <button v-if="detailTarget && !isArchived(detailTarget)" class="btn-danger" @click="rejectReport(detailTarget)" :disabled="reviewing">拒绝</button>
+          <button v-if="detailTarget && detailTarget.status === 'DEPT_APPROVED'" class="btn-success" @click="approveReport(detailTarget)" :disabled="reviewing">通过审核</button>
+          <button v-if="detailTarget && detailTarget.status === 'DEPT_APPROVED'" class="btn-danger" @click="rejectReport(detailTarget)" :disabled="reviewing">拒绝</button>
         </div>
       </div>
     </div>
@@ -130,7 +130,8 @@ function isArchived(r: MaintenanceReportResponse): boolean {
   return r.status === "APPROVED"
 }
 
-const pendingReports = computed(() => reports.value.filter(r => r.status === "PENDING" || r.status === "DEPT_APPROVED"))
+// 道路管理员可审核的报告：只包含 DEPT_APPROVED（已通过部门审核，待终审）
+const pendingReports = computed(() => reports.value.filter(r => r.status === "DEPT_APPROVED"))
 const archivedReports = computed(() => reports.value.filter(r => r.status === "APPROVED"))
 const displayReports = computed(() => {
   if (activeTab.value === "pending") return pendingReports.value
@@ -178,7 +179,7 @@ function reportStatusCls(s?: string) {
 }
 function reportStatusLabel(s?: string) {
   return ({
-    PENDING: "待审核",
+    PENDING: "待部门审核",
     DEPT_APPROVED: "部门已通过",
     APPROVED: "已通过",
     REJECTED: "已驳回",
@@ -274,6 +275,7 @@ async function approveReport(r: MaintenanceReportResponse) {
   try {
     // 终审通过 → 调用 adminReview API
     await reportApi.adminReview(r.id, { approved: true, remark: "终审通过" })
+
     ElMessage.success("终审已通过，报告已归档，关联工单已关闭")
     // 更新本地报告状态
     r.status = "APPROVED"
@@ -305,6 +307,7 @@ async function rejectReport(r: MaintenanceReportResponse) {
   try {
     // 终审驳回 → 调用 adminReview API，报告状态变为 REJECTED，工单退回维修工重新提交
     await reportApi.adminReview(r.id, { approved: false, remark: reason })
+
     ElMessage.success(`已驳回报告，维修工需重新提交报告`)
     // 更新本地报告状态
     r.status = "REJECTED"

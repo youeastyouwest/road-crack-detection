@@ -75,7 +75,6 @@ const adminNav: NavGroup[] = [
   ]},
   { label: "工单与道路", items: [
     { path: "/work-orders", title: "工单管理", icon: "List" },
-    { path: "/road-management", title: "道路管理", icon: "MapLocation" },
     { path: "/road-health", title: "健康档案", icon: "Document" },
     { path: "/road-maintenance", title: "道路养护", icon: "Tools" },
     { path: "/reports", title: "维修报告审核", icon: "EditPen" },

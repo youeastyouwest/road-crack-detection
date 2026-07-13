@@ -118,15 +118,38 @@
             <div class="ds-layer-item">
               <div class="ds-layer-toggle">
                 <span class="ds-tt-label" style="font-size:12px;color:#0f172a;font-weight:600">病害标注点</span>
-                <span class="ds-layer-count" style="margin-left:auto;font-size:11px;color:#94a3b8">{{ diseasePointTotal }}</span>
-                <label class="ds-switch">
-                  <input type="checkbox" v-model="showDiseaseMarkers" />
-                  <span class="ds-switch-slider"></span>
-                </label>
+                <span class="ds-layer-count">{{ diseasePointTotal }}</span>
               </div>
             </div>
             <div v-for="layer in layers" :key="layer.id" class="ds-layer-item">
               <label class="ds-layer-label"><input type="checkbox" :checked="layer.visible" @change="toggleLayerVisibility(layer.id)" /><span class="ds-layer-dot" :style="{ background: layer.color }"></span>{{ layer.label }}<span class="ds-layer-count">{{ layer.count }}</span></label>
+            </div>
+          </div>
+          <div class="ds-sb-section">
+            <div class="ds-sb-section-title">工单状态</div>
+            <div class="ds-layer-item">
+              <label class="ds-layer-label">
+                <input type="checkbox" :checked="workOrderVis.pending" @change="toggleWorkOrderVis('pending')" />
+                <span class="ds-layer-dot" style="background:#ef4444"></span>
+                <span>待修复</span>
+                <span class="ds-layer-count">{{ workOrderStatusCounts.pending }}</span>
+              </label>
+            </div>
+            <div class="ds-layer-item">
+              <label class="ds-layer-label">
+                <input type="checkbox" :checked="workOrderVis.assigned" @change="toggleWorkOrderVis('assigned')" />
+                <span class="ds-layer-dot" style="background:#f59e0b"></span>
+                <span>已派单</span>
+                <span class="ds-layer-count">{{ workOrderStatusCounts.assigned }}</span>
+              </label>
+            </div>
+            <div class="ds-layer-item">
+              <label class="ds-layer-label">
+                <input type="checkbox" :checked="workOrderVis.completed" @change="toggleWorkOrderVis('completed')" />
+                <span class="ds-layer-dot" style="background:#2563eb"></span>
+                <span>已修复</span>
+                <span class="ds-layer-count">{{ workOrderStatusCounts.completed }}</span>
+              </label>
             </div>
           </div>
           <div class="ds-sb-section"><div class="ds-sb-section-title">筛选条件</div>
@@ -257,7 +280,6 @@ declare global {
 const mapContainer = ref()
 const sidebarCollapsed = ref(false)
 const showCapacity = ref(false)
-const showDiseaseMarkers = ref(true)
 const zoomLevel = ref(12)
 const viewMode3D = ref(false)
 const pitchLevel = ref(0)
@@ -312,8 +334,7 @@ const searchResults = computed<SearchResult[]>(() => {
         if (!seen.has(key)) {
           seen.add(key)
           const sev = dp.severity || "MEDIUM"
-          const woNo = dp.workOrderNo || ""
-          const sevKey = (woNo === "CLOSED" || woNo === "COMPLETED") ? "REPAIRED" : sev
+          const sevKey = isRepairedStatus(dp.workOrderNo) ? "REPAIRED" : sev
           results.push({
             label: dpRoadName,
             lng: dp.lng,
@@ -525,7 +546,7 @@ const diseasePointTotal = computed(() => {
 })
 
 const mapMarkers: any[] = []
-const roadPolylines: any[] = []
+let roadPolylines: any[] = []
 const realStats = ref<any>(null)
 const chatMsgRef = ref()
 const trendChartRef = ref()
@@ -537,6 +558,8 @@ const totalRoad = ref(0)
 const crackCount = ref(0)
 const repairedCount = ref(0)
 const alertCount = ref(0)
+const workOrderStatusCounts = ref({ pending: 0, assigned: 0, completed: 0 })
+const workOrderVis = ref({ pending: true, assigned: true, completed: true })
 
 let map: any = null
 let trendChart: any = null
@@ -1140,9 +1163,9 @@ async function loadRoadDiseaseData() {
       // 1. 严重程度：filterSeverity 值为 HIGH / MEDIUM / LOW（空=全部）
       // 2. 检测日期：filterDate 格式 yyyy-mm-dd，匹配 detectionTime 的日期部分
       // 3. 修复状态：filterStatus 值为 PENDING / ASSIGNED / COMPLETED
-      //    PENDING = workOrderNo 为空（待修复）
-      //    ASSIGNED = workOrderNo 非空且未完成（已派单）
-      //    COMPLETED = workOrderNo 非空且已完成（已完成）
+      //    PENDING = workOrderNo 为空 或 PENDING_ASSIGNMENT（待分配/待修复）
+      //    ASSIGNED = workOrderNo 为 ASSIGNED/IN_PROGRESS/PENDING_DEPT_REVIEW/PENDING_ADMIN_REVIEW/REJECTED
+      //    COMPLETED = workOrderNo 为 COMPLETED/CLOSED/CANCELLED
       const filteredDps = dedupedDps.filter((dp: any) => {
         // 严重程度筛选
         if (filterSeverity.value) {
@@ -1158,10 +1181,10 @@ async function loadRoadDiseaseData() {
         }
         // 修复状态筛选
         if (filterStatus.value) {
-          const woNo = dp.workOrderNo || ""
-          if (filterStatus.value === "PENDING" && woNo) return false
-          if (filterStatus.value === "ASSIGNED" && !woNo) return false
-          if (filterStatus.value === "COMPLETED" && woNo !== "COMPLETED" && woNo !== "CLOSED") return false
+          const dpStatus = normalizeWoStatus(dp.workOrderNo)
+          if (filterStatus.value === "PENDING" && dpStatus !== "pending") return false
+          if (filterStatus.value === "ASSIGNED" && dpStatus !== "assigned") return false
+          if (filterStatus.value === "COMPLETED" && dpStatus !== "completed") return false
         }
         return true
       })
@@ -1180,11 +1203,20 @@ async function loadRoadDiseaseData() {
       const lowLayer = layers.value.find(l => l.id === "sev_low")
       if (lowLayer) lowLayer.count = sevCounts.LOW
 
+      // 按修复状态统计当前地图可见点（用于侧边栏工单状态）
+      const woCounts = { pending: 0, assigned: 0, completed: 0 }
+      for (const dp of filteredDps) {
+        const status = normalizeWoStatus(dp.workOrderNo)
+        woCounts[status]++
+      }
+      workOrderStatusCounts.value = woCounts
+
       const allMarkers: any[] = []
 
       for (const dp of filteredDps) {
         const sev = dp.severity || "MEDIUM"
-        const isRepaired = (dp.workOrderNo === "CLOSED" || dp.workOrderNo === "COMPLETED")
+        const woStatus = normalizeWoStatus(dp.workOrderNo)
+        const isRepaired = woStatus === "completed"
         const colorInfo = isRepaired ? MARKER_COLORS.REPAIRED : (MARKER_COLORS[sev] || MARKER_COLORS.MEDIUM)
 
         // 1. 辐射范围：双层同心圆（外圈虚线 + 内圈实心），半径随等级区分
@@ -1199,7 +1231,7 @@ async function loadRoadDiseaseData() {
           strokeOpacity: 0.55,
           strokeStyle: "dashed",
           zIndex: 48,
-          extData: { dp, colorInfo, _sevLevel: sev, _ringType: "outer" },
+          extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus, _ringType: "outer" },
         })
         map?.add(outerRing)
         roadPolylines.push(outerRing)
@@ -1213,7 +1245,7 @@ async function loadRoadDiseaseData() {
           strokeWeight: 1,
           strokeOpacity: 0.45,
           zIndex: 50,
-          extData: { dp, colorInfo, _sevLevel: sev, _ringType: "inner" },
+          extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus, _ringType: "inner" },
         })
         map?.add(innerFill)
         roadPolylines.push(innerFill)
@@ -1233,7 +1265,7 @@ async function loadRoadDiseaseData() {
           offset: new window.AMap.Pixel(0, 0),
           anchor: "center",
           zIndex: 100,
-          extData: { dp, colorInfo, _sevLevel: sev },
+          extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus },
         })
 
         // 文字标签：用 AMap.Marker + DOM content 实现药丸标签，
@@ -1247,7 +1279,7 @@ async function loadRoadDiseaseData() {
           offset: new window.AMap.Pixel(20, -11),
           anchor: "middle-left",
           zIndex: 110,
-          extData: { _sevLevel: sev },
+          extData: { _sevLevel: sev, _woStatus: woStatus },
         })
 
         // 异步获取真实道路名
@@ -1261,8 +1293,7 @@ async function loadRoadDiseaseData() {
           const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
           // 优先使用 AI 识别结果图（imageBase64），其次使用原始上传图（fileUrl）
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
-          const woNo = dp.workOrderNo || ""
-          const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+          const isRepaired = isRepairedStatus(dp.workOrderNo)
           selectedDisease.value = {
             type: dp.damageType || '道路病害',
             severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
@@ -1270,7 +1301,7 @@ async function loadRoadDiseaseData() {
             location: roadName,
             confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
             size: dp.bbox || '--',
-            orderId: woNo || '未生成',
+            orderId: dp.workOrderNo || '未生成',
             _roadName: roadName,
             _isRoad: false,
             _loading: false,
@@ -1281,8 +1312,7 @@ async function loadRoadDiseaseData() {
         innerFill.on('click', () => {
           const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
-          const woNo = dp.workOrderNo || ""
-          const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+          const isRepaired = isRepairedStatus(dp.workOrderNo)
           selectedDisease.value = {
             type: dp.damageType || '道路病害',
             severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
@@ -1290,7 +1320,7 @@ async function loadRoadDiseaseData() {
             location: roadName,
             confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
             size: dp.bbox || '--',
-            orderId: woNo || '未生成',
+            orderId: dp.workOrderNo || '未生成',
             _roadName: roadName,
             _isRoad: false,
             _loading: false,
@@ -1317,6 +1347,17 @@ async function loadRoadDiseaseData() {
   }
 }
 
+function normalizeWoStatus(woNo?: string): "pending" | "assigned" | "completed" {
+  const no = (woNo || "").trim().toUpperCase()
+  if (!no || no === "PENDING_ASSIGNMENT") return "pending"
+  if (["ASSIGNED", "IN_PROGRESS", "PENDING_DEPT_REVIEW", "PENDING_ADMIN_REVIEW", "REJECTED"].includes(no)) return "assigned"
+  return "completed"
+}
+
+function isRepairedStatus(woNo?: string): boolean {
+  return normalizeWoStatus(woNo) === "completed"
+}
+
 function toggleLayerVisibility(layerId: string) {
   const layer = layers.value.find(l => l.id === layerId)
   if (!layer) return
@@ -1328,6 +1369,18 @@ function toggleLayerVisibility(layerId: string) {
     const extData = pl.getExtData?.() || {}
     if (extData._sevLevel === sevLevel) {
       if (layer.visible) { try { pl.show() } catch(e) {} }
+      else { try { pl.hide() } catch(e) {} }
+    }
+  })
+}
+
+function toggleWorkOrderVis(status: string) {
+  const vis = workOrderVis.value as any
+  vis[status] = !vis[status]
+  roadPolylines.forEach((pl: any) => {
+    const extData = pl.getExtData?.() || {}
+    if (extData._woStatus === status) {
+      if (vis[status]) { try { pl.show() } catch(e) {} }
       else { try { pl.hide() } catch(e) {} }
     }
   })
@@ -1365,10 +1418,10 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       if (filterSeverity.value && (dp.severity || "MEDIUM") !== filterSeverity.value) return false
       if (filterDate.value && (dp.detectionTime || "").substring(0, 10) !== filterDate.value) return false
       if (filterStatus.value) {
-        const woNo = dp.workOrderNo || ""
-        if (filterStatus.value === "PENDING" && woNo) return false
-        if (filterStatus.value === "ASSIGNED" && !woNo) return false
-        if (filterStatus.value === "COMPLETED" && woNo !== "COMPLETED") return false
+        const dpStatus = normalizeWoStatus(dp.workOrderNo)
+        if (filterStatus.value === "PENDING" && dpStatus !== "pending") return false
+        if (filterStatus.value === "ASSIGNED" && dpStatus !== "assigned") return false
+        if (filterStatus.value === "COMPLETED" && dpStatus !== "completed") return false
       }
       return true
     })
@@ -1383,10 +1436,19 @@ watch([filterSeverity, filterDate, filterStatus], () => {
     const ml = layers.value.find(l => l.id === "sev_medium"); if (ml) ml.count = sevCounts.MEDIUM
     const ll = layers.value.find(l => l.id === "sev_low"); if (ll) ll.count = sevCounts.LOW
 
+    // 更新工单状态统计
+    const woCounts = { pending: 0, assigned: 0, completed: 0 }
+    for (const dp of filteredDps) {
+      const status = normalizeWoStatus(dp.workOrderNo)
+      woCounts[status]++
+    }
+    workOrderStatusCounts.value = woCounts
+
     const allMarkers: any[] = []
     for (const dp of filteredDps) {
       const sev = dp.severity || "MEDIUM"
-      const isRepaired = (dp.workOrderNo === "CLOSED" || dp.workOrderNo === "COMPLETED")
+      const woStatus = normalizeWoStatus(dp.workOrderNo)
+      const isRepaired = woStatus === "completed"
       const colorInfo = isRepaired ? MARKER_COLORS.REPAIRED : (MARKER_COLORS[sev] || MARKER_COLORS.MEDIUM)
 
       const baseRadius = (dp as any).radius ? (dp as any).radius : colorInfo.radius
@@ -1400,7 +1462,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
         strokeOpacity: 0.55,
         strokeStyle: "dashed",
         zIndex: 48,
-        extData: { dp, colorInfo, _sevLevel: sev, _ringType: "outer" },
+        extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus, _ringType: "outer" },
       })
       map?.add(outerRing)
       roadPolylines.push(outerRing)
@@ -1414,7 +1476,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
         strokeWeight: 1,
         strokeOpacity: 0.45,
         zIndex: 50,
-        extData: { dp, colorInfo, _sevLevel: sev, _ringType: "inner" },
+        extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus, _ringType: "inner" },
       })
       map?.add(innerFill)
       roadPolylines.push(innerFill)
@@ -1433,7 +1495,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
         offset: new window.AMap.Pixel(0, 0),
         anchor: "center",
         zIndex: 100,
-        extData: { dp, colorInfo, _sevLevel: sev },
+        extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus },
       })
 
       const labelEl = document.createElement("div")
@@ -1444,7 +1506,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
         offset: new window.AMap.Pixel(20, -11),
         anchor: "middle-left",
         zIndex: 110,
-        extData: { _sevLevel: sev },
+        extData: { _sevLevel: sev, _woStatus: woStatus },
       })
 
       // 逆地理编码获取真实路名（利用缓存，不会重复请求）
@@ -1457,8 +1519,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       marker.on('click', () => {
         const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
         let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
-        const woNo = dp.workOrderNo || ""
-        const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+        const isRepaired = isRepairedStatus(dp.workOrderNo)
         selectedDisease.value = {
           type: dp.damageType || '道路病害',
           severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
@@ -1466,7 +1527,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
           location: roadName,
           confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
           size: dp.bbox || '--',
-          orderId: woNo || '未生成',
+          orderId: dp.workOrderNo || '未生成',
           _roadName: roadName,
           _isRoad: false,
           _loading: false,
@@ -1477,8 +1538,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       innerFill.on('click', () => {
         const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
         let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
-        const woNo = dp.workOrderNo || ""
-        const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
+        const isRepaired = isRepairedStatus(dp.workOrderNo)
         selectedDisease.value = {
           type: dp.damageType || '道路病害',
           severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
@@ -1486,7 +1546,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
           location: roadName,
           confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
           size: dp.bbox || '--',
-          orderId: woNo || '未生成',
+          orderId: dp.workOrderNo || '未生成',
           _roadName: roadName,
           _isRoad: false,
           _loading: false,
@@ -1741,7 +1801,7 @@ onUnmounted(() => {
 .ds-layer-label { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; color:#475569; cursor:pointer; padding:7px 10px; border-radius:6px; }
 .ds-layer-label input[type=checkbox] { accent-color:#4361ee; }
 .ds-layer-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.ds-layer-count { margin-left:auto; font-size:11px; color:#94a3b8; }
+.ds-layer-count { min-width: 22px; margin-left: auto; font-size: 11px; color: #94a3b8; text-align: right; font-variant-numeric: tabular-nums; }
 .ds-filter-row { margin-bottom:10px; }
 .ds-filter-row:last-child { margin-bottom:0; }
 .ds-filter-row label { font-size:11px; font-weight:500; color:#94a3b8; display:block; margin-bottom:6px; }
@@ -1817,7 +1877,7 @@ onUnmounted(() => {
 /* 图层开关样式 */
 .ds-layer-toggle {
   display:flex; align-items:center; justify-content:space-between;
-  padding:8px 14px; margin-bottom:4px;
+  padding:7px 10px; margin-bottom:4px;
 }
 .ds-tt-label { display:flex; align-items:center; gap:6px; }
 .ds-switch {

@@ -201,7 +201,7 @@ function sevLabel(s?: string) {
 }
 
 function statusLabel(s: string) {
-  return ({ COMPLETED: "已完成", REJECTED: "已驳回（需重新提交）" } as any)[s] || s
+  return ({ COMPLETED: "已完成待提交", REJECTED: "已驳回（需重新提交）" } as any)[s] || s
 }
 
 async function handleSubmit() {
@@ -229,6 +229,7 @@ async function handleSubmit() {
       description: form.description,
       finishedAt: form.finishedAt,
     })
+
     ElMessage.success("维修报告已提交，等待部门管理员审核")
     handleReset()
     router.push("/my-work-orders")

@@ -241,7 +241,9 @@ function initMap() {
   try {
     map = new window.AMap.Map(container, {
       zoom: 13, center: [116.397428, 39.90923],
-      features: ["bg","road","building"],
+      features: ["bg", "point", "road", "building"],
+      showLabel: true,
+      showBuildingBlock: true,
     })
     map.addControl(new window.AMap.ToolBar())
     map.addControl(new window.AMap.Scale())
@@ -268,11 +270,48 @@ function reverseGeocode(lng: number, lat: number) {
   geocoder.getAddress([lng, lat], (status: string, result: any) => {
     if (status === "complete" && result.regeocode) {
       selectedAddr.value = result.regeocode.formattedAddress || ""
-      // 从高德逆地理编码结果中提取道路名
-      const street = result.regeocode.addressComponent?.street
-      const roadName = (Array.isArray(street) ? street[0] : street) || ""
+      const regeocode = result.regeocode
+      const ac = regeocode.addressComponent || {}
+      const formatted = regeocode.formattedAddress || ""
+      const roads = regeocode.roads || []
+
+      // 提取道路名：用高德 formattedAddress 做基准，按"街道/镇/乡"分界后
+      // 取第一段路名，避免把 POI/小区名带进来。
+      const roadRegex = /[\u4e00-\u9fa5]+(?:路|街|道|巷|胡同|桥|高速|环路|大街|大道|快速路|二环|三环|四环|五环|六环|七环|八环|外环|内环|环)/
+      let roadName = ""
+
+      const township = ac.township
+      if (township && formatted.includes(township)) {
+        const afterTownship = formatted.split(township)[1] || ""
+        const m = afterTownship.match(roadRegex)
+        if (m) roadName = m[0]
+      }
+      if (!roadName) {
+        const street = ac.street
+        roadName = (Array.isArray(street) ? street[0] : street) || ""
+      }
+      if (!roadName) {
+        const parts: string[] = []
+        if (ac.province) parts.push(ac.province)
+        if (ac.city) {
+          const cityName = typeof ac.city === 'string' ? ac.city : (Array.isArray(ac.city) ? ac.city[0] : '')
+          if (cityName && !parts.some((p: string) => p.includes(cityName))) parts.push(cityName)
+        }
+        if (ac.district) parts.push(ac.district)
+        let road = formatted
+        for (const p of parts) {
+          const idx = road.indexOf(p)
+          if (idx !== -1) road = road.substring(idx + p.length)
+        }
+        road = road.trim()
+        const m2 = road.match(roadRegex)
+        if (m2) roadName = m2[0]
+      }
+      if (!roadName) {
+        roadName = (regeocode.roads?.[0]?.name) || ""
+      }
+
       form.roadName = roadName || ""
-      // 位置输入框显示 "道路名 (经度,纬度)"
       const coordStr = lng.toFixed(6) + "," + lat.toFixed(6)
       form.location = roadName ? `${roadName} (${coordStr})` : coordStr
     }

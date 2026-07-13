@@ -22,7 +22,7 @@
       <div class="toolbar">
         <div class="toolbar-left">
           <div class="filter-group">
-            <select v-model="filter.status" class="filter-select">
+            <select v-model="filter.status" class="filter-select" @change="page=1;loadData()">
               <option value="">全部状态</option>
               <option value="PENDING_ASSIGNMENT">待指派</option>
               <option value="ASSIGNED">已指派</option>
@@ -34,8 +34,8 @@
               <option value="CLOSED">已关闭</option>
               <option value="CANCELLED">已取消</option>
             </select>
-            <select v-if="isAdmin" v-model="filter.departmentCode" class="filter-select"><option value="">全部部门</option><option value="ROAD_ADMIN">道路管理部</option><option value="SANITATION">环卫部</option><option value="TRAFFIC_POLICE">交警部</option></select>
-            <select v-model="filter.severityLevel" class="filter-select"><option value="">全部等级</option><option value="LOW">轻微</option><option value="MEDIUM">中等</option><option value="HIGH">严重</option></select>
+            <select v-if="isAdmin" v-model="filter.departmentCode" class="filter-select" @change="page=1;loadData()"><option value="">全部部门</option><option value="ROAD_ADMIN">道路管理部</option><option value="SANITATION">环卫部</option><option value="TRAFFIC_POLICE">交警部</option></select>
+            <select v-model="filter.severityLevel" class="filter-select" @change="page=1;loadData()"><option value="">全部等级</option><option value="LOW">轻微</option><option value="MEDIUM">中等</option><option value="HIGH">严重</option></select>
             <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="filter.keyword" placeholder="搜索工单编号、标题..." @keyup.enter="loadData" /></div>
             <button class="btn-ghost" @click="loadData">搜索</button>
           </div>
@@ -602,6 +602,21 @@ async function confirmReview() {
       approved: reviewForm.approved,
       remark: reviewForm.remark || undefined,
     })
+
+    // 同步更新关联工单状态
+    try {
+      if (reviewForm.approved) {
+        // 通过：部门审核 → 待终审；终审 → 关闭
+        const newStatus = reviewMode.value === "dept" ? "PENDING_ADMIN_REVIEW" : "CLOSED"
+        await workOrderApi.updateStatus(reviewTarget.value!.id, { status: newStatus } as any)
+      } else {
+        // 驳回：工单退回
+        await workOrderApi.updateStatus(reviewTarget.value!.id, { status: "REJECTED" } as any)
+      }
+    } catch {
+      ElMessage.warning("审核已完成，但工单状态同步失败，请手动刷新")
+    }
+
     ElMessage.success(reviewForm.approved ? "审核已通过" : "已驳回，维修工需重新提交报告")
     showReview.value = false
     await loadData()

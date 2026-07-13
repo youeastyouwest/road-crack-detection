@@ -278,24 +278,59 @@ export class BatchGeocoder {
   }
 
   /**
-   * 从逆地理结果中精简提取道路名
+   * 从逆地理结果中精简提取道路名。
+   * 用高德 formattedAddress 做基准，按"街道/镇/乡"分界后取第一段路名，
+   * 避免把 POI/小区名也带进来。
    */
   private extractRoadName(regeocode: any): string {
-    // 优先级：roads[0].name > addressComponent.street > formattedAddress 正则提取
+    const formatted = regeocode.formattedAddress || ''
+    const ac = regeocode.addressComponent || {}
     const roads = regeocode.roads || []
+
+    // 道路名后缀正则（覆盖常见道路类型）
+    const roadRegex = /[\u4e00-\u9fa5]+(?:路|街|道|巷|胡同|桥|高速|环路|大街|大道|快速路|二环|三环|四环|五环|六环|七环|八环|外环|内环|环)/
+
+    // 策略1：有街道/乡镇信息时，切掉前缀后取第一段路名
+    // 例："北京市西城区椿树街道琉璃厂西街北京琉璃厂" -> "琉璃厂西街"
+    // 例："北京市东城区安定门街道北二环" -> "北二环"
+    // 例："北京市朝阳区胜古中路国典华园" -> "胜古中路"
+    const township = ac.township
+    if (township && formatted.includes(township)) {
+      const afterTownship = formatted.split(township)[1] || ''
+      const m = afterTownship.match(roadRegex)
+      if (m) return m[0]
+    }
+
+    // 策略2：没有 township，但有 addressComponent.street，直接用
+    const street = ac.street
+    if (street) {
+      const s = Array.isArray(street) ? street[0] : street
+      if (s) return s
+    }
+
+    // 策略3：去掉省市区，从剩余部分取第一段路名
+    const parts: string[] = []
+    if (ac.province) parts.push(ac.province)
+    if (ac.city) {
+      const cityName = typeof ac.city === 'string' ? ac.city : (Array.isArray(ac.city) ? ac.city[0] : '')
+      if (cityName && !parts.some(p => p.includes(cityName))) parts.push(cityName)
+    }
+    if (ac.district) parts.push(ac.district)
+
+    let road = formatted
+    for (const p of parts) {
+      const idx = road.indexOf(p)
+      if (idx !== -1) {
+        road = road.substring(idx + p.length)
+      }
+    }
+    road = road.trim()
+    const m2 = road.match(roadRegex)
+    if (m2) return m2[0]
+
+    // 兜底：roads[0].name
     if (roads.length > 0 && roads[0].name) {
       return roads[0].name
-    }
-
-    if (regeocode.addressComponent?.street) {
-      return regeocode.addressComponent.street
-    }
-
-    if (regeocode.formattedAddress) {
-      const m = regeocode.formattedAddress.match(
-        /[\u4e00-\u9fa5]+(?:路|街|道|巷|胡同|桥|高速|环路|大街|大道|快速路)/,
-      )
-      if (m) return m[0]
     }
 
     return ''

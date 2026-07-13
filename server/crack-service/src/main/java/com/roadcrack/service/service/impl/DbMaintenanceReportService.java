@@ -224,9 +224,21 @@ public class DbMaintenanceReportService implements MaintenanceReportService {
     }
 
     private String buildCode(LocalDate date) {
-        long count = maintenanceReportMapper.selectCount(new LambdaQueryWrapper<MaintenanceReportEntity>()
-                .ge(MaintenanceReportEntity::getCreatedAt, date.atStartOfDay())
-                .lt(MaintenanceReportEntity::getCreatedAt, date.plusDays(1).atStartOfDay()));
-        return "MR-" + date.format(CODE_DATE_FORMATTER) + "-" + String.format("%06d", count + 1);
+        String prefix = "MR-" + date.format(CODE_DATE_FORMATTER) + "-";
+        MaintenanceReportEntity latest = maintenanceReportMapper.selectOne(
+                new LambdaQueryWrapper<MaintenanceReportEntity>()
+                        .like(MaintenanceReportEntity::getReportCode, prefix)
+                        .orderByDesc(MaintenanceReportEntity::getReportCode)
+                        .last("LIMIT 1"));
+        long next = 1;
+        if (latest != null && latest.getReportCode() != null && latest.getReportCode().startsWith(prefix)) {
+            String suffix = latest.getReportCode().substring(prefix.length());
+            try {
+                next = Long.parseLong(suffix) + 1;
+            } catch (NumberFormatException ignored) {
+                // fallback to sequence based on table max id for the date
+            }
+        }
+        return prefix + String.format("%06d", next);
     }
 }

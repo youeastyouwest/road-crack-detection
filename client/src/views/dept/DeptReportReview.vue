@@ -314,6 +314,7 @@ async function confirmReview() {
       approved: reviewForm.approved,
       remark: reviewForm.remark || undefined,
     })
+
     ElMessage.success(reviewForm.approved ? "审核已通过，报告已转交系统管理员终审" : "已驳回，维修工需重新提交报告")
     showReview.value = false
     // 更新本地状态

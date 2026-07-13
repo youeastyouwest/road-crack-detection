@@ -18,17 +18,26 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public ApiResponse<Void> handleBusinessException(BusinessException exception) {
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception) {
         ResultCode resultCode = exception.getResultCode();
-        return resultCode != null
-                ? ApiResponse.failure(resultCode, exception.getMessage())
-                : ApiResponse.failure(exception.getCode(), exception.getMessage());
+        int httpStatus = HttpStatus.BAD_REQUEST.value();
+        if (resultCode != null) {
+            int code = resultCode.code();
+            if (code >= 200 && code < 600) {
+                httpStatus = code;
+            }
+            return ResponseEntity.status(httpStatus)
+                    .body(ApiResponse.failure(resultCode, exception.getMessage()));
+        }
+        return ResponseEntity.status(httpStatus)
+                .body(ApiResponse.failure(exception.getCode(), exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

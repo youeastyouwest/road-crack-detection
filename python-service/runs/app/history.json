@@ -9316,5 +9316,887 @@
         ]
       }
     ]
+  },
+  {
+    "id": "192629ed",
+    "timestamp": "2026-07-13T10:12:04.000405",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "be3b2af3",
+    "timestamp": "2026-07-13T10:59:27.445457",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1088b13",
+    "timestamp": "2026-07-13T11:06:33.386667",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "4cb1d553",
+    "timestamp": "2026-07-13T11:14:35.311374",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "0e3fd551",
+    "timestamp": "2026-07-13T11:19:29.523200",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "d1c7443c",
+    "timestamp": "2026-07-13T11:27:03.313345",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "8ceee8aa",
+    "timestamp": "2026-07-13T11:42:29.750906",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "531efc82",
+    "timestamp": "2026-07-13T12:03:35.720292",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f75beb43",
+    "timestamp": "2026-07-13T12:14:34.661994",
+    "filename": "base64_input",
+    "num_detections": 7,
+    "has_crack": true,
+    "crack_types": [
+      "纵向裂缝",
+      "横向裂缝",
+      "龟裂"
+    ],
+    "detections": [
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          1235.36,
+          2064.53,
+          1614.95
+        ]
+      },
+      {
+        "class_id": 1,
+        "class_name": "horizontal_crack",
+        "class_name_cn": "横向裂缝",
+        "confidence": 1.0,
+        "bbox": [
+          0.0,
+          334.19,
+          1004.6,
+          809.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 1.0,
+        "bbox": [
+          932.75,
+          0.0,
+          1080.56,
+          1407.98
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.5921,
+        "bbox": [
+          2077.9,
+          0.29,
+          2531.83,
+          201.61
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.3463,
+        "bbox": [
+          0.0,
+          795.72,
+          74.45,
+          1283.4
+        ]
+      },
+      {
+        "class_id": 0,
+        "class_name": "vertical_crack",
+        "class_name_cn": "纵向裂缝",
+        "confidence": 0.3638,
+        "bbox": [
+          576.37,
+          1344.89,
+          834.45,
+          1512.5
+        ]
+      },
+      {
+        "class_id": 2,
+        "class_name": "alligator_crack",
+        "class_name_cn": "龟裂",
+        "confidence": 0.4575,
+        "bbox": [
+          0.0,
+          155.09,
+          72.61,
+          1293.7
+        ]
+      }
+    ]
   }
 ]

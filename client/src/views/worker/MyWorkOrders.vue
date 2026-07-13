@@ -6,7 +6,7 @@
         <div class="stat-chip pending">{{ pendingCount }} 待处理</div>
         <div class="stat-chip progress">{{ inProgressCount }} 进行中</div>
         <div class="stat-chip review">{{ reviewCount }} 待审核</div>
-        <div class="stat-chip done">{{ doneCount }} 已完成</div>
+        <div class="stat-chip done">{{ doneCount }} 已关闭</div>
       </div>
     </div>
 
@@ -16,7 +16,7 @@
       <el-select v-model="statusFilter" placeholder="工单状态" clearable style="width:160px">
         <el-option label="待处理" value="ASSIGNED" />
         <el-option label="进行中" value="IN_PROGRESS" />
-        <el-option label="已完成" value="COMPLETED" />
+        <el-option label="已完成待提交" value="COMPLETED" />
         <el-option label="待审核" value="PENDING_DEPT_REVIEW" />
         <el-option label="待终审" value="PENDING_ADMIN_REVIEW" />
         <el-option label="已驳回" value="REJECTED" />
@@ -168,7 +168,7 @@ function statusType(s: string) {
 function statusLabel(s: string) {
   const map: Record<string, string> = {
     PENDING_ASSIGNMENT: "待指派", ASSIGNED: "待处理", IN_PROGRESS: "进行中",
-    COMPLETED: "已完成", PENDING_DEPT_REVIEW: "待部门审核",
+    COMPLETED: "已完成待提交", PENDING_DEPT_REVIEW: "待部门审核",
     PENDING_ADMIN_REVIEW: "待终审", REJECTED: "已驳回",
     CLOSED: "已关闭", CANCELLED: "已取消",
   }
