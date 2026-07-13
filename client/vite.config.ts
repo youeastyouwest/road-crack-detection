@@ -24,8 +24,8 @@ export default defineConfig({
             next()
           }
         })
-      },
-    },
+      }
+    }
   ],
   resolve: {
     alias: { "@": resolve(__dirname, "src") },
@@ -42,6 +42,11 @@ export default defineConfig({
       },
       "/uploads": {
         target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/results": {
+        target: "http://localhost:8000",
         changeOrigin: true,
         secure: false,
       },

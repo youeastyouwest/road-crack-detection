@@ -18,6 +18,22 @@ spring:
       mode: always
       schema-locations: classpath:db/mysql/step0_auth_schema.sql,classpath:db/mysql/step1_detection_schema.sql,classpath:db/mysql/step2_work_order_schema.sql,classpath:db/mysql/step3_maintenance_report_schema.sql,classpath:db/mysql/step4_alert_schema.sql,classpath:db/mysql/step5_road_schema.sql,classpath:db/mysql/step6_health_archive_schema.sql,classpath:db/mysql/step7_crowd_report_schema.sql,classpath:db/mysql/step8_operation_log_schema.sql,classpath:db/mysql/step9_alert_seed.sql,classpath:db/mysql/step10_detection_audit_schema.sql
       data-locations: classpath:db/mysql/seed.sql
+  mail:
+    # ===== QQ邮箱 SMTP 配置 =====
+    # 1. 登录QQ邮箱 → 设置 → 账户 → POP3/SMTP服务 → 开启
+    # 2. 获取授权码（不是QQ密码）
+    # 3. 将下方 username 和 password 替换为你的邮箱和授权码
+    host: smtp.qq.com
+    port: 587
+    username: 2937055400@qq.com
+    password: pqzwufisoczydfcj
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 crack:
   persistence:
@@ -25,6 +41,8 @@ crack:
   algorithm:
     mock-enabled: false
     base-url: http://localhost:8000
+    video-path: /detect/video
+    video-read-timeout-millis: 300000
   agent:
     siliconflow:
       # 硅基流动 API Key — 请在 https://cloud.siliconflow.cn/account/ak 获取

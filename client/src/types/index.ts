@@ -30,6 +30,7 @@ export const RoleCode = {
   TRAFFIC_ADMIN: "ROLE_TRAFFIC_ADMIN",
   MAINTAINER: "ROLE_MAINTAINER",
   CROWDSOURCE: "ROLE_CROWDSOURCE",
+  VIEWER: "ROLE_VIEWER",
 } as const
 
 export type RoleCodeType = typeof RoleCode[keyof typeof RoleCode]
@@ -41,14 +42,14 @@ export interface ApiResponse<T> { code: number; message: string; data: T; timest
 export interface PageResponse<T> { records: T[]; total: number; size: number; current: number; pages: number }
 export interface LoginRequest { username: string; password: string }
 export interface LoginResponse { accessToken: string; refreshToken: string; tokenType: string; expiresIn: number; userId: number; username: string; realName: string; roles: string[] }
-export interface RegisterRequest { username: string; password: string; email: string; realName?: string; phone?: string; code: string; deptId?: number }
+export interface RegisterRequest { username: string; password: string; email: string; realName?: string; phone?: string; code: string; deptId?: number; roleId?: number }
 export interface ChangePasswordRequest { oldPassword: string; newPassword: string }
 export interface ResetPasswordRequest { email: string; newPassword: string; code: string }
 export interface UserEntity { id?: number; username: string; password?: string; realName: string; email?: string; phone?: string; deptId?: number; deptName?: string; avatar?: string; roleCode?: string; roleName?: string; roleId?: number; status: number; lastLoginAt?: string; lastLoginIp?: string; createdAt?: string; updatedAt?: string }
 export interface UserDetailResponse { user: UserEntity; roles: string[]; roleIds?: number[] }
 export interface UserPageQuery { page?: number; size?: number; username?: string; realName?: string; status?: number; deptId?: number }
 export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; roadId?: number; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; highestSeverity?: string; damageCount?: number; result?: DetectionResultResponse }
-export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string }
+export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string; keyframeUrls?: string[] }
 export interface DetectionItemResponse { damageType: string; severityLevel: string; confidence: number; boundingBox?: BoundingBoxResponse; suggestion?: string }
 export interface BoundingBoxResponse { x: number; y: number; width: number; height: number }
 export interface DetectionProgressMessage { type: string; taskId: number; status: DetectionTaskStatus; progress: number; message: string; timestamp: string }
@@ -102,7 +103,8 @@ export interface AgentChatResponse { sessionId: string; question?: string; answe
 export interface AgentDetectImageResponse { taskId?: string; hasCrack: boolean; numDetections: number; crackTypes?: string[]; detectionData?: any; resultImageBase64?: string; advice?: string; dataSource?: string; generatedWorkOrderId?: number; workOrderStatus?: string; dispatchedDepartment?: string; dispatchedAssignee?: string; timestamp: number }
 export interface AgentReportResponse { reportId: string; reportType?: string; title?: string; summary?: string; content?: string; keyStats?: Record<string, any>; suggestions?: string[]; timestamp: number }
 export interface AuditLogResponse { id?: number; operator?: string; username?: string; action?: string; module?: string; description?: string; ip?: string; duration?: number; costTime?: number; status?: string; errorMsg?: string; createdAt?: string; [key: string]: any }
-export interface SystemConfigResponse { siteName?: string; siteLogo?: string; language?: string; allowRegister?: boolean; detectionInterval?: number; alertThreshold?: number; dataRetentionDays?: number; maxUploadSize?: number; emailNotification?: boolean; smsNotification?: boolean; maintenanceAlert?: boolean; [key: string]: any }
+export interface SystemConfigResponse { siteName?: string; siteLogo?: string; language?: string; allowRegister?: boolean; detectionInterval?: number; alertThreshold?: number; dataRetentionDays?: number; maxUploadSize?: number; emailNotification?: boolean; smsNotification?: boolean; maintenanceAlert?: boolean; minPasswordLength?: number; maxLoginAttempts?: number; sessionTimeout?: number; captchaEnabled?: boolean; darkMode?: boolean; [key: string]: any }
+export interface SystemConfigRequest { siteName: string; language: string; allowRegister: boolean; detectionInterval: number; alertThreshold: number; dataRetentionDays: number; maxUploadSize: number; emailNotification: boolean; smsNotification: boolean; maintenanceAlert: boolean; minPasswordLength: number; maxLoginAttempts: number; sessionTimeout: number; captchaEnabled: boolean; darkMode: boolean }
 export interface CreateCrowdReportRequest { reporterName?: string; reporterPhone?: string; location: string; lng?: number; lat?: number; damageType?: string; severityLevel?: string; description?: string; imageUrl: string }
 export interface ReviewCrowdReportRequest { action: string; remark?: string }
 export interface CreateDetectionTaskSubmitRequest { dataSourceType: DataSourceType; location: string; fileName?: string; fileUrl?: string; remark?: string }

@@ -2,181 +2,96 @@
   <div class="rm-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">道路管理</h2>
-        <p class="page-desc">道路信息维护、健康评分与关联数据查看</p>
+        <h2 class="page-title">{{ t("road.title") }}</h2>
+        <p class="page-desc">{{ t("road.desc") }}</p>
       </div>
       <div class="header-actions">
-        <button class="btn-primary" @click="openCreateModal">+ 新增道路</button>
-        <router-link to="/road-health" class="btn-ghost">健康档案</router-link>
-        <router-link to="/road-maintenance" class="btn-ghost">养护记录</router-link>
+        <router-link to="/road-health" class="btn-ghost">{{ t("road.healthArchive") }}</router-link>
+        <router-link to="/road-maintenance" class="btn-ghost">{{ t("road.maintenanceRecords") }}</router-link>
       </div>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><span class="stat-val">{{ stats.totalRoads }}</span><span class="stat-lbl">道路总数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ stats.healthy }}</span><span class="stat-lbl">健康良好</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div><span class="stat-val">{{ stats.warning }}</span><span class="stat-lbl">需要关注</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><span class="stat-val">{{ stats.danger }}</span><span class="stat-lbl">严重病害</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#f1f5f9;color:#64748b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><span class="stat-val">{{ stats.totalDamages }}</span><span class="stat-lbl">当前病害总数</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><span class="stat-val">{{ stats.totalRoads }}</span><span class="stat-lbl">{{ t("road.totalRoads") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ stats.healthy }}</span><span class="stat-lbl">{{ t("road.healthy") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div><span class="stat-val">{{ stats.warning }}</span><span class="stat-lbl">{{ t("road.needAttention") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><span class="stat-val">{{ stats.danger }}</span><span class="stat-lbl">{{ t("road.severeDamage") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#f1f5f9;color:#64748b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><span class="stat-val">{{ stats.totalDamages }}</span><span class="stat-lbl">{{ t("road.currentDamages") }}</span></div></div>
     </div>
 
     <div class="content-card">
       <div class="toolbar">
         <div class="toolbar-left">
           <div class="filter-group">
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" placeholder="搜索道路名称..." /></div>
-            <select v-model="filterStatus" class="filter-select"><option value="">全部状态</option><option value="ACTIVE">运营中</option><option value="MAINTAINING">养护中</option><option value="CLOSED">封闭</option></select>
-            <select v-model="filterGrade" class="filter-select"><option value="">全部等级</option><option value="主干道">主干道</option><option value="快速路">快速路</option><option value="次干道">次干道</option><option value="支路">支路</option></select>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" :placeholder="t('road.searchPlaceholder')" /></div>
+            <select v-model="filterStatus" class="filter-select"><option value="">{{ t("road.allStatus") }}</option><option value="ACTIVE">{{ t("road.active") }}</option><option value="MAINTAINING">{{ t("road.maintaining") }}</option><option value="CLOSED">{{ t("road.closed") }}</option></select>
+            <select v-model="filterGrade" class="filter-select"><option value="">{{ t("road.allGrades") }}</option><option value="主干道">{{ t("road.gradeMain") }}</option><option value="快速路">{{ t("road.gradeExpress") }}</option><option value="次干道">{{ t("road.gradeSecondary") }}</option><option value="支路">{{ t("road.gradeBranch") }}</option></select>
           </div>
         </div>
-        <span class="toolbar-info">共 {{ filteredRoads.length }} 条道路</span>
+        <span class="toolbar-info">{{ t("common.total", { count: filteredRoads.length }) }}</span>
       </div>
 
       <div class="road-list" v-if="!loading">
         <div v-for="road in filteredRoads" :key="road.id" class="road-card">
           <div class="road-left">
-            <div class="health-badge" :class="healthCls(road.healthScore, road.damageLevel)">{{ healthLabel(road.healthScore, road.damageLevel) }}</div>
+            <div class="health-badge" :class="healthCls(road.healthScore)">{{ healthLabel(road.healthScore) }}</div>
             <div class="road-info">
               <div class="road-name">{{ road.roadName }}</div>
               <div class="road-meta">
-                <span>编码: {{ road.roadCode || '--' }}</span>
-                <span>长度: {{ road.lengthKm != null ? road.lengthKm + 'km' : '--' }}</span>
-                <span>车道: {{ road.laneCount != null ? road.laneCount + ' 股' : '--' }}</span>
-                <span>类型: {{ road.surfaceType || '--' }}</span>
-                <span v-if="road.district">区域: {{ road.district }}</span>
-                <span v-if="road.currentDamageCount != null && road.currentDamageCount > 0">病害: {{ road.currentDamageCount }} 处</span>
+                <span>{{ t("road.roadCode") }}: {{ road.roadCode || '--' }}</span>
+                <span>{{ t("road.lengthKm") }}: {{ road.lengthKm != null ? road.lengthKm + 'km' : '--' }}</span>
+                <span>{{ t("road.laneCount") }}: {{ road.laneCount != null ? road.laneCount : '--' }}</span>
+                <span>{{ t("road.surfaceType") }}: {{ road.surfaceType || '--' }}</span>
+                <span v-if="road.district">{{ t("road.district") }}: {{ road.district }}</span>
+                <span v-if="road.currentDamageCount != null && road.currentDamageCount > 0">{{ t("road.orders") }}: {{ road.currentDamageCount }}</span>
               </div>
             </div>
           </div>
           <div class="road-right">
             <span class="status-badge" :class="statusCls(road.status)">{{ statusLabel(road.status) }}</span>
             <div class="road-actions">
-              <button class="action-btn" @click="viewRoad(road)">详情</button>
-              <button class="action-btn" @click="openEditModal(road)">编辑</button>
-              <button class="action-btn action-danger" @click="confirmDelete(road)">删除</button>
-              <router-link :to="'/work-orders?keyword='+encodeURIComponent(road.roadName)" class="action-btn" style="text-decoration:none">工单</router-link>
-              <router-link :to="'/road-health'" class="action-btn" style="text-decoration:none">档案</router-link>
+              <button class="action-btn" @click="viewRoad(road)">{{ t("common.detail") }}</button>
+              <router-link :to="'/work-orders?keyword='+encodeURIComponent(road.roadName)" class="action-btn" style="text-decoration:none">{{ t("road.orders") }}</router-link>
+              <router-link :to="'/road-health'" class="action-btn" style="text-decoration:none">{{ t("road.archive") }}</router-link>
             </div>
           </div>
         </div>
-        <div v-if="filteredRoads.length === 0" class="empty-state">暂无匹配的道路数据</div>
+        <div v-if="filteredRoads.length === 0" class="empty-state">{{ t("road.noData") }}</div>
       </div>
-      <div v-else class="empty-state">加载中...</div>
+      <div v-else class="empty-state">{{ t("common.loading") }}</div>
     </div>
 
     <!-- Detail Modal -->
     <div v-if="showDetail" class="modal-overlay" @click.self="showDetail=false">
       <div class="modal-card">
-        <div class="modal-head"><span>道路详情 - {{ detailTarget?.roadName }}</span><button class="modal-close" @click="showDetail=false">✕</button></div>
+        <div class="modal-head"><span>{{ t("road.detail") }} - {{ detailTarget?.roadName }}</span><button class="modal-close" @click="showDetail=false">✕</button></div>
         <div class="modal-body">
           <div class="detail-grid">
-            <div class="detail-item"><label>道路名称</label><span>{{ detailTarget?.roadName }}</span></div>
-            <div class="detail-item"><label>道路编码</label><span>{{ detailTarget?.roadCode || '--' }}</span></div>
-            <div class="detail-item"><label>道路等级</label><span>{{ detailTarget?.roadGrade || '--' }}</span></div>
-            <div class="detail-item"><label>所属区域</label><span>{{ detailTarget?.district || '--' }}</span></div>
-            <div class="detail-item"><label>起点</label><span>{{ detailTarget?.startPoint || '--' }}</span></div>
-            <div class="detail-item"><label>终点</label><span>{{ detailTarget?.endPoint || '--' }}</span></div>
-            <div class="detail-item"><label>长度</label><span>{{ detailTarget?.lengthKm != null ? detailTarget?.lengthKm + ' km' : '--' }}</span></div>
-            <div class="detail-item"><label>车道数</label><span>{{ detailTarget?.laneCount != null ? detailTarget?.laneCount + ' 股' : '--' }}</span></div>
-            <div class="detail-item"><label>路面类型</label><span>{{ detailTarget?.surfaceType || '--' }}</span></div>
-            <div class="detail-item"><label>建成年代</label><span>{{ detailTarget?.builtYear || '--' }}</span></div>
-            <div class="detail-item"><label>健康评分</label><span :style="{color: detailTarget?.healthScore >= 80 ? '#16a34a' : detailTarget?.healthScore >= 60 ? '#d97706' : '#dc2626', fontWeight: 700}">{{ detailTarget?.healthScore != null ? detailTarget?.healthScore + ' (' + healthLabel(detailTarget?.healthScore) + ')' : '--' }}</span></div>
-            <div class="detail-item"><label>病害等级</label><span>{{ damageLevelLabel(detailTarget?.damageLevel) }}</span></div>
-            <div class="detail-item"><label>状态</label><span>{{ statusLabel(detailTarget?.status) }}</span></div>
-            <div class="detail-item"><label>责任部门</label><span>{{ detailTarget?.departmentCode || '--' }}</span></div>
-            <div class="detail-item"><label>累计检测</label><span>{{ detailTarget?.totalDetectionCount != null ? detailTarget?.totalDetectionCount + ' 次' : '--' }}</span></div>
-            <div class="detail-item"><label>当前病害</label><span>{{ detailTarget?.currentDamageCount != null ? detailTarget?.currentDamageCount + ' 处' : '--' }}</span></div>
-            <div class="detail-item"><label>最近检测</label><span>{{ detailTarget?.latestDetectionAt || '--' }}</span></div>
-            <div class="detail-item"><label>上次养护</label><span>{{ detailTarget?.lastMaintained || '--' }}</span></div>
-            <div v-if="detailTarget?.remark" class="detail-item" style="grid-column:1/-1"><label>备注</label><span>{{ detailTarget?.remark }}</span></div>
+            <div class="detail-item"><label>{{ t("road.roadCode") }}</label><span>{{ detailTarget?.roadName }}</span></div>
+            <div class="detail-item"><label>{{ t("road.roadCode") }}</label><span>{{ detailTarget?.roadCode || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.archive") }}</label><span>{{ detailTarget?.roadGrade || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.district") }}</label><span>{{ detailTarget?.district || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.startPoint") }}</label><span>{{ detailTarget?.startPoint || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.endPoint") }}</label><span>{{ detailTarget?.endPoint || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.lengthKm") }}</label><span>{{ detailTarget?.lengthKm != null ? detailTarget?.lengthKm + ' km' : '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.laneCount") }}</label><span>{{ detailTarget?.laneCount != null ? detailTarget?.laneCount : '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.surfaceType") }}</label><span>{{ detailTarget?.surfaceType || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.builtYear") }}</label><span>{{ detailTarget?.builtYear || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.healthScore") }}</label><span :style="{color: detailTarget?.healthScore >= 80 ? '#16a34a' : detailTarget?.healthScore >= 60 ? '#d97706' : '#dc2626', fontWeight: 700}">{{ detailTarget?.healthScore != null ? detailTarget?.healthScore + ' (' + healthLabel(detailTarget?.healthScore) + ')' : '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.damageLevel") }}</label><span>{{ damageLevelLabel(detailTarget?.damageLevel) }}</span></div>
+            <div class="detail-item"><label>{{ t("common.status") }}</label><span>{{ statusLabel(detailTarget?.status) }}</span></div>
+            <div class="detail-item"><label>{{ t("road.responsibleDept") }}</label><span>{{ detailTarget?.departmentCode || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.totalDetections") }}</label><span>{{ detailTarget?.totalDetectionCount != null ? detailTarget?.totalDetectionCount : '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.currentDamages") }}</label><span>{{ detailTarget?.currentDamageCount != null ? detailTarget?.currentDamageCount : '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.latestDetection") }}</label><span>{{ detailTarget?.latestDetectionAt || '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.lastMaintained") }}</label><span>{{ detailTarget?.lastMaintained || '--' }}</span></div>
+            <div v-if="detailTarget?.remark" class="detail-item" style="grid-column:1/-1"><label>{{ t("road.remark") }}</label><span>{{ detailTarget?.remark }}</span></div>
           </div>
         </div>
         <div class="modal-foot">
-          <router-link :to="'/road-health'" class="btn-ghost" style="text-decoration:none;padding:7px 16px;display:inline-flex;align-items:center">健康档案</router-link>
-          <router-link :to="'/road-maintenance'" class="btn-ghost" style="text-decoration:none;padding:7px 16px;display:inline-flex;align-items:center">养护记录</router-link>
-          <button class="btn-primary" @click="showDetail=false">关闭</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Create/Edit Modal -->
-    <div v-if="showForm" class="modal-overlay" @click.self="showForm=false">
-      <div class="modal-card">
-        <div class="modal-head"><span>{{ editingRoad ? '编辑道路' : '新增道路' }}</span><button class="modal-close" @click="showForm=false">✕</button></div>
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-item">
-              <label>道路名称 <span class="req">*</span></label>
-              <input v-model="formData.roadName" placeholder="如：长安街" />
-            </div>
-            <div class="form-item">
-              <label>道路编码</label>
-              <input v-model="formData.roadCode" placeholder="如：RD-0001" />
-            </div>
-            <div class="form-item">
-              <label>道路等级</label>
-              <select v-model="formData.roadGrade">
-                <option value="">请选择</option>
-                <option value="主干道">主干道</option>
-                <option value="快速路">快速路</option>
-                <option value="次干道">次干道</option>
-                <option value="支路">支路</option>
-              </select>
-            </div>
-            <div class="form-item">
-              <label>所属区域</label>
-              <input v-model="formData.district" placeholder="如：海淀区" />
-            </div>
-            <div class="form-item">
-              <label>起点</label>
-              <input v-model="formData.startPoint" placeholder="如：复兴门" />
-            </div>
-            <div class="form-item">
-              <label>终点</label>
-              <input v-model="formData.endPoint" placeholder="如：建国门" />
-            </div>
-            <div class="form-item">
-              <label>长度(km)</label>
-              <input v-model.number="formData.lengthKm" type="number" step="0.1" placeholder="如：3.5" />
-            </div>
-            <div class="form-item">
-              <label>车道数</label>
-              <input v-model.number="formData.laneCount" type="number" placeholder="如：6" />
-            </div>
-            <div class="form-item">
-              <label>路面类型</label>
-              <select v-model="formData.surfaceType">
-                <option value="">请选择</option>
-                <option value="沥青">沥青</option>
-                <option value="水泥">水泥</option>
-                <option value="混合">混合</option>
-              </select>
-            </div>
-            <div class="form-item">
-              <label>建成年代</label>
-              <input v-model.number="formData.builtYear" type="number" placeholder="如：2010" />
-            </div>
-            <div class="form-item">
-              <label>状态</label>
-              <select v-model="formData.status">
-                <option value="ACTIVE">运营中</option>
-                <option value="MAINTAINING">养护中</option>
-                <option value="CLOSED">封闭</option>
-              </select>
-            </div>
-            <div class="form-item">
-              <label>责任部门编码</label>
-              <input v-model="formData.departmentCode" placeholder="如：DEPT_BJ" />
-            </div>
-            <div class="form-item form-item-full">
-              <label>备注</label>
-              <textarea v-model="formData.remark" rows="2" placeholder="可选备注信息"></textarea>
-            </div>
-          </div>
-        </div>
-        <div class="modal-foot">
-          <button class="btn-ghost" @click="showForm=false">取消</button>
-          <button class="btn-primary" @click="handleSaveRoad" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
+          <router-link :to="'/road-health'" class="btn-ghost" style="text-decoration:none;padding:7px 16px;display:inline-flex;align-items:center">{{ t("road.healthArchive") }}</router-link>
+          <router-link :to="'/road-maintenance'" class="btn-ghost" style="text-decoration:none;padding:7px 16px;display:inline-flex;align-items:center">{{ t("road.maintenanceRecords") }}</router-link>
+          <button class="btn-primary" @click="showDetail=false">{{ t("common.close") }}</button>
         </div>
       </div>
     </div>
@@ -185,9 +100,10 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { ElMessage } from "element-plus"
 import { roadApi } from "@/api"
 import type { RoadResponse } from "@/types"
+import { t } from "@/i18n"
 
 const searchQuery = ref("")
 const filterStatus = ref("")
@@ -198,111 +114,6 @@ const loading = ref(false)
 
 const roads = ref<RoadResponse[]>([])
 const stats = reactive({ totalRoads: 0, healthy: 0, warning: 0, danger: 0, totalDamages: 0 })
-
-// --- Create/Edit Modal ---
-const showForm = ref(false)
-const editingRoad = ref<RoadResponse | null>(null)
-const saving = ref(false)
-const formData = reactive<{
-  roadName: string; roadCode: string; roadGrade: string; district: string;
-  startPoint: string; endPoint: string; lengthKm: number | undefined;
-  laneCount: number | undefined; surfaceType: string; builtYear: number | undefined;
-  status: string; departmentCode: string; remark: string
-}>({
-  roadName: "", roadCode: "", roadGrade: "", district: "",
-  startPoint: "", endPoint: "", lengthKm: undefined,
-  laneCount: undefined, surfaceType: "", builtYear: undefined,
-  status: "ACTIVE", departmentCode: "", remark: ""
-})
-
-function resetForm() {
-  formData.roadName = ""; formData.roadCode = ""; formData.roadGrade = ""; formData.district = ""
-  formData.startPoint = ""; formData.endPoint = ""; formData.lengthKm = undefined
-  formData.laneCount = undefined; formData.surfaceType = ""; formData.builtYear = undefined
-  formData.status = "ACTIVE"; formData.departmentCode = ""; formData.remark = ""
-}
-
-function openCreateModal() {
-  editingRoad.value = null
-  resetForm()
-  showForm.value = true
-}
-
-function openEditModal(road: RoadResponse) {
-  editingRoad.value = road
-  formData.roadName = road.roadName || ""
-  formData.roadCode = road.roadCode || ""
-  formData.roadGrade = road.roadGrade || ""
-  formData.district = road.district || ""
-  formData.startPoint = road.startPoint || ""
-  formData.endPoint = road.endPoint || ""
-  formData.lengthKm = road.lengthKm
-  formData.laneCount = road.laneCount
-  formData.surfaceType = road.surfaceType || ""
-  formData.builtYear = road.builtYear
-  formData.status = road.status || "ACTIVE"
-  formData.departmentCode = road.departmentCode || ""
-  formData.remark = road.remark || ""
-  showForm.value = true
-}
-
-async function handleSaveRoad() {
-  if (!formData.roadName.trim()) {
-    ElMessage.warning("请输入道路名称")
-    return
-  }
-  saving.value = true
-  try {
-    const payload: Partial<RoadResponse> = {
-      roadName: formData.roadName.trim(),
-      roadCode: formData.roadCode.trim() || undefined,
-      roadGrade: formData.roadGrade || undefined,
-      district: formData.district || undefined,
-      startPoint: formData.startPoint || undefined,
-      endPoint: formData.endPoint || undefined,
-      lengthKm: formData.lengthKm,
-      laneCount: formData.laneCount,
-      surfaceType: formData.surfaceType || undefined,
-      builtYear: formData.builtYear,
-      status: formData.status,
-      departmentCode: formData.departmentCode || undefined,
-      remark: formData.remark || undefined,
-    }
-    if (editingRoad.value) {
-      await roadApi.update(editingRoad.value.id!, payload)
-      ElMessage.success("道路信息已更新")
-    } else {
-      await roadApi.create(payload)
-      ElMessage.success("道路已创建")
-    }
-    showForm.value = false
-    await loadData()
-  } catch (err: any) {
-    const msg = err?.response?.data?.message || "操作失败"
-    ElMessage.error(msg)
-  }
-  saving.value = false
-}
-
-async function confirmDelete(road: RoadResponse) {
-  try {
-    await ElMessageBox.confirm(
-      `确认删除道路「${road.roadName}」？该道路下如有检测任务将无法删除。`,
-      "确认删除",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
-    )
-  } catch {
-    return
-  }
-  try {
-    await roadApi.remove(road.id!)
-    ElMessage.success("道路已删除")
-    await loadData()
-  } catch (err: any) {
-    const msg = err?.response?.data?.message || "删除失败"
-    ElMessage.error(msg)
-  }
-}
 
 const filteredRoads = computed(() => {
   return roads.value.filter(r => {
@@ -316,25 +127,17 @@ const filteredRoads = computed(() => {
   })
 })
 
-function healthCls(score?: number, damageLevel?: string) {
-  if (damageLevel === 'HEALTHY') return "health-good"
-  if (damageLevel === 'SUB_HEALTHY') return "health-warn"
-  if (damageLevel === 'UNHEALTHY') return "health-danger"
-  // 回退到 score 判断
+function healthCls(score?: number) {
   if (score == null) return "health-danger"
-  if (score >= 85) return "health-good"
+  if (score >= 80) return "health-good"
   if (score >= 60) return "health-warn"
   return "health-danger"
 }
-function healthLabel(score?: number, damageLevel?: string) {
-  if (damageLevel === 'HEALTHY') return "优"
-  if (damageLevel === 'SUB_HEALTHY') return "良"
-  if (damageLevel === 'UNHEALTHY') return "差"
-  // 回退到 score 判断
+function healthLabel(score?: number) {
   if (score == null) return "--"
-  if (score >= 85) return "优"
-  if (score >= 60) return "良"
-  return "差"
+  if (score >= 80) return t("severity.good")
+  if (score >= 60) return t("severity.normal")
+  return t("severity.low")
 }
 function statusCls(s?: string) {
   if (s === 'ACTIVE') return 'sta-active'
@@ -342,18 +145,17 @@ function statusCls(s?: string) {
   return 'sta-closed'
 }
 function statusLabel(s?: string) {
-  return ({ ACTIVE: '运营中', MAINTAINING: '养护中', CLOSED: '封闭' } as any)[s || ''] || '未知'
+  return ({ ACTIVE: t("road.active"), MAINTAINING: t("road.maintaining"), CLOSED: t("road.closed") } as any)[s || ''] || s || '--'
 }
 function damageLevelLabel(level?: string) {
-  return ({ HEALTHY: '健康', SUB_HEALTHY: '亚健康', UNHEALTHY: '需维修' } as any)[level || ''] || level || '--'
+  return ({ LOW: t("severity.low"), MEDIUM: t("severity.medium"), HIGH: t("severity.high") } as any)[level || ''] || '--'
 }
 
 function calcStats() {
   stats.totalRoads = roads.value.length
-  // 使用 damageLevel 字段精确判断（而不是用 healthScore 近似）
-  stats.healthy = roads.value.filter(r => r.damageLevel === 'HEALTHY' || (r.healthScore ?? 100) >= 85).length
-  stats.warning = roads.value.filter(r => r.damageLevel === 'SUB_HEALTHY' || ((r.healthScore ?? 100) >= 60 && (r.healthScore ?? 100) < 85)).length
-  stats.danger = roads.value.filter(r => r.damageLevel === 'UNHEALTHY' || (r.healthScore ?? 100) < 60).length
+  stats.healthy = roads.value.filter(r => (r.healthScore ?? 0) >= 80).length
+  stats.warning = roads.value.filter(r => (r.healthScore ?? 100) >= 60 && (r.healthScore ?? 100) < 80).length
+  stats.danger = roads.value.filter(r => (r.healthScore ?? 100) < 60).length
   stats.totalDamages = roads.value.reduce((sum, r) => sum + (r.currentDamageCount || 0), 0)
 }
 
@@ -364,7 +166,7 @@ async function loadData() {
     roads.value = res.data.data.records
     calcStats()
   } catch {
-    ElMessage.error("加载道路列表失败")
+    ElMessage.error(t("road.loadFailed"))
   }
   loading.value = false
 }
@@ -434,20 +236,4 @@ onMounted(loadData)
 .detail-item label { font-size:11px; font-weight:600; color:#64748b; }
 .detail-item span { font-size:14px; color:#0f172a; }
 .modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #f0f2f5; }
-
-/* Form styles */
-.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.form-item { display:flex; flex-direction:column; gap:4px; }
-.form-item-full { grid-column:1/-1; }
-.form-item label { font-size:11px; font-weight:600; color:#64748b; }
-.form-item .req { color:#dc2626; }
-.form-item input, .form-item select, .form-item textarea {
-  padding:7px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; color:#1e293b;
-  font-family:inherit; outline:none; transition:border-color .15s; background:#fff;
-}
-.form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color:#2563eb; }
-.form-item textarea { resize:vertical; }
-.action-danger { color:#dc2626 !important; border-color:#fecaca !important; }
-.action-danger:hover { background:#fef2f2; border-color:#dc2626 !important; }
-.btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
 </style>

@@ -27,8 +27,8 @@
             <span class="role-badge" :style="{ background: authStore.roleColor }">{{ authStore.roleLabel }}</span>
           </div>
         </div>
-        <button v-if="!appStore.sidebarCollapsed" class="logout-btn" @click="handleLogout">退出登录</button>
-        <button v-else class="logout-btn compact" @click="handleLogout" title="退出登录">
+        <button v-if="!appStore.sidebarCollapsed" class="logout-btn" @click="handleLogout">{{ t('auth.logout') }}</button>
+        <button v-else class="logout-btn compact" @click="handleLogout" :title="t('auth.logout')">
           <el-icon><SwitchButton /></el-icon>
         </button>
       </div>
@@ -47,106 +47,119 @@ import { computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { useAppStore } from "@/stores/app"
+import { t } from "@/i18n"
 import { ElMessageBox } from "element-plus"
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
 interface NavItem { path: string; title: string; icon: string }
 interface NavGroup { label: string; items: NavItem[] }
 
-const coreGroup: NavGroup = {
-  label: "核心工作",
+const coreGroup = computed<NavGroup>(() => ({
+  label: t("nav.coreWork"),
   items: [
-    { path: "/upload-data", title: "上传检测", icon: "Upload" },
-    { path: "/detection-results", title: "检测结果", icon: "List" },
-    { path: "/statistics", title: "数据统计", icon: "Histogram" },
-    { path: "/ai-agent", title: "AI 助手", icon: "ChatDotSquare" },
+    { path: "/upload-data", title: t("nav.uploadDetection"), icon: "Upload" },
+    { path: "/detection-results", title: t("nav.detectionResults"), icon: "List" },
+    { path: "/statistics", title: t("nav.statistics"), icon: "Histogram" },
+    { path: "/ai-agent", title: t("nav.aiAssistant"), icon: "ChatDotSquare" },
   ],
-}
+}))
 
-const adminNav: NavGroup[] = [
-  coreGroup,
-  { label: "概览", items: [
-    { path: "/dashboard", title: "实时仪表盘", icon: "Monitor" },
-    { path: "/data-screen", title: "数据大屏", icon: "DataAnalysis" },
+const adminNav = computed<NavGroup[]>(() => [
+  coreGroup.value,
+  { label: t("nav.overview"), items: [
+    { path: "/dashboard", title: t("nav.realtimeDashboard"), icon: "Monitor" },
+    { path: "/data-screen", title: t("nav.dataScreen"), icon: "DataAnalysis" },
   ]},
-  { label: "工单与道路", items: [
-    { path: "/work-orders", title: "工单管理", icon: "List" },
-    { path: "/road-health", title: "健康档案", icon: "Document" },
-    { path: "/road-maintenance", title: "道路养护", icon: "Tools" },
-    { path: "/reports", title: "维修报告审核", icon: "EditPen" },
+  { label: t("nav.workOrdersRoads"), items: [
+    { path: "/work-orders", title: t("nav.workOrderManagement"), icon: "List" },
+    { path: "/road-management", title: t("nav.roadManagement"), icon: "MapLocation" },
+    { path: "/road-health", title: t("nav.healthArchive"), icon: "Document" },
+    { path: "/road-maintenance", title: t("nav.roadMaintenance"), icon: "Tools" },
+    { path: "/reports", title: t("nav.reportReview"), icon: "EditPen" },
   ]},
-  { label: "分析与智能", items: [
-    { path: "/analysis-report", title: "分析报告", icon: "DataLine" },
-    { path: "/alerts", title: "告警管理", icon: "WarningFilled" },
+  { label: t("nav.analysisIntelligence"), items: [
+    { path: "/analysis-report", title: t("nav.analysisReport"), icon: "DataLine" },
+    { path: "/alerts", title: t("nav.alertManagement"), icon: "WarningFilled" },
   ]},
-  { label: "系统管理", items: [
-    { path: "/user-management", title: "用户管理", icon: "UserFilled" },
-    { path: "/department-management", title: "部门管理", icon: "OfficeBuilding" },
-    { path: "/role-management", title: "角色权限", icon: "Setting" },
-    { path: "/audit-log", title: "操作日志", icon: "Clock" },
-    { path: "/system-config", title: "系统配置", icon: "Tools" },
-    { path: "/user-profile", title: "个人中心", icon: "User" },
+  { label: t("nav.systemManagement"), items: [
+    { path: "/user-management", title: t("nav.userManagement"), icon: "UserFilled" },
+    { path: "/department-management", title: t("nav.departmentManagement"), icon: "OfficeBuilding" },
+    { path: "/role-management", title: t("nav.rolePermission"), icon: "Setting" },
+    { path: "/audit-log", title: t("nav.operationLog"), icon: "Clock" },
+    { path: "/system-config", title: t("nav.systemConfig"), icon: "Tools" },
+    { path: "/user-profile", title: t("nav.userProfile"), icon: "User" },
   ]},
-]
+])
 
-const deptAdminNav: NavGroup[] = [
-  coreGroup,
-  { label: "部门工单", items: [
-    { path: "/dept-orders", title: "部门工单管理", icon: "List" },
-    { path: "/dept-report-review", title: "报告审核", icon: "EditPen" },
+const deptAdminNav = computed<NavGroup[]>(() => [
+  coreGroup.value,
+  { label: t("nav.deptWorkOrders"), items: [
+    { path: "/dept-orders", title: t("nav.deptWorkOrderManagement"), icon: "List" },
+    { path: "/dept-report-review", title: t("nav.deptReportReview"), icon: "EditPen" },
   ]},
-  { label: "我的", items: [
-    { path: "/user-profile", title: "个人中心", icon: "User" },
+  { label: t("nav.userProfile"), items: [
+    { path: "/user-profile", title: t("nav.userProfile"), icon: "User" },
   ]},
-]
+])
 
-const maintainerNav: NavGroup[] = [
-  coreGroup,
-  { label: "工单处理", items: [
-    { path: "/my-work-orders", title: "我的工单", icon: "List" },
-    { path: "/submit-report", title: "提交维修报告", icon: "EditPen" },
-    { path: "/my-reports", title: "完成报告", icon: "Document" },
+const maintainerNav = computed<NavGroup[]>(() => [
+  coreGroup.value,
+  { label: t("nav.workOrderProcessing"), items: [
+    { path: "/my-work-orders", title: t("nav.myWorkOrders"), icon: "List" },
+    { path: "/submit-report", title: t("nav.submitReport"), icon: "EditPen" },
+    { path: "/my-reports", title: t("nav.completedReports"), icon: "Document" },
   ]},
-  { label: "我的", items: [
-    { path: "/user-profile", title: "个人中心", icon: "User" },
+  { label: t("nav.userProfile"), items: [
+    { path: "/user-profile", title: t("nav.userProfile"), icon: "User" },
   ]},
-]
+])
 
-const crowdsourceNav: NavGroup[] = [
-  coreGroup,
-  { label: "我的上报", items: [
-    { path: "/crowd-report", title: "上报问题", icon: "Upload" },
-    { path: "/crowd-records", title: "上报记录", icon: "List" },
+const crowdsourceNav = computed<NavGroup[]>(() => [
+  coreGroup.value,
+  { label: t("nav.myReports"), items: [
+    { path: "/crowd-report", title: t("nav.reportProblem"), icon: "Upload" },
+    { path: "/crowd-records", title: t("nav.reportRecords"), icon: "List" },
   ]},
-  { label: "我的", items: [
-    { path: "/user-profile", title: "个人中心", icon: "User" },
+  { label: t("nav.userProfile"), items: [
+    { path: "/user-profile", title: t("nav.userProfile"), icon: "User" },
   ]},
-]
+])
+
+const viewerNav = computed<NavGroup[]>(() => [
+  coreGroup.value,
+  { label: t("nav.overview"), items: [
+    { path: "/dashboard", title: t("nav.realtimeDashboard"), icon: "Monitor" },
+    { path: "/data-screen", title: t("nav.dataScreen"), icon: "DataAnalysis" },
+  ]},
+  { label: t("nav.userProfile"), items: [
+    { path: "/user-profile", title: t("nav.userProfile"), icon: "User" },
+  ]},
+])
 
 const titleText = computed(() => {
-  if (authStore.isAdmin) return "途安智巡"
-  if (authStore.isDeptAdmin) return "部门管理台"
-  if (authStore.isMaintainer) return "维修工作台"
-  if (authStore.isCrowdsource) return "众包工作台"
-  return "途安智巡"
+  if (authStore.isAdmin) return appStore.siteName || t("site.adminPanel")
+  if (authStore.isDeptAdmin) return t("site.deptPanel")
+  if (authStore.isMaintainer) return t("site.maintainerPanel")
+  if (authStore.isCrowdsource) return t("site.crowdPanel")
+  return appStore.siteName || t("site.viewerPanel")
 })
 
 const navGroups = computed<NavGroup[]>(() => {
-  if (authStore.isAdmin) return adminNav
-  if (authStore.isDeptAdmin) return deptAdminNav
-  if (authStore.isMaintainer) return maintainerNav
-  if (authStore.isCrowdsource) return crowdsourceNav
+  if (authStore.isAdmin) return adminNav.value
+  if (authStore.isDeptAdmin) return deptAdminNav.value
+  if (authStore.isMaintainer) return maintainerNav.value
+  if (authStore.isCrowdsource) return crowdsourceNav.value
+  if (authStore.isViewer) return viewerNav.value
   return []
 })
 
 function isActive(path: string) { return route.path === path }
 
 function handleLogout() {
-  ElMessageBox.confirm("确定退出登录？", "提示", { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" })
+  ElMessageBox.confirm(t("auth.logoutConfirm"), t("common.tip"), { confirmButtonText: t("auth.confirm"), cancelButtonText: t("auth.cancel"), type: "warning" })
     .then(() => authStore.logout())
     .catch(() => {})
 }
@@ -179,4 +192,3 @@ function handleLogout() {
 .content-area { flex:1; height:100vh; overflow-y:auto; background:#f8f9fc; }
 .content-inner { max-width:1440px; margin:0 auto; padding:24px; }
 </style>
-

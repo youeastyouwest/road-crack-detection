@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="crowd-records-page">
     <div class="cr-header">
-      <h2>我的上报记录</h2>
+      <h2>{{ t("crowd.recordsTitle") }}</h2>
     </div>
 
     <div class="records-list">
@@ -22,13 +22,14 @@
           <el-tag :type="statusType(item.status)" size="small">{{ statusLabel(item.status) }}</el-tag>
         </div>
       </div>
-      <el-empty v-if="records.length === 0" description="暂无上报记录" />
+      <el-empty v-if="records.length === 0" :description="t('crowd.noRecords')" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { t } from "@/i18n"
 
 const records = ref<any[]>([])
 
@@ -45,8 +46,13 @@ function statusType(s: string) {
   return map[s] || "info"
 }
 function statusLabel(s: string) {
-  const map: Record<string, string> = { PENDING: "待审核", ACCEPTED: "已采纳", RESOLVED: "已处理", REJECTED: "未采纳" }
-  return map[s] || s
+  const map: Record<string, () => string> = {
+    PENDING: () => t("crowd.status_pending"),
+    ACCEPTED: () => t("crowd.status_accepted"),
+    RESOLVED: () => t("crowd.status_processed"),
+    REJECTED: () => t("crowd.status_rejected"),
+  }
+  return map[s]?.() || s
 }
 </script>
 

@@ -3,15 +3,15 @@
     <!-- Page Header -->
     <div class="page-head">
       <div>
-        <h2 class="page-title">数据统计</h2>
-        <p class="page-desc">检测数据多维统计分析，实时反映系统运行状况</p>
+        <h2 class="page-title">{{ t('st.title') }}</h2>
+        <p class="page-desc">{{ t('st.desc') }}</p>
       </div>
       <div class="head-right">
         <button class="btn-ghost" @click="refreshAll" :disabled="loading">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          刷新数据
+          {{ t('st.refresh') }}
         </button>
-        <span class="update-time" v-if="lastUpdate">更新于 {{ lastUpdate }}</span>
+        <span class="update-time" v-if="lastUpdate">{{ t('st.updatedAt') }} {{ lastUpdate }}</span>
       </div>
     </div>
 
@@ -32,7 +32,7 @@
     <div class="chart-row">
       <div class="chart-card chart-wide">
         <div class="card-head">
-          <span class="card-title">检测趋势</span>
+          <span class="card-title">{{ t('st.detectionTrend') }}</span>
           <div class="card-tabs">
             <button v-for="t in trendTabs" :key="t.key" :class="['c-tab', { active: activeTrendTab === t.key }]" @click="switchTrend(t.key)">{{ t.label }}</button>
           </div>
@@ -43,7 +43,7 @@
       </div>
       <div class="chart-card chart-narrow">
         <div class="card-head">
-          <span class="card-title">病害类型占比</span>
+          <span class="card-title">{{ t('st.crackTypeRatio') }}</span>
         </div>
         <div class="card-body">
           <div ref="typePieRef" class="chart-box"></div>
@@ -55,7 +55,7 @@
     <div class="chart-row">
       <div class="chart-card chart-half">
         <div class="card-head">
-          <span class="card-title">严重等级分布</span>
+          <span class="card-title">{{ t('st.severityDist') }}</span>
         </div>
         <div class="card-body">
           <div ref="severityRef" class="chart-box"></div>
@@ -63,7 +63,7 @@
       </div>
       <div class="chart-card chart-half">
         <div class="card-head">
-          <span class="card-title">地图标记趋势（近7天）</span>
+          <span class="card-title">{{ t('st.mapTrend') }}</span>
         </div>
         <div class="card-body">
           <div ref="mapTrendRef" class="chart-box"></div>
@@ -73,8 +73,8 @@
 
     <!-- Map Statistics Cards -->
     <div class="section-head">
-      <h3 class="section-title">地图标记统计</h3>
-      <span class="section-sub">实时地图病害标记汇总</span>
+      <h3 class="section-title">{{ t('st.mapMarkerStats') }}</h3>
+      <span class="section-sub">{{ t('st.mapMarkerSub') }}</span>
     </div>
     <div class="map-stat-row">
       <div class="map-stat-card" v-for="m in mapStatCards" :key="m.label">
@@ -92,17 +92,17 @@
     <div class="table-row">
       <div class="table-card">
         <div class="card-head">
-          <span class="card-title">部门工作量统计</span>
+          <span class="card-title">{{ t('st.deptWorkload') }}</span>
         </div>
         <div class="table-wrap">
           <table class="ds-table">
             <thead>
               <tr>
-                <th>部门名称</th>
-                <th>总工单</th>
-                <th>已完成</th>
-                <th>待处理</th>
-                <th>完成率</th>
+                <th>{{ t('st.deptName') }}</th>
+                <th>{{ t('st.totalCount') }}</th>
+                <th>{{ t('st.completedCount') }}</th>
+                <th>{{ t('st.pendingCount') }}</th>
+                <th>{{ t('st.completionRate') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -119,7 +119,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && deptWorkload.length === 0">
-                <td colspan="5" class="empty-row">暂无部门工作量数据</td>
+                <td colspan="5" class="empty-row">{{ t('st.noDeptData') }}</td>
               </tr>
             </tbody>
           </table>
@@ -128,16 +128,16 @@
 
       <div class="table-card">
         <div class="card-head">
-          <span class="card-title">病害类型占比明细</span>
+          <span class="card-title">{{ t('st.damageTypeRatio') }}</span>
         </div>
         <div class="table-wrap">
           <table class="ds-table">
             <thead>
               <tr>
-                <th>病害类型</th>
-                <th>数量</th>
-                <th>占比</th>
-                <th>分布</th>
+                <th>{{ t('st.damageType') }}</th>
+                <th>{{ t('st.count') }}</th>
+                <th>{{ t('st.ratio') }}</th>
+                <th>{{ t('st.distribution') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -152,7 +152,7 @@
                 </td>
               </tr>
               <tr v-if="!loading && damageTypes.length === 0">
-                <td colspan="4" class="empty-row">暂无病害类型数据</td>
+                <td colspan="4" class="empty-row">{{ t('st.noDamageTypeData') }}</td>
               </tr>
             </tbody>
           </table>
@@ -162,8 +162,8 @@
 
     <!-- Road TOP5 Ranking -->
     <div class="section-head">
-      <h3 class="section-title">道路病害排行 TOP5</h3>
-      <span class="section-sub">按病害总数排序，展示重点监测道路</span>
+      <h3 class="section-title">{{ t('st.roadRanking') }}</h3>
+      <span class="section-sub">{{ t('st.roadRankingSub') }}</span>
     </div>
     <div class="road-rank-row">
       <div class="road-rank-card" v-for="(r, idx) in roadTop5" :key="r.roadId">
@@ -175,19 +175,19 @@
         <div class="road-counts">
           <div class="rc-item">
             <span class="rc-num rc-total">{{ r.totalCount }}</span>
-            <span class="rc-lbl">总计</span>
+            <span class="rc-lbl">{{ t('st.total') }}</span>
           </div>
           <div class="rc-item">
             <span class="rc-num rc-high">{{ r.highCount }}</span>
-            <span class="rc-lbl">严重</span>
+            <span class="rc-lbl">{{ t('st.severity') }}</span>
           </div>
           <div class="rc-item">
             <span class="rc-num rc-med">{{ r.mediumCount }}</span>
-            <span class="rc-lbl">中等</span>
+            <span class="rc-lbl">{{ t('st.medium') }}</span>
           </div>
           <div class="rc-item">
             <span class="rc-num rc-low">{{ r.lowCount }}</span>
-            <span class="rc-lbl">轻微</span>
+            <span class="rc-lbl">{{ t('st.low') }}</span>
           </div>
         </div>
       </div>
@@ -196,7 +196,7 @@
     <!-- Loading Overlay -->
     <div v-if="loading && !hasData" class="loading-state">
       <div class="loading-spinner"></div>
-      <span>正在加载统计数据...</span>
+      <span>{{ t('st.loading') }}</span>
     </div>
   </div>
 </template>
@@ -207,6 +207,7 @@ import * as echarts from "echarts"
 import { ElMessage } from "element-plus"
 import { statisticsApi } from "@/api/statistics"
 import { mapApi } from "@/api/map"
+import { t } from "@/i18n"
 import type {
   DashboardStatsResponse,
   TrendStatsItem,
@@ -247,9 +248,9 @@ const damageTypes = ref<MapDamageTypeRatioResponse[]>([])
 const roadDisease = ref<RoadDiseaseSummaryResponse[]>([])
 
 const trendTabs = [
-  { key: 7, label: "近7天" },
-  { key: 30, label: "近30天" },
-  { key: 90, label: "近90天" },
+  { key: 7, label: t('st.last7days') },
+  { key: 30, label: t('st.last30days') },
+  { key: 90, label: t('st.last90days') },
 ]
 
 // --- KPI Cards ---
@@ -257,37 +258,37 @@ const kpiCards = computed(() => {
   const d = dashboard.value
   return [
     {
-      label: "总道路数",
+      label: t('st.totalRoads'),
       value: d.totalRoads ?? 0,
       bg: "#eef2ff", color: "#4361ee",
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>',
     },
     {
-      label: "监控道路",
+      label: t('st.monitoredRoads'),
       value: d.monitoredRoads ?? 0,
       bg: "#f0fdf4", color: "#16a34a",
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6m11-11h-6M7 12H1"/></svg>',
     },
     {
-      label: "今日检测",
+      label: t('st.todayDetection'),
       value: d.detectionToday ?? 0,
       bg: "#fef3c7", color: "#d97706",
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
     },
     {
-      label: "待处理告警",
+      label: t('st.pendingAlerts'),
       value: d.pendingAlerts ?? 0,
       bg: "#fef2f2", color: "#dc2626",
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     },
     {
-      label: "总病害数",
+      label: t('st.totalDamages'),
       value: d.totalCracksDetected ?? 0,
       bg: "#fce7f3", color: "#e11d48",
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>',
     },
     {
-      label: "总工单数",
+      label: t('st.totalOrders'),
       value: d.totalWorkOrders ?? 0,
       bg: "#f1f5f9", color: "#475569",
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
@@ -300,37 +301,37 @@ const mapStatCards = computed(() => {
   const m = mapStats.value
   return [
     {
-      label: "标记总数",
+      label: t('st.totalMarkers'),
       value: m?.totalMarkers ?? 0,
       bg: "#eef2ff", color: "#4361ee",
       icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
     },
     {
-      label: "新增标记",
+      label: t('st.newMarkers'),
       value: m?.newMarkers ?? 0,
       bg: "#f0fdf4", color: "#16a34a",
       icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     },
     {
-      label: "已修复",
+      label: t('st.repaired'),
       value: m?.repairedCount ?? 0,
       bg: "#dcfce7", color: "#15803d",
       icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>',
     },
     {
-      label: "待修复",
+      label: t('st.pendingRepair'),
       value: m?.pendingRepair ?? 0,
       bg: "#fef3c7", color: "#d97706",
       icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
     },
     {
-      label: "严重",
+      label: t('st.severity'),
       value: m?.highSeverityCount ?? 0,
       bg: "#fef2f2", color: "#dc2626",
       icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     },
     {
-      label: "中等",
+      label: t('st.medium'),
       value: m?.mediumSeverityCount ?? 0,
       bg: "#fffbeb", color: "#d97706",
       icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
@@ -346,12 +347,12 @@ const roadTop5 = computed(() => {
 })
 
 // --- Helpers ---
-function damageTypeLabel(t: string) {
-  return ({ CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知" } as any)[t] || t || "--"
+function damageTypeLabel(tp: string) {
+  return ({ CRACK: t('damage.crack'), TRANSVERSE_CRACK: t('damage.transverseCrack'), LONGITUDINAL_CRACK: t('damage.longitudinalCrack'), NET_CRACK: t('damage.netCrack'), POTHOLE: t('damage.pothole'), MARKING_DAMAGE: t('damage.markingDamage'), ROAD_SPILL: t('damage.roadSpill'), UNKNOWN: t('damage.unknown') } as any)[tp] || tp || "--"
 }
 
 function severityLabel(s: string) {
-  return ({ HIGH: "严重", MEDIUM: "中等", LOW: "轻微", UNKNOWN: "未知" } as any)[s] || s || "--"
+  return ({ HIGH: t('severity.high'), MEDIUM: t('severity.medium'), LOW: t('severity.low'), UNKNOWN: t('damage.unknown') } as any)[s] || s || "--"
 }
 
 function severityClass(s: string) {
@@ -518,13 +519,14 @@ function renderSeverity() {
   if (!severityRef.value) return
   if (!severityChart) severityChart = echarts.init(severityRef.value)
   const data = severityData.value.map(d => ({
-    name: ({ HIGH: "严重", MEDIUM: "中等", LOW: "轻微" } as any)[d.level] || d.level,
+    name: ({ HIGH: t('severity.high'), MEDIUM: t('severity.medium'), LOW: t('severity.low') } as any)[d.level] || d.level,
     value: d.count,
     percentage: d.percentage,
+    level: d.level,
   }))
   const colors = data.map(d => {
-    if (d.name === "严重") return "#dc2626"
-    if (d.name === "中等") return "#d97706"
+    if (d.level === "HIGH") return "#dc2626"
+    if (d.level === "MEDIUM") return "#d97706"
     return "#16a34a"
   })
   severityChart.setOption({
@@ -553,13 +555,13 @@ function renderMapTrend() {
   const repairedCounts = mapTrend.value.map(d => d.repairedCount || 0)
   mapTrendChart.setOption({
     tooltip: { trigger: "axis", backgroundColor: "#fff", borderColor: "#e2e8f0", textStyle: { color: "#1e293b", fontSize: 12 } },
-    legend: { data: ["新增标记", "已修复"], right: 10, top: 0, textStyle: { color: chartTheme.textColor, fontSize: chartTheme.fontSize }, itemWidth: 12, itemHeight: 8 },
+    legend: { data: [t('st.newMarkers'), t('st.repaired')], right: 10, top: 0, textStyle: { color: chartTheme.textColor, fontSize: chartTheme.fontSize }, itemWidth: 12, itemHeight: 8 },
     grid: { left: 45, right: 20, bottom: 30, top: 35 },
     xAxis: { type: "category", data: dates, axisLabel: { color: chartTheme.textColor, fontSize: chartTheme.fontSize }, axisLine: { lineStyle: { color: "#e2e8f0" } } },
     yAxis: { type: "value", axisLabel: { color: chartTheme.textColor, fontSize: chartTheme.fontSize }, splitLine: { lineStyle: { color: chartTheme.splitColor } } },
     series: [
       {
-        name: "新增标记",
+        name: t('st.newMarkers'),
         type: "line",
         data: newCounts,
         smooth: true,
@@ -570,7 +572,7 @@ function renderMapTrend() {
         areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "rgba(67,97,238,0.15)" }, { offset: 1, color: "rgba(67,97,238,0)" }]) },
       },
       {
-        name: "已修复",
+        name: t('st.repaired'),
         type: "line",
         data: repairedCounts,
         smooth: true,

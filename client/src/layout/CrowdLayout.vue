@@ -9,7 +9,7 @@
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
           <circle cx="12" cy="13" r="4"/>
         </svg>
-        <span>上报病害</span>
+        <span>{{ t('crowd.report') }}</span>
       </router-link>
       <router-link to="/crowd/records" class="tab-item" :class="{ active: $route.path === '/crowd/records' }">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -18,14 +18,14 @@
           <line x1="16" y1="13" x2="8" y2="13"/>
           <line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
-        <span>上报记录</span>
+        <span>{{ t('crowd.records') }}</span>
       </router-link>
       <router-link to="/crowd/profile" class="tab-item" :class="{ active: $route.path === '/crowd/profile' }">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>
         </svg>
-        <span>我的</span>
+        <span>{{ t('crowd.profile') }}</span>
       </router-link>
     </nav>
   </div>
@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth"
+import { t } from "@/i18n"
 const authStore = useAuthStore()
 </script>
 

@@ -13,32 +13,32 @@
     <!-- 筛选栏 -->
     <el-card shadow="never" class="filter-card">
       <el-form :inline="true" size="small">
-        <el-form-item label="损坏类型">
-          <el-select v-model="filters.damageType" clearable placeholder="全部" style="width:140px">
+        <el-form-item :label="t('map.damageType')">
+          <el-select v-model="filters.damageType" clearable :placeholder="t('map.allDamageTypes')" style="width:140px">
             <el-option v-for="d in damageTypes" :key="d.value" :label="d.label" :value="d.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="严重程度">
-          <el-select v-model="filters.severityLevel" clearable placeholder="全部" style="width:120px">
-            <el-option label="低" value="LOW" />
-            <el-option label="中" value="MEDIUM" />
-            <el-option label="高" value="HIGH" />
+        <el-form-item :label="t('map.severity')">
+          <el-select v-model="filters.severityLevel" clearable :placeholder="t('map.allStatus')" style="width:120px">
+            <el-option :label="t('map.low')" value="LOW" />
+            <el-option :label="t('dash.medium')" value="MEDIUM" />
+            <el-option :label="t('map.high')" value="HIGH" />
           </el-select>
         </el-form-item>
-        <el-form-item label="工单状态">
-          <el-select v-model="filters.status" clearable placeholder="全部" style="width:140px">
-            <el-option label="待指派" value="PENDING_ASSIGNMENT" />
-            <el-option label="已指派" value="ASSIGNED" />
-            <el-option label="处理中" value="IN_PROGRESS" />
-            <el-option label="已完成" value="COMPLETED" />
+        <el-form-item :label="t('map.orderStatus')">
+          <el-select v-model="filters.status" clearable :placeholder="t('map.allStatus')" style="width:140px">
+            <el-option :label="t('map.pendingAssignment')" value="PENDING_ASSIGNMENT" />
+            <el-option :label="t('status.assigned')" value="ASSIGNED" />
+            <el-option :label="t('map.inProgress')" value="IN_PROGRESS" />
+            <el-option :label="t('status.completed')" value="COMPLETED" />
           </el-select>
         </el-form-item>
-        <el-form-item label="关键词">
-          <el-input v-model="filters.keyword" placeholder="道路名称/地址" clearable style="width:180px" />
+        <el-form-item :label="t('map.keyword')">
+          <el-input v-model="filters.keyword" :placeholder="t('map.keywordPlaceholder')" clearable style="width:180px" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="loadMarkers">查询</el-button>
-          <el-button @click="resetFilters">重置</el-button>
+          <el-button type="primary" @click="loadMarkers">{{ t('map.query') }}</el-button>
+          <el-button @click="resetFilters">{{ t('common.reset') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -48,7 +48,7 @@
       <div ref="mapRef" class="amap-wrapper"></div>
       <el-card shadow="never" class="marker-sidebar">
         <template #header>
-          <span>点位列表 ({{ markers.length }})</span>
+          <span>{{ t('map.title', { count: markers.length }) }}</span>
         </template>
         <div class="marker-list" v-loading="loading">
           <div
@@ -60,36 +60,36 @@
           >
             <div class="marker-title">
               <el-tag :type="severityTagType(m.severity)" size="small">{{ m.severity }}</el-tag>
-              <span>{{ m.roadName || m.address || '未知位置' }}</span>
+              <span>{{ m.roadName || m.address || t('map.unknownLocation') }}</span>
             </div>
             <div class="marker-meta">
               <span>{{ m.damageType }}</span>
               <span v-if="m.status" class="status-badge">{{ statusLabel(m.status) }}</span>
             </div>
           </div>
-          <el-empty v-if="!loading && markers.length === 0" description="暂无点位数据" />
+          <el-empty v-if="!loading && markers.length === 0" :description="t('map.noMarkerData')" />
         </div>
       </el-card>
     </div>
 
     <!-- 点位详情对话框 -->
-    <el-dialog v-model="detailVisible" title="点位详情" width="600px" :close-on-click-modal="false">
+    <el-dialog v-model="detailVisible" :title="t('map.pointDetail')" width="600px" :close-on-click-modal="false">
       <template v-if="detail">
         <descriptions :column="2" border size="small">
-          <el-descriptions-item label="损坏类型">{{ detail.damageType }}</el-descriptions-item>
-          <el-descriptions-item label="严重程度">{{ detail.severity }}</el-descriptions-item>
-          <el-descriptions-item label="道路名称">{{ detail.roadName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="路段">{{ detail.roadSegment || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="置信度">{{ detail.confidence ? (detail.confidence * 100).toFixed(1) + '%' : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="责任部门">{{ detail.departmentName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="检测时间">{{ detail.detectedAt ? formatTime(detail.detectedAt) : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="工单状态">
+          <el-descriptions-item :label="t('map.damageType')">{{ detail.damageType }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.severity')">{{ detail.severity }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.roadName')">{{ detail.roadName || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.roadSegment')">{{ detail.roadSegment || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('ds.confidence')">{{ detail.confidence ? (detail.confidence * 100).toFixed(1) + '%' : '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.dept')">{{ detail.departmentName || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.detectedAt')">{{ detail.detectedAt ? formatTime(detail.detectedAt) : '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.orderStatus')">
             <el-tag v-if="detail.workOrderStatus" :type="woStatusType(detail.workOrderStatus)" size="small">
               {{ statusLabel(detail.workOrderStatus) }}
             </el-tag>
             <span v-else>-</span>
           </el-descriptions-item>
-          <el-descriptions-item label="描述" :span="2">{{ detail.description || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('map.description')" :span="2">{{ detail.description || '-' }}</el-descriptions-item>
         </descriptions>
         <div v-if="detail.imageUrls && detail.imageUrls.length" class="detail-images">
           <el-image v-for="(url, i) in detail.imageUrls" :key="i" :src="url" :preview-src-list="detail.imageUrls" style="width:100px;height:80px;margin-right:8px;border-radius:4px;object-fit:cover" />
@@ -100,26 +100,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from "vue"
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed } from "vue"
 import { mapApi } from "@/api/map"
+import { t } from "@/i18n"
 import type { MapMarkerResponse, MapMarkerDetailResponse, MapStatisticsResponse } from "@/types"
 
 // --- Stats ---
-const statistics = ref([
-  { label: "总点位", value: 0, key: "totalMarkers" },
-  { label: "新增", value: 0, key: "newMarkers" },
-  { label: "已修复", value: 0, key: "repairedCount" },
-  { label: "待维修", value: 0, key: "pendingRepair" },
-  { label: "高严重度", value: 0, key: "highSeverityCount" },
+const statistics = computed(() => [
+  { label: t("map.totalPoints"), value: statValues.value[0], key: "totalMarkers" },
+  { label: t("map.newAdded"), value: statValues.value[1], key: "newMarkers" },
+  { label: t("dash.repaired"), value: statValues.value[2], key: "repairedCount" },
+  { label: t("map.waitRepair"), value: statValues.value[3], key: "pendingRepair" },
+  { label: t("map.highSeverity"), value: statValues.value[4], key: "highSeverityCount" },
 ])
+const statValues = ref([0, 0, 0, 0, 0])
 
-const damageTypes = [
-  { value: "CRACK", label: "裂缝" },
-  { value: "POTHOLE", label: "坑槽" },
-  { value: "MARKING_DAMAGE", label: "标线损坏" },
-  { value: "ROAD_SPILL", label: "路面抛洒" },
-  { value: "UNKNOWN", label: "未知" },
-]
+const damageTypes = computed(() => [
+  { value: "CRACK", label: t("damage.crack") },
+  { value: "POTHOLE", label: t("damage.pothole") },
+  { value: "MARKING_DAMAGE", label: t("damage.markingDamage") },
+  { value: "ROAD_SPILL", label: t("damage.roadSpill") },
+  { value: "UNKNOWN", label: t("damage.unknown") },
+])
 
 // --- State ---
 const mapRef = ref<HTMLDivElement>()
@@ -166,12 +168,12 @@ async function loadMarkers() {
 
 function updateStats(s: MapStatisticsResponse) {
   if (!s) return
-  statistics.value = [
-    { label: "总点位", value: s.totalMarkers ?? 0, key: "totalMarkers" },
-    { label: "新增", value: s.newMarkers ?? 0, key: "newMarkers" },
-    { label: "已修复", value: s.repairedCount ?? 0, key: "repairedCount" },
-    { label: "待维修", value: s.pendingRepair ?? 0, key: "pendingRepair" },
-    { label: "高严重度", value: s.highSeverityCount ?? 0, key: "highSeverityCount" },
+  statValues.value = [
+    s.totalMarkers ?? 0,
+    s.newMarkers ?? 0,
+    s.repairedCount ?? 0,
+    s.pendingRepair ?? 0,
+    s.highSeverityCount ?? 0,
   ]
 }
 
@@ -251,9 +253,9 @@ function woStatusType(s: string) {
 
 function statusLabel(s: string) {
   const map: Record<string, string> = {
-    PENDING_ASSIGNMENT: "待指派", ASSIGNED: "已指派", IN_PROGRESS: "处理中",
-    COMPLETED: "已完成", CLOSED: "已关闭", CANCELLED: "已取消",
-    LOW: "低", MEDIUM: "中", HIGH: "高",
+    PENDING_ASSIGNMENT: t("map.pendingAssignment"), ASSIGNED: t("status.assigned"), IN_PROGRESS: t("map.inProgress"),
+    COMPLETED: t("status.completed"), CLOSED: t("status.closed"), CANCELLED: t("status.cancelled"),
+    LOW: t("map.low"), MEDIUM: t("dash.medium"), HIGH: t("map.high"),
   }
   return map[s] || s
 }

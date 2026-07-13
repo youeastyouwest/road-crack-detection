@@ -2,22 +2,22 @@
   <div class="crowd-profile-page">
     <div class="profile-header">
       <div class="avatar-circle">{{ (authStore.realName || authStore.username || "?")[0] }}</div>
-      <h2>{{ authStore.realName || authStore.username || "众包用户" }}</h2>
-      <p>众包巡查员</p>
+      <h2>{{ authStore.realName || authStore.username || t("auth.logout") }}</h2>
+      <p>{{ t("crowd.report") }}</p>
     </div>
 
     <div class="profile-stats">
       <div class="stat-item">
         <span class="stat-num">{{ stats.total }}</span>
-        <span class="stat-label">总上报</span>
+        <span class="stat-label">{{ t("crowd.records") }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-num">{{ stats.accepted }}</span>
-        <span class="stat-label">已采纳</span>
+        <span class="stat-label">{{ t("crowd.status_accepted") }}</span>
       </div>
       <div class="stat-item">
         <span class="stat-num">{{ stats.resolved }}</span>
-        <span class="stat-label">已处理</span>
+        <span class="stat-label">{{ t("crowd.status_processed") }}</span>
       </div>
     </div>
 
@@ -28,7 +28,7 @@
           <polyline points="16 17 21 12 16 7"/>
           <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
-        退出登录
+        {{ t("auth.logout") }}
       </button>
     </div>
   </div>
@@ -38,6 +38,7 @@
 import { reactive } from "vue"
 import { useAuthStore } from "@/stores/auth"
 import { ElMessageBox } from "element-plus"
+import { t } from "@/i18n"
 
 const authStore = useAuthStore()
 
@@ -48,7 +49,7 @@ const stats = reactive({
 })
 
 function handleLogout() {
-  ElMessageBox.confirm("确定退出登录？", "提示", { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" })
+  ElMessageBox.confirm(t("auth.logoutConfirm"), t("common.tip"), { confirmButtonText: t("auth.confirm"), cancelButtonText: t("auth.cancel"), type: "warning" })
     .then(() => authStore.logout())
     .catch(() => {})
 }

@@ -2,19 +2,19 @@
   <div class="sys-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">操作日志</h2>
-        <p class="page-desc">系统操作审计记录与追踪</p>
+        <h2 class="page-title">{{ t('audit.title') }}</h2>
+        <p class="page-desc">{{ t('audit.desc') }}</p>
       </div>
       <button class="btn-ghost" @click="loadData">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>刷新
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>{{ t('common.refresh') }}
       </button>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><span class="stat-val">{{ total }}</span><span class="stat-lbl">日志总数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ successCount }}</span><span class="stat-lbl">成功操作</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ failedCount }}</span><span class="stat-lbl">失败操作</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fce7f3;color:#e11d48"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><span class="stat-val">{{ todayCount }}</span><span class="stat-lbl">今日操作</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><span class="stat-val">{{ total }}</span><span class="stat-lbl">{{ t('audit.totalLogs') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ successCount }}</span><span class="stat-lbl">{{ t('audit.successOps') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ failedCount }}</span><span class="stat-lbl">{{ t('audit.failedOps') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fce7f3;color:#e11d48"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><span class="stat-val">{{ todayCount }}</span><span class="stat-lbl">{{ t('audit.todayOps') }}</span></div></div>
     </div>
 
     <div class="content-card">
@@ -22,32 +22,32 @@
         <div class="toolbar-left">
           <div class="filter-group">
             <select v-model="filters.module" class="filter-select" @change="loadData">
-              <option value="">全部模块</option>
-              <option value="USER">用户管理</option>
-              <option value="DEPARTMENT">部门管理</option>
-              <option value="ROLE">角色管理</option>
-              <option value="WORK_ORDER">工单管理</option>
-              <option value="DETECTION">检测管理</option>
-              <option value="AUTH">认证登录</option>
-              <option value="SYSTEM">系统管理</option>
+              <option value="">{{ t('audit.allModule') }}</option>
+              <option value="USER">{{ t('audit.module_user') }}</option>
+              <option value="DEPARTMENT">{{ t('audit.module_dept') }}</option>
+              <option value="ROLE">{{ t('audit.module_role') }}</option>
+              <option value="WORK_ORDER">{{ t('audit.module_workorder') }}</option>
+              <option value="DETECTION">{{ t('audit.module_detection') }}</option>
+              <option value="AUTH">{{ t('audit.module_auth') }}</option>
+              <option value="SYSTEM">{{ t('audit.module_system') }}</option>
             </select>
             <select v-model="filters.status" class="filter-select" @change="loadData">
-              <option value="">全部状态</option>
-              <option value="SUCCESS">成功</option>
-              <option value="FAILED">失败</option>
+              <option value="">{{ t('common.all') }}</option>
+              <option value="SUCCESS">{{ t('common.success') }}</option>
+              <option value="FAILED">{{ t('common.failed') }}</option>
             </select>
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="filters.keyword" placeholder="搜索操作人或操作内容..." @keyup.enter="loadData" /></div>
-            <button class="btn-ghost" @click="resetFilters">重置</button>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="filters.keyword" :placeholder="t('audit.searchPlaceholder')" @keyup.enter="loadData" /></div>
+            <button class="btn-ghost" @click="resetFilters">{{ t('common.reset') }}</button>
           </div>
         </div>
         <button class="btn-ghost" @click="handleExport">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ t('audit.exportExcel') }}
         </button>
       </div>
 
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>操作人</th><th>操作</th><th>模块</th><th>描述</th><th>IP</th><th>耗时</th><th>状态</th><th>时间</th></tr></thead>
+          <thead><tr><th>{{ t('audit.operator') }}</th><th>{{ t('audit.action') }}</th><th>{{ t('audit.module') }}</th><th>{{ t('audit.description') }}</th><th>{{ t('audit.ip') }}</th><th>{{ t('audit.costTime') }}</th><th>{{ t('common.status') }}</th><th>{{ t('dash.time') }}</th></tr></thead>
           <tbody>
             <tr v-for="log in logs" :key="log.id">
               <td class="td-title">{{ log.operator || log.username || '--' }}</td>
@@ -56,10 +56,10 @@
               <td class="td-muted td-desc" :title="log.description || ''">{{ log.description || '--' }}</td>
               <td class="td-muted" style="font-family:monospace">{{ log.ip || '--' }}</td>
               <td class="td-muted" style="font-family:monospace">{{ log.costTime != null ? log.costTime + 'ms' : (log.duration != null ? log.duration + 'ms' : '--') }}</td>
-              <td><span :class="['status-tag', log.status === 'SUCCESS' || log.status === '1' ? 'stat-success' : 'stat-cancel']">{{ log.status === 'SUCCESS' || log.status === '1' ? '成功' : '失败' }}</span></td>
+              <td><span :class="['status-tag', log.status === 'SUCCESS' || log.status === '1' ? 'stat-success' : 'stat-cancel']">{{ log.status === 'SUCCESS' || log.status === '1' ? t('common.success') : t('common.failed') }}</span></td>
               <td class="td-muted" style="white-space:nowrap">{{ formatTime(log.createdAt) }}</td>
             </tr>
-            <tr v-if="!loading && logs.length === 0"><td colspan="8" class="empty-row">暂无日志数据</td></tr>
+            <tr v-if="!loading && logs.length === 0"><td colspan="8" class="empty-row">{{ t('audit.noLogs') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -69,7 +69,7 @@
         <div class="page-btns">
           <button class="page-btn" :disabled="page<=1" @click="page--;loadData()">上一页</button>
           <span class="page-cur">{{ page }}</span>
-          <button class="page-btn" :disabled="page*20>=total" @click="page++;loadData()">下一页</button>
+          <button class="page-btn" :disabled="page*20>=total" @click="page++;loadData()">{{ t('common.nextPage') }}</button>
         </div>
       </div>
     </div>
@@ -80,6 +80,7 @@
 import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import http from "@/api/index"
+import { t } from "@/i18n"
 import type { ApiResponse, PageResponse, AuditLogResponse } from "@/types"
 
 const logs = ref<AuditLogResponse[]>([])
@@ -97,8 +98,8 @@ const todayCount = computed(() => {
 
 function moduleLabel(m?: string) {
   const map: Record<string, string> = {
-    USER: "用户管理", DEPARTMENT: "部门管理", ROLE: "角色管理",
-    WORK_ORDER: "工单管理", DETECTION: "检测管理", AUTH: "认证登录", SYSTEM: "系统管理",
+    USER: t("audit.module_user"), DEPARTMENT: t("audit.module_dept"), ROLE: t("audit.module_role"),
+    WORK_ORDER: t("audit.module_workorder"), DETECTION: t("audit.module_detection"), AUTH: t("audit.module_auth"), SYSTEM: t("audit.module_system"),
   }
   return map[m || ""] || m || "--"
 }
@@ -140,22 +141,22 @@ function resetFilters() {
 }
 
 function handleExport() {
-  const headers = ["操作人", "操作", "模块", "描述", "IP", "耗时", "状态", "时间"]
+  const headers = [t("audit.operator"), t("audit.action"), t("audit.module"), t("audit.description"), t("audit.ip"), t("audit.costTime"), t("common.status"), t("dash.time")]
   const rows = logs.value.map(l => [
     l.operator || l.username || "", l.action || "", moduleLabel(l.module),
     l.description || "", l.ip || "",
     l.costTime != null ? l.costTime + 'ms' : (l.duration != null ? l.duration + 'ms' : ''),
-    l.status === 'SUCCESS' || l.status === '1' ? '成功' : '失败',
+    l.status === 'SUCCESS' || l.status === '1' ? t('common.success') : t('common.failed'),
     formatTime(l.createdAt),
   ])
   const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n")
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" })
   const link = document.createElement("a")
   link.href = URL.createObjectURL(blob)
-  link.download = `操作日志_${new Date().toISOString().slice(0, 10)}.csv`
+  link.download = `${t('audit.title')}_${new Date().toISOString().slice(0, 10)}.csv`
   link.click()
   URL.revokeObjectURL(link.href)
-  ElMessage.success("已导出 " + rows.length + " 条日志")
+  ElMessage.success(t("audit.exportSuccess", { count: rows.length }))
 }
 
 onMounted(loadData)

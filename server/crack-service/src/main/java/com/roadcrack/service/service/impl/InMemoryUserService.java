@@ -46,7 +46,7 @@ public class InMemoryUserService implements UserService {
     }
 
     private void seedUsers() {
-        addUser(1L, "admin", "Admin@2025", "SUPER_ADMIN", "13800138000", "admin@roadcrack.cn", 1L, 1L);
+        addUser(1L, "admin", "123456", "SUPER_ADMIN", "13800138000", "admin@roadcrack.cn", 1L, 1L);
         addUser(2L, "roadadmin", "Road@2025", "ROAD_ADMIN", "13800138001", "zhou@roadcrack.cn", 1L, 2L);
         addUser(3L, "sanitadmin", "Sanit@2025", "SANIT_ADMIN", "13800138002", "wu@roadcrack.cn", 4L, 3L);
         addUser(4L, "zhang_inspect", "Inspect@2025", "INSPECTOR_ZHANG", "13800138003", "zhang@roadcrack.cn", 2L, 4L);
@@ -126,6 +126,13 @@ public class InMemoryUserService implements UserService {
     public UserEntity findByUsername(String username) {
         return users.stream()
             .filter(u -> u.getUsername().equalsIgnoreCase(username))
+            .findFirst()
+            .orElse(null);
+    }
+
+    public UserEntity findByEmail(String email) {
+        return users.stream()
+            .filter(u -> u.getEmail() != null && u.getEmail().equalsIgnoreCase(email))
             .findFirst()
             .orElse(null);
     }

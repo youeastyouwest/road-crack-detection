@@ -1,26 +1,26 @@
 <template>
   <div class="worker-page">
     <div class="page-header">
-      <h2>我的工单</h2>
+      <h2>{{ t("mywo.title") }}</h2>
       <div class="header-stats">
-        <div class="stat-chip pending">{{ pendingCount }} 待处理</div>
-        <div class="stat-chip progress">{{ inProgressCount }} 进行中</div>
-        <div class="stat-chip review">{{ reviewCount }} 待审核</div>
-        <div class="stat-chip done">{{ doneCount }} 已关闭</div>
+        <div class="stat-chip pending">{{ pendingCount }} {{ t("mywo.pending") }}</div>
+        <div class="stat-chip progress">{{ inProgressCount }} {{ t("mywo.inProgress") }}</div>
+        <div class="stat-chip review">{{ reviewCount }} {{ t("mywo.review") }}</div>
+        <div class="stat-chip done">{{ doneCount }} {{ t("mywo.done") }}</div>
       </div>
     </div>
 
     <!-- Filters -->
     <div class="filter-bar">
-      <el-input v-model="searchQuery" placeholder="搜索工单标题 / 位置" clearable style="width:260px" />
-      <el-select v-model="statusFilter" placeholder="工单状态" clearable style="width:160px">
-        <el-option label="待处理" value="ASSIGNED" />
-        <el-option label="进行中" value="IN_PROGRESS" />
-        <el-option label="已完成待提交" value="COMPLETED" />
-        <el-option label="待审核" value="PENDING_DEPT_REVIEW" />
-        <el-option label="待终审" value="PENDING_ADMIN_REVIEW" />
-        <el-option label="已驳回" value="REJECTED" />
-        <el-option label="已关闭" value="CLOSED" />
+      <el-input v-model="searchQuery" :placeholder="t('wo.searchPlaceholder')" clearable style="width:260px" />
+      <el-select v-model="statusFilter" :placeholder="t('common.status')" clearable style="width:160px">
+        <el-option :label="t('status.pending')" value="ASSIGNED" />
+        <el-option :label="t('status.inProgress')" value="IN_PROGRESS" />
+        <el-option :label="t('status.completed')" value="COMPLETED" />
+        <el-option :label="t('status.pendingDeptReview')" value="PENDING_DEPT_REVIEW" />
+        <el-option :label="t('status.pendingAdminReview')" value="PENDING_ADMIN_REVIEW" />
+        <el-option :label="t('status.rejected')" value="REJECTED" />
+        <el-option :label="t('status.closed')" value="CLOSED" />
       </el-select>
     </div>
 
@@ -32,51 +32,51 @@
           <el-tag :type="statusType(item.status)" size="small">{{ statusLabel(item.status) }}</el-tag>
         </div>
         <div class="wo-meta">
-          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ item.location || "位置待定" }}</span>
-          <span v-if="item.departmentCode">部门: {{ deptLabel(item.departmentCode) }}</span>
-          <span>创建: {{ formatDate(item.createdAt) }}</span>
+          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ item.location || t("wo.pendingPosition") }}</span>
+          <span v-if="item.departmentCode">{{ t("wo.department") }}: {{ deptLabel(item.departmentCode) }}</span>
+          <span>{{ t("wo.createdPrefix") }}{{ formatDate(item.createdAt) }}</span>
         </div>
         <div class="wo-bottom">
-          <el-tag v-if="item.severityLevel === 'HIGH'" type="danger" size="small">严重</el-tag>
-          <el-tag v-else-if="item.severityLevel === 'MEDIUM'" type="warning" size="small">中等</el-tag>
-          <el-tag v-else type="info" size="small">轻微</el-tag>
+          <el-tag v-if="item.severityLevel === 'HIGH'" type="danger" size="small">{{ t("severity.high") }}</el-tag>
+          <el-tag v-else-if="item.severityLevel === 'MEDIUM'" type="warning" size="small">{{ t("severity.medium") }}</el-tag>
+          <el-tag v-else type="info" size="small">{{ t("severity.low") }}</el-tag>
           <span class="wo-code">{{ item.workOrderCode || '#' + item.id }}</span>
           <div class="wo-actions">
-            <button class="action-btn" @click="viewDetail(item)">详情</button>
-            <button class="action-btn action-start" v-if="item.status==='ASSIGNED'" @click="handleStart(item)">开始执行</button>
-            <button class="action-btn action-complete" v-if="item.status==='IN_PROGRESS'" @click="handleComplete(item)">标记完成</button>
+            <button class="action-btn" @click="viewDetail(item)">{{ t("common.detail") }}</button>
+            <button class="action-btn action-start" v-if="item.status==='ASSIGNED'" @click="handleStart(item)">{{ t("mywo.startWork") }}</button>
+            <button class="action-btn action-complete" v-if="item.status==='IN_PROGRESS'" @click="handleComplete(item)">{{ t("mywo.markDone") }}</button>
             <button class="action-btn action-report" v-if="item.status==='COMPLETED' || item.status==='REJECTED'" @click="goSubmitReport(item)">
-              {{ item.status === 'REJECTED' ? '重新提交报告' : '提交维修报告' }}
+              {{ item.status === 'REJECTED' ? t("mywo.resubmitReport") : t("mywo.submitReport") }}
             </button>
           </div>
         </div>
       </div>
-      <el-empty v-if="filteredOrders.length === 0" description="暂无工单" />
+      <el-empty v-if="filteredOrders.length === 0" :description="t('mywo.noData')" />
     </div>
 
     <!-- Detail Modal -->
     <div v-if="showDetail" class="modal-overlay" @click.self="showDetail=false">
       <div class="modal-card">
-        <div class="modal-head"><span>工单详情 #{{ detailTarget?.workOrderCode || detailTarget?.id }}</span><button class="modal-close" @click="showDetail=false">x</button></div>
+        <div class="modal-head"><span>{{ t("wo.detail") }} #{{ detailTarget?.workOrderCode || detailTarget?.id }}</span><button class="modal-close" @click="showDetail=false">x</button></div>
         <div class="modal-body">
-          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div>
+          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">{{ t("common.loading") }}</div>
           <template v-else>
             <div class="detail-grid">
-              <div><label class="detail-label">标题</label><div class="detail-val">{{ detailTarget?.title }}</div></div>
-              <div><label class="detail-label">状态</label><div class="detail-val"><el-tag :type="statusType(detailTarget?.status || '')" size="small">{{ statusLabel(detailTarget?.status || '') }}</el-tag></div></div>
-              <div><label class="detail-label">位置</label><div class="detail-val">{{ detailTarget?.location || '--' }}</div></div>
-              <div><label class="detail-label">部门</label><div class="detail-val">{{ deptLabel(detailTarget?.departmentCode || '') }}</div></div>
-              <div><label class="detail-label">等级</label><div class="detail-val">
-                <el-tag v-if="detailTarget?.severityLevel === 'HIGH'" type="danger" size="small">严重</el-tag>
-                <el-tag v-else-if="detailTarget?.severityLevel === 'MEDIUM'" type="warning" size="small">中等</el-tag>
-                <el-tag v-else type="info" size="small">轻微</el-tag>
+              <div><label class="detail-label">{{ t("wo.title") }}</label><div class="detail-val">{{ detailTarget?.title }}</div></div>
+              <div><label class="detail-label">{{ t("common.status") }}</label><div class="detail-val"><el-tag :type="statusType(detailTarget?.status || '')" size="small">{{ statusLabel(detailTarget?.status || '') }}</el-tag></div></div>
+              <div><label class="detail-label">{{ t("wo.location") }}</label><div class="detail-val">{{ detailTarget?.location || '--' }}</div></div>
+              <div><label class="detail-label">{{ t("wo.department") }}</label><div class="detail-val">{{ deptLabel(detailTarget?.departmentCode || '') }}</div></div>
+              <div><label class="detail-label">{{ t("wo.level") }}</label><div class="detail-val">
+                <el-tag v-if="detailTarget?.severityLevel === 'HIGH'" type="danger" size="small">{{ t("severity.high") }}</el-tag>
+                <el-tag v-else-if="detailTarget?.severityLevel === 'MEDIUM'" type="warning" size="small">{{ t("severity.medium") }}</el-tag>
+                <el-tag v-else type="info" size="small">{{ t("severity.low") }}</el-tag>
               </div></div>
-              <div><label class="detail-label">病害类型</label><div class="detail-val">{{ damageTypeLabel(detailTarget?.damageType || '') }}</div></div>
-              <div><label class="detail-label">创建时间</label><div class="detail-val">{{ formatDate(detailTarget?.createdAt) || '--' }}</div></div>
-              <div v-if="detailTarget?.description" style="grid-column:1/-1"><label class="detail-label">描述</label><div class="detail-val">{{ detailTarget.description }}</div></div>
+              <div><label class="detail-label">{{ t("wo.damageType") }}</label><div class="detail-val">{{ damageTypeLabel(detailTarget?.damageType || '') }}</div></div>
+              <div><label class="detail-label">{{ t("wo.createdAt") }}</label><div class="detail-val">{{ formatDate(detailTarget?.createdAt) || '--' }}</div></div>
+              <div v-if="detailTarget?.description" style="grid-column:1/-1"><label class="detail-label">{{ t("wo.description") }}</label><div class="detail-val">{{ detailTarget.description }}</div></div>
             </div>
             <div v-if="detailTarget?.statusLogs?.length" style="margin-top:20px;border-top:1px solid #f0f2f5;padding-top:16px">
-              <label class="detail-label">状态流转记录</label>
+              <label class="detail-label">{{ t("wo.statusFlow") }}</label>
               <div class="status-timeline">
                 <div v-for="(log, i) in detailTarget.statusLogs" :key="i" class="timeline-item">
                   <div class="timeline-dot"></div>
@@ -91,7 +91,7 @@
           </template>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showDetail=false">关闭</button>
+          <button class="btn-ghost" @click="showDetail=false">{{ t("common.close") }}</button>
         </div>
       </div>
     </div>
@@ -105,6 +105,7 @@ import { useAuthStore } from "@/stores/auth"
 import { workOrderApi } from "@/api"
 import type { WorkOrderResponse } from "@/types"
 import { ElMessage, ElMessageBox } from "element-plus"
+import { t } from "@/i18n"
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -167,20 +168,25 @@ function statusType(s: string) {
 
 function statusLabel(s: string) {
   const map: Record<string, string> = {
-    PENDING_ASSIGNMENT: "待指派", ASSIGNED: "待处理", IN_PROGRESS: "进行中",
-    COMPLETED: "已完成待提交", PENDING_DEPT_REVIEW: "待部门审核",
-    PENDING_ADMIN_REVIEW: "待终审", REJECTED: "已驳回",
-    CLOSED: "已关闭", CANCELLED: "已取消",
+    PENDING_ASSIGNMENT: t("status.pendingAssignment"),
+    ASSIGNED: t("status.pending"),
+    IN_PROGRESS: t("status.inProgress"),
+    COMPLETED: t("status.completed"),
+    PENDING_DEPT_REVIEW: t("status.pendingDeptReview"),
+    PENDING_ADMIN_REVIEW: t("status.pendingAdminReview"),
+    REJECTED: t("status.rejected"),
+    CLOSED: t("status.closed"),
+    CANCELLED: t("status.cancelled"),
   }
   return map[s] || s
 }
 
 function deptLabel(code: string) {
-  return ({ ROAD_ADMIN: "道路管理部", SANITATION: "环卫部", TRAFFIC_POLICE: "交警部" } as any)[code] || code || "--"
+  return ({ ROAD_ADMIN: t("user.roleRoadAdmin"), SANITATION: t("user.roleSanitAdmin"), TRAFFIC_POLICE: t("user.roleTrafficAdmin") } as any)[code] || code || "--"
 }
 
-function damageTypeLabel(t: string) {
-  return ({ CRACK: "裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知" } as any)[t] || t || "--"
+function damageTypeLabel(t2: string) {
+  return ({ CRACK: t("damage.crack"), POTHOLE: t("damage.pothole"), MARKING_DAMAGE: t("damage.markingDamage"), ROAD_SPILL: t("damage.roadSpill"), UNKNOWN: t("damage.unknown") } as any)[t2] || t2 || "--"
 }
 
 function formatDate(dt?: string): string {
@@ -204,18 +210,18 @@ async function viewDetail(row: WorkOrderResponse) {
 
 async function handleStart(row: WorkOrderResponse) {
   try {
-    await ElMessageBox.confirm("确认开始执行此工单?", "开始执行", { type: "info" })
+    await ElMessageBox.confirm(t("mywo.startConfirm"), t("mywo.startTitle"), { type: "info" })
     await workOrderApi.updateStatus(row.id, { status: "IN_PROGRESS" } as any)
-    ElMessage.success("已开始执行")
+    ElMessage.success(t("mywo.started"))
     await loadData()
   } catch { /* cancelled */ }
 }
 
 async function handleComplete(row: WorkOrderResponse) {
   try {
-    await ElMessageBox.confirm("确认标记此工单为已完成? 标记后需提交维修报告。", "标记完成", { type: "warning" })
+    await ElMessageBox.confirm(t("mywo.completeConfirm"), t("mywo.completeTitle"), { type: "warning" })
     await workOrderApi.updateStatus(row.id, { status: "COMPLETED" } as any)
-    ElMessage.success("工单已标记完成，请提交维修报告")
+    ElMessage.success(t("mywo.completedHint"))
     await loadData()
   } catch { /* cancelled */ }
 }

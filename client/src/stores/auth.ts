@@ -24,6 +24,7 @@ export const useAuthStore = defineStore("auth", () => {
   const isTrafficAdmin = computed(() => primaryRole.value === RoleCode.TRAFFIC_ADMIN)
   const isMaintainer = computed(() => primaryRole.value === RoleCode.MAINTAINER)
   const isCrowdsource = computed(() => primaryRole.value === RoleCode.CROWDSOURCE)
+  const isViewer = computed(() => primaryRole.value === RoleCode.VIEWER)
 
   // ─── Group helpers ───
   const isDeptAdmin = computed(() => DEPT_ADMIN_ROLES.includes(primaryRole.value))
@@ -46,6 +47,7 @@ export const useAuthStore = defineStore("auth", () => {
       ROLE_TRAFFIC_ADMIN: "交管管理员",
       ROLE_MAINTAINER: "维修工",
       ROLE_CROWDSOURCE: "众包人员",
+      ROLE_VIEWER: "查看员",
     }
     return map[primaryRole.value] || primaryRole.value
   })
@@ -58,12 +60,17 @@ export const useAuthStore = defineStore("auth", () => {
       ROLE_TRAFFIC_ADMIN: "#dc2626",
       ROLE_MAINTAINER: "#2563eb",
       ROLE_CROWDSOURCE: "#8b5cf6",
+      ROLE_VIEWER: "#7c3aed",
     }
     return map[primaryRole.value] || "#6366f1"
   })
 
   async function login(data: LoginRequest) {
     const res = await authApi.login(data)
+    // 校验业务返回码
+    if (res.data.code !== 200 || !res.data.data) {
+      throw new Error(res.data.message || "登录失败")
+    }
     const d = res.data.data
     token.value = d.accessToken
     refreshToken.value = d.refreshToken
@@ -108,7 +115,7 @@ export const useAuthStore = defineStore("auth", () => {
     token, userId, username, realName, roles, userDetail,
     isLoggedIn,
     isAdmin, isRoadAdmin, isSanitAdmin, isTrafficAdmin,
-    isMaintainer, isCrowdsource,
+    isMaintainer, isCrowdsource, isViewer,
     isDeptAdmin, isMaintenance, primaryRole, deptCode, roleLabel, roleColor,
     login, logout, fetchUserDetail,
   }

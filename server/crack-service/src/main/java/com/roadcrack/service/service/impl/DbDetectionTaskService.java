@@ -51,11 +51,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -87,6 +90,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
     private final AmapGeocodeClient amapGeocodeClient;
     private final RoadHealthArchiveService roadHealthArchiveService;
     private final WorkOrderMapper workOrderMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DbDetectionTaskService(DetectionTaskMapper detectionTaskMapper,
                                   DetectionMediaMapper detectionMediaMapper,
@@ -675,6 +679,14 @@ public class DbDetectionTaskService implements DetectionTaskService {
         resultEntity.setGeneratedWorkOrderId(null);
         // imageBase64 字段已被 HttpAlgorithmClient 转换为 /uploads/result/xxx.png URL
         resultEntity.setAnnotatedImageUrl(analysisResult.imageBase64());
+        // 保存关键帧 URL 列表（JSON 格式）
+        if (analysisResult.keyframeUrls() != null && !analysisResult.keyframeUrls().isEmpty()) {
+            try {
+                resultEntity.setKeyframeUrls(objectMapper.writeValueAsString(analysisResult.keyframeUrls()));
+            } catch (Exception e) {
+                resultEntity.setKeyframeUrls(null);
+            }
+        }
         resultEntity.setCompletedAt(now);
         resultEntity.setCreatedAt(now);
         resultEntity.setUpdatedAt(now);
@@ -945,13 +957,25 @@ public class DbDetectionTaskService implements DetectionTaskService {
                 .map(this::toItemResponse)
                 .toList();
 
+        // 解析关键帧 URL 列表
+        List<String> keyframeUrls = null;
+        String kfJson = resultEntity.getKeyframeUrls();
+        if (kfJson != null && !kfJson.isBlank()) {
+            try {
+                keyframeUrls = objectMapper.readValue(kfJson, objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+            } catch (Exception e) {
+                keyframeUrls = null;
+            }
+        }
+
         return new DetectionResultResponse(
                 taskId,
                 resultEntity.getSummary(),
                 items,
                 resultEntity.getGeneratedWorkOrderId(),
                 resultEntity.getCompletedAt(),
-                resultEntity.getAnnotatedImageUrl()
+                resultEntity.getAnnotatedImageUrl(),
+                keyframeUrls
         );
     }
 

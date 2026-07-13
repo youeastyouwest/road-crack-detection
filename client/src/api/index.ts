@@ -27,10 +27,15 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 http.interceptors.response.use(
   (response) => response,
   (error) => {
+    const url = error.config?.url || ""
+    const isAuthEndpoint = url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/send-code") || url.includes("/auth/reset-password")
     if (error.response?.status === 401) {
-      localStorage.clear()
-      router.push("/login")
-      ElMessage.error("登录已过期，请重新登录")
+      // 登录/注册接口的 401 由业务代码自行处理，不做全局拦截
+      if (!isAuthEndpoint) {
+        localStorage.clear()
+        router.push("/login")
+        ElMessage.error("登录已过期，请重新登录")
+      }
     } else if (error.response?.status === 403) {
       ElMessage.error("无权限访问")
     } else if (error.response?.status === 500) {

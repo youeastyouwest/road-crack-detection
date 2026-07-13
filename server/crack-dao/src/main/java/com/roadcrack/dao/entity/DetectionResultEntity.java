@@ -43,6 +43,9 @@ public class DetectionResultEntity {
     @TableField("updated_at")
     private LocalDateTime updatedAt;
 
+    @TableField("keyframe_urls")
+    private String keyframeUrls;
+
     public Long getId() {
         return id;
     }
@@ -129,5 +132,13 @@ public class DetectionResultEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getKeyframeUrls() {
+        return keyframeUrls;
+    }
+
+    public void setKeyframeUrls(String keyframeUrls) {
+        this.keyframeUrls = keyframeUrls;
     }
 }
