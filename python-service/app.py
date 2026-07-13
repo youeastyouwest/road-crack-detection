@@ -58,14 +58,14 @@ from model import CrackDetector, DetectionResult, CLASS_NAMES_CN
 class Settings:
     """应用配置"""
     # 服务配置
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    HOST: str = os.getenv("CRACK_HOST", "0.0.0.0")
+    PORT: int = int(os.getenv("CRACK_PORT", "8000"))
 
     # 模型配置
-    WEIGHTS_PATH: str = "best.pt"
-    CONF_THRESHOLD: float = 0.05
+    WEIGHTS_PATH: str = os.getenv("CRACK_WEIGHTS_PATH", "best.pt")
+    CONF_THRESHOLD: float = float(os.getenv("CRACK_CONF_THRESHOLD", "0.05"))
     IOU_THRESHOLD: float = 0.45
-    DEVICE: str = ""  # 空=自动选择
+    DEVICE: str = os.getenv("CRACK_DEVICE", "")  # 空=自动选择
 
     # 文件存储
     UPLOAD_DIR: Path = Path("runs/app/uploads")
@@ -923,13 +923,21 @@ def main():
     parser.add_argument("--reload", action="store_true",
                         help="热重载模式 (开发用)")
     args = parser.parse_args()
+    weights_path = str(Path(args.weights).expanduser().resolve())
 
     # 更新配置
     settings.HOST = args.host
     settings.PORT = args.port
-    settings.WEIGHTS_PATH = args.weights
+    settings.WEIGHTS_PATH = weights_path
     settings.CONF_THRESHOLD = args.conf
     settings.DEVICE = args.device
+
+    # 让 uvicorn 重新导入 app 模块时也能读到启动参数
+    os.environ["CRACK_HOST"] = args.host
+    os.environ["CRACK_PORT"] = str(args.port)
+    os.environ["CRACK_WEIGHTS_PATH"] = weights_path
+    os.environ["CRACK_CONF_THRESHOLD"] = str(args.conf)
+    os.environ["CRACK_DEVICE"] = args.device
 
     print(f"""
 ╔════════════════════════════════════════╗
@@ -938,7 +946,7 @@ def main():
 ║  地址: http://{args.host}:{args.port}      ║
 ║  文档: http://{args.host}:{args.port}/docs ║
 ║  WebUI: http://{args.host}:{args.port}/webui ║
-║  模型: {args.weights}                     ║
+║  模型: {weights_path}                     ║
 ║  设备: {args.device or '自动'}                   ║
 ╚════════════════════════════════════════╝
     """)

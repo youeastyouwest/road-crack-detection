@@ -5,9 +5,9 @@ spring:
   application:
     name: road-crack-backend
   datasource:
-    url: jdbc:mysql://localhost:3308/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     username: root
-    password: 123456
+    password: wy167168
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
     multipart:
@@ -34,7 +34,7 @@ crack:
       base-url: https://api.siliconflow.cn/v1
       model: Qwen/Qwen2.5-7B-Instruct
   upload:
-    dir: D:/road-crack-detection/uploads
+    dir: uploads
   websocket:
     endpoint: /ws/crack
 
@@ -58,9 +58,9 @@ spring:
     activate:
       on-profile: db
   datasource:
-    url: jdbc:mysql://localhost:3308/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     username: root
-    password: 123456
+    password: wy167168
     driver-class-name: com.mysql.cj.jdbc.Driver
   sql:
     init:

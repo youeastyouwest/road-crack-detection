@@ -127,7 +127,8 @@ class WorkflowQueryIntegrationTest {
                                 fileName,
                                 "http://example.com/" + fileName,
                                 location,
-                                "workflow query test"
+                                "workflow query test",
+                                null
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))

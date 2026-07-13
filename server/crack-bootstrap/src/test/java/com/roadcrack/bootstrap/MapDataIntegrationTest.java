@@ -97,7 +97,8 @@ class MapDataIntegrationTest {
                                 fileName,
                                 "http://example.com/" + fileName,
                                 location,
-                                "map api test"
+                                "map api test",
+                                null
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))

@@ -431,10 +431,14 @@ function canDispatch(data: DetectionResultResponse) {
 }
 
 async function handleDispatch(taskId: number, data: DetectionResultResponse) {
+  if (data?.generatedWorkOrderId) {
+    ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
+    return
+  }
   ElMessageBox.confirm("此检测结果包含严重病害，确认派发维修工单？", "派单确认", { confirmButtonText: "确认派单", cancelButtonText: "取消", type: "warning" })
     .then(async () => {
       try {
-        await workOrderApi.create({
+        const res = await workOrderApi.create({
           detectionTaskId: taskId,
           title: "病害维修工单",
           damageType: data.items[0]?.damageType as any,
@@ -443,9 +447,18 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
           location: modalTask.value?.location || "",
           description: data.summary || "",
         })
+        const workOrderId = res.data.data?.id
+        if (workOrderId) {
+          data.generatedWorkOrderId = workOrderId
+        }
         ElMessage.success("工单已派发")
         window.dispatchEvent(new CustomEvent("data-updated"))
-      } catch {
+      } catch (e: any) {
+        const message = e?.response?.data?.message || ""
+        if (message.includes("自动") || message.includes("已生成") || message.includes("已存在")) {
+          ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
+          return
+        }
         ElMessage.error("派单失败")
       }
     })

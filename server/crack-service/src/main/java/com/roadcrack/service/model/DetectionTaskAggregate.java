@@ -100,10 +100,6 @@ public class DetectionTaskAggregate {
         return fileName;
     }
 
-    public String getTaskCode() {
-        return taskCode;
-    }
-
     public String getFileUrl() {
         return fileUrl;
     }

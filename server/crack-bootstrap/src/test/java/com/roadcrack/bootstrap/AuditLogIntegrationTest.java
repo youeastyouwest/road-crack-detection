@@ -87,7 +87,8 @@ class AuditLogIntegrationTest {
                                 "audit-log-road-crack.jpg",
                                 "http://example.com/audit-log-road-crack.jpg",
                                 "Changsha Yuelu Avenue",
-                                "audit log test"
+                                "audit log test",
+                                null
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))

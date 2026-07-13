@@ -49,7 +49,8 @@ class DetectionValidationIntegrationTest {
                 "road-crack-01.jpg",
                 "",
                 "Changsha test road",
-                "test task"
+                "test task",
+                null
         );
 
         mockMvc.perform(post("/api/detection-tasks")
@@ -117,7 +118,8 @@ class DetectionValidationIntegrationTest {
                 "road-crack-02.jpg",
                 "http://example.com/road-crack-02.jpg",
                 "Changsha validation road",
-                "validation task"
+                "validation task",
+                null
         );
 
         MvcResult result = mockMvc.perform(post("/api/detection-tasks")

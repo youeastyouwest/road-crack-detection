@@ -18,50 +18,53 @@ final class MapDataSupport {
 
     static String damageTypeLabel(DamageType damageType) {
         if (damageType == null) {
-            return "未分类";
+            return "unknown";
         }
         return switch (damageType) {
-            case CRACK -> "裂缝";
-            case MARKING_DAMAGE -> "标线破损";
-            case ROAD_SPILL -> "路面抛洒";
-            case POTHOLE -> "坑槽";
-            case UNKNOWN -> "未知病害";
+            case CRACK -> "crack";
+            case MARKING_DAMAGE -> "marking_damage";
+            case ROAD_SPILL -> "road_spill";
+            case POTHOLE -> "pothole";
+            case UNKNOWN -> "unknown_damage";
         };
     }
 
     static String severityLabel(SeverityLevel severityLevel) {
         if (severityLevel == null) {
-            return "未知";
+            return "unknown";
         }
         return switch (severityLevel) {
-            case LOW -> "低";
-            case MEDIUM -> "中";
-            case HIGH -> "高";
+            case LOW -> "low";
+            case MEDIUM -> "medium";
+            case HIGH -> "high";
         };
     }
 
     static String statusLabel(WorkOrderStatus status) {
         if (status == null) {
-            return "未生成工单";
+            return "unknown";
         }
         return switch (status) {
-            case PENDING_ASSIGNMENT -> "待派发";
-            case ASSIGNED -> "已派发";
-            case IN_PROGRESS -> "处理中";
-            case COMPLETED -> "已完成";
-            case CLOSED -> "已关闭";
-            case CANCELLED -> "已取消";
+            case PENDING_ASSIGNMENT -> "pending_assignment";
+            case ASSIGNED -> "assigned";
+            case IN_PROGRESS -> "in_progress";
+            case COMPLETED -> "completed";
+            case PENDING_DEPT_REVIEW -> "pending_dept_review";
+            case PENDING_ADMIN_REVIEW -> "pending_admin_review";
+            case REJECTED -> "rejected";
+            case CLOSED -> "closed";
+            case CANCELLED -> "cancelled";
         };
     }
 
     static String departmentLabel(DepartmentCode departmentCode) {
         if (departmentCode == null) {
-            return "未分配";
+            return "unassigned";
         }
         return switch (departmentCode) {
-            case ROAD_ADMIN -> "道路管理";
-            case SANITATION -> "环卫部门";
-            case TRAFFIC_POLICE -> "交管部门";
+            case ROAD_ADMIN -> "road_admin";
+            case SANITATION -> "sanitation";
+            case TRAFFIC_POLICE -> "traffic_police";
         };
     }
 

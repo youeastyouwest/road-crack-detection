@@ -55,20 +55,17 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
     private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final TaskExecutor detectionTaskExecutor;
-    private final AuditLogService auditLogService;
 
     public InMemoryDetectionTaskService(AlgorithmClient algorithmClient,
                                         WorkOrderService workOrderService,
                                         AuditLogService auditLogService,
                                         RealtimeMessagePublisher realtimeMessagePublisher,
-                                        @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor,
-                                        AuditLogService auditLogService) {
+                                        @Qualifier("detectionTaskExecutor") TaskExecutor detectionTaskExecutor) {
         this.algorithmClient = algorithmClient;
         this.workOrderService = workOrderService;
         this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.detectionTaskExecutor = detectionTaskExecutor;
-        this.auditLogService = auditLogService;
         seedTasks();
     }
 

@@ -127,7 +127,8 @@ class DetectionWorkflowIntegrationTest {
                 "road-crack-01.jpg",
                 "http://example.com/road-crack-01.jpg",
                 "Changsha test road",
-                "test task"
+                "test task",
+                null
         );
 
         MvcResult result = mockMvc.perform(post("/api/detection-tasks")

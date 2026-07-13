@@ -1,6 +1,7 @@
 package com.roadcrack.service.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.roadcrack.api.enums.DamageType;
 import com.roadcrack.api.enums.DepartmentCode;
@@ -20,6 +21,7 @@ import com.roadcrack.dao.entity.DetectionResultItemEntity;
 import com.roadcrack.dao.entity.RoadEntity;
 import com.roadcrack.dao.entity.WorkOrderEntity;
 import com.roadcrack.dao.entity.WorkOrderFlowEntity;
+import com.roadcrack.dao.mapper.DetectionResultMapper;
 import com.roadcrack.dao.mapper.DetectionResultItemMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
 import com.roadcrack.dao.mapper.RoadMapper;
@@ -31,6 +33,8 @@ import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.WorkOrderService;
 import com.roadcrack.service.util.RoadHealthScoreCalculator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,13 +64,16 @@ public class DbWorkOrderService implements WorkOrderService {
     private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
     private final RoadMapper roadMapper;
+    private final DetectionResultMapper detectionResultMapper;
     private final DetectionTaskMapper detectionTaskMapper;
     private final DetectionResultItemMapper detectionResultItemMapper;
 
     public DbWorkOrderService(WorkOrderMapper workOrderMapper,
                               WorkOrderFlowMapper workOrderFlowMapper,
+                              AuditLogService auditLogService,
                               RealtimeMessagePublisher realtimeMessagePublisher,
                               RoadMapper roadMapper,
+                              DetectionResultMapper detectionResultMapper,
                               DetectionTaskMapper detectionTaskMapper,
                               DetectionResultItemMapper detectionResultItemMapper) {
         this.workOrderMapper = workOrderMapper;
@@ -74,6 +81,7 @@ public class DbWorkOrderService implements WorkOrderService {
         this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
         this.roadMapper = roadMapper;
+        this.detectionResultMapper = detectionResultMapper;
         this.detectionTaskMapper = detectionTaskMapper;
         this.detectionResultItemMapper = detectionResultItemMapper;
     }
@@ -212,14 +220,14 @@ public class DbWorkOrderService implements WorkOrderService {
         log.info("Work order assigned in db: workOrderId={}, workOrderCode={}, department={}, assignee={}",
                 entity.getId(),
                 entity.getWorkOrderCode(),
-                request.departmentCode(),
-                request.assignee());
+                entity.getDepartmentCode(),
+                assignee);
         auditLogService.record(AuditLogRecord.success(
                         MODULE_WORK_ORDER,
                         "ASSIGN",
                         "Assigned work order " + entity.getWorkOrderCode())
                 .setUsername(DEFAULT_OPERATOR)
-                .setParams(buildAssignParams(entity, request))
+                .setParams(buildAssignWorkerParams(entity, assignee))
                 .setCreateTime(now));
         return publishAndReturn(entity.getId());
     }
@@ -395,6 +403,21 @@ public class DbWorkOrderService implements WorkOrderService {
     }
 
     private WorkOrderResponse createWorkOrderInternal(CreateWorkOrderRequest request, String sourceType, String operatorName) {
+        if (request.detectionTaskId() != null) {
+            WorkOrderEntity existing = workOrderMapper.selectOne(new LambdaQueryWrapper<WorkOrderEntity>()
+                    .eq(WorkOrderEntity::getDetectionTaskId, request.detectionTaskId())
+                    .orderByDesc(WorkOrderEntity::getCreatedAt)
+                    .last("limit 1"));
+            if (existing != null) {
+                attachGeneratedWorkOrder(request.detectionTaskId(), existing.getId());
+                log.info("Reusing existing work order for detection task: detectionTaskId={}, workOrderId={}, workOrderCode={}",
+                        request.detectionTaskId(),
+                        existing.getId(),
+                        existing.getWorkOrderCode());
+                return publishAndReturn(existing.getId());
+            }
+        }
+
         LocalDateTime now = LocalDateTime.now();
 
         WorkOrderEntity entity = new WorkOrderEntity();
@@ -413,6 +436,7 @@ public class DbWorkOrderService implements WorkOrderService {
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         workOrderMapper.insert(entity);
+        attachGeneratedWorkOrder(entity.getDetectionTaskId(), entity.getId());
 
         insertFlow(entity.getId(),
                 null,
@@ -546,11 +570,43 @@ public class DbWorkOrderService implements WorkOrderService {
         workOrderFlowMapper.insert(flowEntity);
     }
 
+    private void attachGeneratedWorkOrder(Long detectionTaskId, Long workOrderId) {
+        if (detectionTaskId == null || workOrderId == null) {
+            return;
+        }
+        detectionResultMapper.update(null, new LambdaUpdateWrapper<com.roadcrack.dao.entity.DetectionResultEntity>()
+                .eq(com.roadcrack.dao.entity.DetectionResultEntity::getTaskId, detectionTaskId)
+                .set(com.roadcrack.dao.entity.DetectionResultEntity::getGeneratedWorkOrderId, workOrderId)
+                .set(com.roadcrack.dao.entity.DetectionResultEntity::getUpdatedAt, LocalDateTime.now()));
+    }
+
     private String buildCode(LocalDate date) {
-        long count = workOrderMapper.selectCount(new LambdaQueryWrapper<WorkOrderEntity>()
-                .ge(WorkOrderEntity::getCreatedAt, date.atStartOfDay())
-                .lt(WorkOrderEntity::getCreatedAt, date.plusDays(1).atStartOfDay()));
-        return "WO-" + date.format(CODE_DATE_FORMATTER) + "-" + String.format("%06d", count + 1);
+        String prefix = "WO-" + date.format(CODE_DATE_FORMATTER) + "-";
+        WorkOrderEntity latest = workOrderMapper.selectOne(new LambdaQueryWrapper<WorkOrderEntity>()
+                .likeRight(WorkOrderEntity::getWorkOrderCode, prefix)
+                .orderByDesc(WorkOrderEntity::getWorkOrderCode)
+                .last("limit 1"));
+
+        int nextNumber = 1;
+        if (latest != null && latest.getWorkOrderCode() != null) {
+            String code = latest.getWorkOrderCode();
+            int lastDash = code.lastIndexOf('-');
+            if (lastDash >= 0 && lastDash < code.length() - 1) {
+                try {
+                    nextNumber = Integer.parseInt(code.substring(lastDash + 1)) + 1;
+                } catch (NumberFormatException ignored) {
+                    nextNumber = 1;
+                }
+            }
+        }
+
+        String candidate = prefix + String.format("%06d", nextNumber);
+        while (workOrderMapper.selectCount(new LambdaQueryWrapper<WorkOrderEntity>()
+                .eq(WorkOrderEntity::getWorkOrderCode, candidate)) > 0) {
+            nextNumber++;
+            candidate = prefix + String.format("%06d", nextNumber);
+        }
+        return candidate;
     }
 
     private LocalDateTime calculateDueAt(SeverityLevel severityLevel, LocalDateTime now) {
@@ -581,6 +637,13 @@ public class DbWorkOrderService implements WorkOrderService {
                 + ", workOrderCode=" + entity.getWorkOrderCode()
                 + ", department=" + request.departmentCode()
                 + ", assignee=" + safeValue(request.assignee());
+    }
+
+    private String buildAssignWorkerParams(WorkOrderEntity entity, String assignee) {
+        return "workOrderId=" + entity.getId()
+                + ", workOrderCode=" + entity.getWorkOrderCode()
+                + ", department=" + safeValue(entity.getDepartmentCode())
+                + ", assignee=" + safeValue(assignee);
     }
 
     private String buildStatusChangeParams(WorkOrderEntity entity,

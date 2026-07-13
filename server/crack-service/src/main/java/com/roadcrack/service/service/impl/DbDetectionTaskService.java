@@ -32,6 +32,7 @@ import com.roadcrack.dao.mapper.DetectionResultMapper;
 import com.roadcrack.dao.mapper.DetectionTaskMapper;
 import com.roadcrack.dao.mapper.RoadMapper;
 import com.roadcrack.dao.mapper.WorkOrderMapper;
+import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.client.AlgorithmClient;
 import com.roadcrack.service.client.AmapGeocodeClient;
 import com.roadcrack.service.model.DetectionAnalysisResult;
@@ -45,6 +46,8 @@ import com.roadcrack.service.util.RoadHealthScoreCalculator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.task.TaskExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,7 +87,6 @@ public class DbDetectionTaskService implements DetectionTaskService {
     private final AmapGeocodeClient amapGeocodeClient;
     private final RoadHealthArchiveService roadHealthArchiveService;
     private final WorkOrderMapper workOrderMapper;
-    private final AuditLogService auditLogService;
 
     public DbDetectionTaskService(DetectionTaskMapper detectionTaskMapper,
                                   DetectionMediaMapper detectionMediaMapper,
@@ -99,8 +101,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
                                   AlertMapper alertMapper,
                                   AmapGeocodeClient amapGeocodeClient,
                                   RoadHealthArchiveService roadHealthArchiveService,
-                                  WorkOrderMapper workOrderMapper,
-                                  AuditLogService auditLogService) {
+                                  WorkOrderMapper workOrderMapper) {
         this.detectionTaskMapper = detectionTaskMapper;
         this.detectionMediaMapper = detectionMediaMapper;
         this.detectionResultMapper = detectionResultMapper;
@@ -115,7 +116,6 @@ public class DbDetectionTaskService implements DetectionTaskService {
         this.amapGeocodeClient = amapGeocodeClient;
         this.roadHealthArchiveService = roadHealthArchiveService;
         this.workOrderMapper = workOrderMapper;
-        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -596,8 +596,20 @@ public class DbDetectionTaskService implements DetectionTaskService {
             DetectionAnalysisResult analysisResult = algorithmClient.analyze(aggregate);
             publishProgress(taskId, DetectionTaskStatus.PROCESSING, 70, "图像分析完成，正在生成检测结果");
 
-            Long generatedWorkOrderId = createWorkOrderIfNeeded(taskEntity, mediaEntity, analysisResult.items());
-            persistSuccessfulResult(taskEntity, mediaEntity, analysisResult, generatedWorkOrderId);
+            persistSuccessfulResult(taskEntity, mediaEntity, analysisResult);
+
+            Long generatedWorkOrderId = null;
+            try {
+                generatedWorkOrderId = createWorkOrderIfNeeded(taskEntity, mediaEntity, analysisResult.items());
+                if (generatedWorkOrderId != null) {
+                    attachGeneratedWorkOrder(taskEntity.getId(), generatedWorkOrderId);
+                }
+            } catch (Exception workOrderException) {
+                log.error("Auto work order creation failed for detection task: taskId={}, taskCode={}",
+                        taskId,
+                        taskEntity.getTaskCode(),
+                        workOrderException);
+            }
 
             // 检测到严重病害时自动生成告警
             createAlertIfNeeded(taskEntity, analysisResult, generatedWorkOrderId);
@@ -652,8 +664,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
     @Transactional
     protected void persistSuccessfulResult(DetectionTaskEntity taskEntity,
                                            DetectionMediaEntity mediaEntity,
-                                           DetectionAnalysisResult analysisResult,
-                                           Long generatedWorkOrderId) {
+                                           DetectionAnalysisResult analysisResult) {
         LocalDateTime now = LocalDateTime.now();
         DetectionResultEntity resultEntity = new DetectionResultEntity();
         resultEntity.setTaskId(taskEntity.getId());
@@ -661,7 +672,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
         resultEntity.setTotalDamageCount(analysisResult.items().size());
         resultEntity.setHighestSeverity(resolveHighestSeverity(analysisResult.items()));
         resultEntity.setAvgConfidence(calculateAverageConfidence(analysisResult.items()));
-        resultEntity.setGeneratedWorkOrderId(generatedWorkOrderId);
+        resultEntity.setGeneratedWorkOrderId(null);
         // imageBase64 字段已被 HttpAlgorithmClient 转换为 /uploads/result/xxx.png URL
         resultEntity.setAnnotatedImageUrl(analysisResult.imageBase64());
         resultEntity.setCompletedAt(now);
@@ -709,6 +720,13 @@ public class DbDetectionTaskService implements DetectionTaskService {
 
         // 检测完成后，自动生成道路健康档案（当天）
         autoGenerateHealthArchive(taskEntity.getRoadId(), now);
+    }
+
+    private void attachGeneratedWorkOrder(Long taskId, Long workOrderId) {
+        detectionResultMapper.update(null, new LambdaUpdateWrapper<DetectionResultEntity>()
+                .eq(DetectionResultEntity::getTaskId, taskId)
+                .set(DetectionResultEntity::getGeneratedWorkOrderId, workOrderId)
+                .set(DetectionResultEntity::getUpdatedAt, LocalDateTime.now()));
     }
 
     /**

@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="dc">
     <div class="dc-top">
       <div class="dc-top-left">
         <h2 class="dc-title">上传检测</h2>
-        <span class="dc-subtitle">支持图片和视频AI识别</span>
+        <span class="dc-subtitle">支持图片和视频 AI 识别</span>
       </div>
     </div>
 
@@ -27,7 +27,7 @@
 
           <div class="form-group">
             <label class="form-label">文件</label>
-            <div class="upload-zone" @drop.prevent="handleDrop" @dragover.prevent @click="$refs.fileInput.click()">
+            <div class="upload-zone" @drop.prevent="handleDrop" @dragover.prevent @click="fileInput?.click()">
               <input ref="fileInput" type="file" hidden @change="e => handleFileInput(e.target as HTMLInputElement)" accept="image/*,video/*" />
               <template v-if="form.fileUrl">
                 <img v-if="form.dataSourceType==='MANUAL_IMAGE'" :src="form.fileUrl" class="preview-img" @error="handleImgError" />
@@ -55,7 +55,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">文件</label>
+            <label class="form-label">备注</label>
             <textarea v-model="form.remark" class="form-textarea" rows="3" placeholder="输入备注信息..."></textarea>
           </div>
 
@@ -70,7 +70,7 @@
       <div class="card map-card">
         <div class="map-search-bar">
           <div class="map-search-wrap">
-            <input v-model="searchKeyword" class="map-search-input" placeholder="搜索地点，如：天安门、西湖、外滩..." @input="onSearchInput" @keyup.enter="doSearch" @focus="onSearchInput" @blur="hideSuggestions" />
+            <input v-model="searchKeyword" class="map-search-input" placeholder="搜索地点，例如：天安门、西湖、外滩" @input="onSearchInput" @keyup.enter="doSearch" @focus="onSearchInput" @blur="hideSuggestions" />
             <div v-if="suggestions.length > 0" class="map-suggestions">
               <div v-for="(s, i) in suggestions" :key="i" class="map-suggestion-item" @mousedown.prevent="selectSuggestion(s)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -85,7 +85,7 @@
         </div>
         <div id="collectionMap" class="map-container"></div>
         <div v-if="selectedPos" class="map-pos-info">
-          <span>经度 {{ selectedPos.lng.toFixed(6) }}, {{ selectedPos.lat.toFixed(6) }}</span>
+          <span>经纬度 {{ selectedPos.lng.toFixed(6) }}, {{ selectedPos.lat.toFixed(6) }}</span>
           <span v-if="selectedAddr" class="map-addr">{{ selectedAddr }}</span>
         </div>
       </div>
@@ -94,7 +94,7 @@
     <!-- Recent Tasks -->
     <div class="card tasks-card" style="margin-top:20px">
       <div class="card-head">
-        <span class="card-title">上传检测</span>
+        <span class="card-title">上传记录</span>
         <span v-if="tasks.length" class="card-count">{{ tasks.length }} 条</span>
       </div>
       <div class="card-body card-body-nopad">
@@ -119,7 +119,7 @@
     <div v-if="showResultModal" class="modal-overlay" @click.self="showResultModal=false">
       <div class="modal-card">
         <div class="modal-head">
-          <span>检测结果: {{ resultTask?.taskCode || resultTask?.id }} 
+          <span>检测结果 {{ resultTask?.taskCode || resultTask?.id }} 
             <span v-if="resultTask?.location" style="font-size:12px;color:#94a3b8;margin-left:8px">{{ resultTask.location }}</span>
           </span>
           <button class="modal-close" @click="showResultModal=false">×</button>
@@ -170,7 +170,7 @@
               <button class="btn-dispatch" @click="handleDispatch(resultTask?.id, resultData)">生成工单</button>
             </div>
           </div>
-          <div v-else class="modal-loading">加载检测结果...</div>
+          <div v-else class="modal-loading">加载检测结果中...</div>
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" @click="showResultModal=false">关闭</button>
@@ -202,7 +202,7 @@ const resultTask = ref<any>(null)
 const resultData = ref<any>(null)
 
 /**
- * 检测结果标注图。后端可能返回 base64 字符串或 /uploads/... 形式的 URL。
+ * 妫€娴嬬粨鏋滄爣娉ㄥ浘銆傚悗绔彲鑳借繑鍥?base64 瀛楃涓叉垨 /uploads/... 褰㈠紡鐨?URL銆?
  */
 const resultImageUrl = computed(() => {
   const v = resultData.value?.imageBase64
@@ -275,9 +275,9 @@ function reverseGeocode(lng: number, lat: number) {
       const formatted = regeocode.formattedAddress || ""
       const roads = regeocode.roads || []
 
-      // 提取道路名：用高德 formattedAddress 做基准，按"街道/镇/乡"分界后
-      // 取第一段路名，避免把 POI/小区名带进来。
-      const roadRegex = /[\u4e00-\u9fa5]+(?:路|街|道|巷|胡同|桥|高速|环路|大街|大道|快速路|二环|三环|四环|五环|六环|七环|八环|外环|内环|环)/
+      // 鎻愬彇閬撹矾鍚嶏細鐢ㄩ珮寰?formattedAddress 鍋氬熀鍑嗭紝鎸?琛楅亾/闀?涔?鍒嗙晫鍚?
+      // 鍙栫涓€娈佃矾鍚嶏紝閬垮厤鎶?POI/灏忓尯鍚嶅甫杩涙潵銆?
+      const roadRegex = /[\u4e00-\u9fa5]+(?:路|街|道|巷|环路|大街|大道|快速路)/
       let roadName = ""
 
       const township = ac.township
@@ -359,7 +359,7 @@ function hideSuggestions() {
 
 function doSearch() {
   if (!searchKeyword.value.trim()) return
-  // 如果有提示项，选择第一个
+  // 濡傛灉鏈夋彁绀洪」锛岄€夋嫨绗竴涓?
   if (suggestions.value.length > 0) {
     selectSuggestion(suggestions.value[0])
     return
@@ -412,8 +412,8 @@ function startPolling(taskId: number) {
       await loadTasks()
       const updated = tasks.value.find(t => t.id === taskId)
       if (updated?.status === "COMPLETED") { stopPolling(); ElMessage.success("AI 检测完成"); viewResult(taskId) }
-      else if (attempts >= 8) { stopPolling(); ElMessage.info("检测超时，请稍后刷新查看") }
-    } catch { if (attempts >= 8) stopPolling() }
+      else if (attempts >= 30) { stopPolling(); ElMessage.info("检测时间较长，请稍后刷新查看结果") }
+    } catch { if (attempts >= 30) stopPolling() }
   }, 2000)
 }
 
@@ -435,22 +435,76 @@ async function viewResult(taskId: number) {
   resultLoading.value = false
 }
 
-function damageTypeLabel(t: string) { return ({ CRACK: "裂缝", POTHOLE: "坑洞", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒" })[t] || t || "未知" }
-function damageTypeDesc(t: string) { return ({ CRACK: "道路表面出现裂缝", POTHOLE: "路面出现坑洞", MARKING_DAMAGE: "标线磨损/缺失", ROAD_SPILL: "路面污染/杂物" })[t] || "" }
-function severityLabel(s: string) { return ({ HIGH: "严重", MEDIUM: "中等", LOW: "轻微" })[s] || s }
-function severityDesc(s: string) { return ({ HIGH: "需要立即处理", MEDIUM: "建议尽快修复", LOW: "可安排常规养护" })[s] || "" }
+function damageTypeLabel(t: string) {
+  return ({ CRACK: "裂缝", POTHOLE: "坑洞", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒" })[t] || t || "未知"
+}
 
-function canDispatch(data: any) { return data?.items?.some((i: any) => i.severityLevel === "HIGH") }
+function damageTypeDesc(t: string) {
+  return ({
+    CRACK: "道路表面出现裂缝",
+    POTHOLE: "路面出现坑洞",
+    MARKING_DAMAGE: "标线磨损或缺失",
+    ROAD_SPILL: "路面污染或有杂物",
+  })[t] || ""
+}
+
+function severityLabel(s: string) {
+  return ({ HIGH: "严重", MEDIUM: "中等", LOW: "轻微" })[s] || s
+}
+
+function severityDesc(s: string) {
+  return ({ HIGH: "需要立即处理", MEDIUM: "建议尽快修复", LOW: "可安排常规养护" })[s] || ""
+}
+
+function canDispatch(data: any) {
+  return data?.items?.some((i: any) => i.severityLevel === "HIGH")
+}
 
 async function handleDispatch(taskId: number, data: any) {
-  ElMessageBox.confirm("确定要为该检测结果创建维修工单吗？", "生成工单", { confirmButtonText: "确认生成", cancelButtonText: "取消", type: "warning" })
+  if (data?.generatedWorkOrderId) {
+    ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
+    return
+  }
+
+  const firstItem = data?.items?.[0]
+  if (!firstItem) {
+    ElMessage.warning("当前检测结果缺少病害明细，暂时无法生成工单")
+    return
+  }
+
+  ElMessageBox.confirm("确定要为该检测结果创建维修工单吗？", "生成工单", {
+    confirmButtonText: "确认生成",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
     .then(async () => {
       try {
-        await workOrderApi.create({ detectionTaskId: taskId })
+        const res = await workOrderApi.create({
+          detectionTaskId: taskId,
+          title: "病害维修工单",
+          damageType: firstItem.damageType,
+          severityLevel: firstItem.severityLevel,
+          location: resultTask.value?.location || "",
+          departmentCode: "ROAD_ADMIN" as any,
+          evidenceUrl: resultTask.value?.fileUrl || "",
+          description: data?.summary || "",
+        })
+        const workOrderId = res.data.data?.id
+        if (workOrderId) {
+          data.generatedWorkOrderId = workOrderId
+        }
         ElMessage.success("工单已生成")
         window.dispatchEvent(new CustomEvent("data-updated"))
-      } catch { ElMessage.error("生成失败") }
-    }).catch(() => {})
+      } catch (e: any) {
+        const message = e?.response?.data?.message || ""
+        if (message.includes("自动") || message.includes("已生成") || message.includes("已存在")) {
+          ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
+          return
+        }
+        ElMessage.error("生成失败")
+      }
+    })
+    .catch(() => {})
 }
 
 onMounted(() => {
@@ -593,3 +647,5 @@ onUnmounted(() => {
 .btn-dispatch { padding: 8px 20px; background: #4338ca; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background .15s; }
 .btn-dispatch:hover { background: #3730a3; }
 </style>
+
+
