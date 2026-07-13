@@ -1,8 +1,1 @@
-package com.roadcrack.api.enums;
-
-public enum DetectionTaskStatus {
-    PENDING,
-    PROCESSING,
-    COMPLETED,
-    FAILED
-}
+package com.roadcrack.api.enums;  public enum DetectionTaskStatus {     PENDING,     PROCESSING,     COMPLETED,     FAILED }

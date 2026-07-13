@@ -1,0 +1,25 @@
+-- 众包上报表
+CREATE TABLE IF NOT EXISTS `crowd_report` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    `report_code` VARCHAR(50) NOT NULL UNIQUE COMMENT '上报编号',
+    `reporter_name` VARCHAR(100) COMMENT '上报人姓名',
+    `reporter_phone` VARCHAR(20) COMMENT '上报人手机号',
+    `location` VARCHAR(255) NOT NULL COMMENT '病害位置',
+    `lng` DECIMAL(12,7) COMMENT '经度',
+    `lat` DECIMAL(12,7) COMMENT '纬度',
+    `damage_type` VARCHAR(30) COMMENT '病害类型：CRACK/MARKING_DAMAGE/ROAD_SPILL/POTHOLE/UNKNOWN',
+    `severity_level` VARCHAR(20) COMMENT '严重程度：LOW/MEDIUM/HIGH',
+    `description` VARCHAR(1000) COMMENT '问题描述',
+    `image_url` VARCHAR(500) COMMENT '现场图片地址',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/APPROVED/REJECTED',
+    `remark` VARCHAR(500) COMMENT '审核备注',
+    `reviewed_by` VARCHAR(100) COMMENT '审核人',
+    `reviewed_at` DATETIME COMMENT '审核时间',
+    `detection_task_id` BIGINT COMMENT '关联检测任务ID',
+    `work_order_id` BIGINT COMMENT '关联工单ID',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX `idx_status_created_at` (`status`, `created_at`),
+    INDEX `idx_reporter_phone` (`reporter_phone`),
+    INDEX `idx_location` (`location`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='众包上报表';

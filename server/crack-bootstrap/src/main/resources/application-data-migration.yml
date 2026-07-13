@@ -1,0 +1,14 @@
+# data-migration profile 配置
+# 用于运行 RoadDataMigrationRunner 回填脚本
+# 启动方式：java -jar xxx.jar --spring.profiles.active=data-migration
+
+spring:
+  main:
+    web-application-type: none  # 不启动 Web 服务器
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.websocket.servlet.WebSocketServletAutoConfiguration
+
+logging:
+  level:
+    com.roadcrack.service.migration: DEBUG

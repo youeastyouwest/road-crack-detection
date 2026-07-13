@@ -12,12 +12,15 @@ public record DetectionTaskResponse(
         String fileName,
         String fileUrl,
         String location,
+        Long roadId,
         String remark,
         String submittedBy,
         DetectionTaskStatus status,
         String failureReason,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
+        String highestSeverity,
+        Integer damageCount,
         DetectionResultResponse result
 ) {
 }

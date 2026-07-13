@@ -1,8 +1,5 @@
 package com.roadcrack.service.client;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.roadcrack.api.enums.DamageType;
 import com.roadcrack.api.enums.SeverityLevel;
 import com.roadcrack.api.response.detection.BoundingBoxResponse;
@@ -10,441 +7,246 @@ import com.roadcrack.api.response.detection.DetectionItemResponse;
 import com.roadcrack.service.config.AlgorithmClientProperties;
 import com.roadcrack.service.model.DetectionAnalysisResult;
 import com.roadcrack.service.model.DetectionTaskAggregate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Locale;
+import java.nio.file.Paths;
+import java.util.*;
 
 @Component
 @ConditionalOnProperty(name = "crack.algorithm.mock-enabled", havingValue = "false")
 public class HttpAlgorithmClient implements AlgorithmClient {
 
     private static final Logger log = LoggerFactory.getLogger(HttpAlgorithmClient.class);
+    private final AlgorithmClientProperties props;
+    @org.springframework.beans.factory.annotation.Value("${crack.upload.dir:uploads}")
+    private String uploadDir;
 
-    private final ObjectMapper objectMapper;
-    private final AlgorithmClientProperties properties;
-    private final HttpClient httpClient;
-
-    public HttpAlgorithmClient(ObjectMapper objectMapper, AlgorithmClientProperties properties) {
-        this.objectMapper = objectMapper;
-        this.properties = properties;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(properties.getConnectTimeoutMillis()))
-                .build();
+    public HttpAlgorithmClient(AlgorithmClientProperties props) {
+        this.props = props;
     }
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public DetectionAnalysisResult analyze(DetectionTaskAggregate task) {
-        long startTime = System.currentTimeMillis();
-        URI uri = buildAnalyzeUri();
-        log.info("Calling algorithm service: taskId={}, taskCode={}, uri={}, fileUrl={}",
-                task.getId(),
-                task.getTaskCode(),
-                uri,
-                task.getFileUrl());
+        String url = props.getBaseUrl() + (props.getAnalyzePath() != null ? props.getAnalyzePath() : "/detect/base64");
         try {
-            byte[] imageBytes = loadImageBytes(task);
-            String requestBody = buildAnalyzeRequestBody(imageBytes);
-            HttpRequest request = HttpRequest.newBuilder(uri)
-                    .header("Content-Type", "application/json")
-                    .timeout(Duration.ofMillis(properties.getReadTimeoutMillis()))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
-            );
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.warn("Algorithm service returned non-success status: taskId={}, status={}, body={}",
-                        task.getId(),
-                        response.statusCode(),
-                        response.body());
-                throw new IllegalStateException("algorithm service returned status " + response.statusCode());
-            }
-
-            DetectionAnalysisResult result = parseResponse(response.body());
-            log.info("Algorithm service completed: taskId={}, status={}, itemCount={}, durationMs={}",
-                    task.getId(),
-                    response.statusCode(),
-                    result.items() == null ? 0 : result.items().size(),
-                    System.currentTimeMillis() - startTime);
-            return result;
-        } catch (IOException exception) {
-            log.error("Algorithm service I/O failure: taskId={}, message={}",
-                    task.getId(),
-                    exception.getMessage(),
-                    exception);
-            throw new IllegalStateException("failed to call algorithm service: " + exception.getMessage(), exception);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            log.error("Algorithm service call interrupted: taskId={}", task.getId(), exception);
-            throw new IllegalStateException("algorithm call interrupted", exception);
-        }
-    }
-
-    private URI buildAnalyzeUri() {
-        String baseUrl = trimTrailingSlash(properties.getBaseUrl());
-        String analyzePath = properties.getAnalyzePath();
-        if (analyzePath == null || analyzePath.isBlank()) {
-            analyzePath = "/detect/base64";
-        }
-        if (!analyzePath.startsWith("/")) {
-            analyzePath = "/" + analyzePath;
-        }
-        return URI.create(baseUrl + analyzePath);
-    }
-
-    private String buildAnalyzeRequestBody(byte[] imageBytes) throws IOException {
-        ObjectNode requestBody = objectMapper.createObjectNode();
-        requestBody.put("image", Base64.getEncoder().encodeToString(imageBytes));
-        return objectMapper.writeValueAsString(requestBody);
-    }
-
-    private byte[] loadImageBytes(DetectionTaskAggregate task) throws IOException, InterruptedException {
-        String fileUrl = task.getFileUrl();
-        if (fileUrl == null || fileUrl.isBlank()) {
-            throw new IllegalStateException("detection task file url is blank");
-        }
-
-        if (fileUrl.startsWith("data:")) {
-            return decodeDataUri(fileUrl);
-        }
-
-        Path localPath = resolveLocalPath(fileUrl);
-        if (localPath != null) {
-            return Files.readAllBytes(localPath);
-        }
-
-        URI uri = resolveUri(fileUrl);
-        if (uri == null) {
-            throw new IllegalStateException("unsupported file url: " + fileUrl);
-        }
-        if ("file".equalsIgnoreCase(uri.getScheme())) {
-            Path filePath = Path.of(uri);
-            if (Files.exists(filePath)) {
-                return Files.readAllBytes(filePath);
-            }
-            throw new IllegalStateException("file does not exist: " + filePath);
-        }
-        if (isHttpUri(uri)) {
-            return downloadRemoteBytes(uri);
-        }
-        throw new IllegalStateException("unsupported file url scheme: " + uri.getScheme());
-    }
-
-    private byte[] decodeDataUri(String dataUri) {
-        int commaIndex = dataUri.indexOf(',');
-        if (commaIndex < 0 || commaIndex == dataUri.length() - 1) {
-            throw new IllegalStateException("invalid data uri image content");
-        }
-        return Base64.getDecoder().decode(dataUri.substring(commaIndex + 1));
-    }
-
-    private Path resolveLocalPath(String fileUrl) {
-        try {
-            Path directPath = Path.of(fileUrl);
-            if (Files.exists(directPath)) {
-                return directPath;
-            }
-            if (!directPath.isAbsolute()) {
-                Path workspacePath = Path.of("").toAbsolutePath().resolve(directPath).normalize();
-                if (Files.exists(workspacePath)) {
-                    return workspacePath;
+            // Read image file and encode as base64
+            String b64 = "";
+            String fileUrl = task.getFileUrl();
+            if (fileUrl != null && !fileUrl.isEmpty()) {
+                try {
+                    // Try HTTP download first (handles http:// and https:// URLs)
+                    if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+                        java.net.URL imgUrl = new java.net.URL(fileUrl);
+                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) imgUrl.openConnection();
+                        conn.setConnectTimeout(10000);
+                        conn.setReadTimeout(30000);
+                        conn.setRequestProperty("User-Agent", "RoadCrack/1.0");
+                        int responseCode = conn.getResponseCode();
+                        if (responseCode == 200) {
+                            try (java.io.InputStream is = conn.getInputStream()) {
+                                byte[] imgBytes = is.readAllBytes();
+                                b64 = Base64.getEncoder().encodeToString(imgBytes);
+                                log.info("Downloaded image from {} ({} bytes, HTTP {})", fileUrl, imgBytes.length, responseCode);
+                            }
+                        } else {
+                            log.warn("HTTP download failed: {} returned {}", fileUrl, responseCode);
+                        }
+                    } else if (fileUrl.startsWith("/uploads/") || fileUrl.startsWith("/")) {
+                        // Relative URL exposed to frontend; resolve to configured upload dir
+                        String subPath = fileUrl.startsWith("/uploads/")
+                                ? fileUrl.substring("/uploads/".length())
+                                : fileUrl.substring(1);
+                        java.nio.file.Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+                        java.nio.file.Path imgPath = uploadPath.resolve(subPath);
+                        if (Files.exists(imgPath)) {
+                            byte[] imgBytes = Files.readAllBytes(imgPath);
+                            b64 = Base64.getEncoder().encodeToString(imgBytes);
+                        } else {
+                            log.warn("Image file not found: {}", imgPath);
+                        }
+                    } else {
+                        // Read from local file path
+                        java.nio.file.Path imgPath = Paths.get(fileUrl);
+                        if (Files.exists(imgPath)) {
+                            byte[] imgBytes = Files.readAllBytes(imgPath);
+                            b64 = Base64.getEncoder().encodeToString(imgBytes);
+                        } else {
+                            log.warn("Image file not found: {}", fileUrl);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to read image from {}: {}", fileUrl, e.getMessage());
                 }
             }
-        } catch (InvalidPathException ignored) {
-            return null;
+            if (b64.isEmpty()) {
+                log.warn("No image data for task {}, using fallback", task.getId());
+                return fallbackResult(task);
+            }
+
+            // Build request body matching FastAPI DetectRequest format
+            Map<String, Object> body = new HashMap<>();
+            body.put("image", b64);
+            body.put("conf_threshold", 0.05);
+            body.put("iou_threshold", 0.45);
+
+            log.info("Calling YOLOv8 at {} for task {} (file: {})", url, task.getId(), task.getFileName());
+            String json = objectMapper.writeValueAsString(body);
+            HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(props.getConnectTimeoutMillis());
+            conn.setReadTimeout(props.getReadTimeoutMillis());
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes(StandardCharsets.UTF_8));
+            }
+            int status = conn.getResponseCode();
+            if (status == 200) {
+                String resp = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                return parseResponse(task, resp);
+            } else {
+                String err = new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+                log.warn("YOLOv8 returned {}: {}", status, err);
+                return fallbackResult(task);
+            }
+        } catch (Exception e) {
+            log.error("YOLOv8 call failed: {}", e.getMessage());
+            return fallbackResult(task);
         }
-        return null;
     }
 
-    private URI resolveUri(String fileUrl) {
+    @SuppressWarnings("unchecked")
+    private DetectionAnalysisResult parseResponse(DetectionTaskAggregate task, String json) {
         try {
-            URI uri = URI.create(fileUrl);
-            return uri.getScheme() == null ? null : uri;
-        } catch (IllegalArgumentException ignored) {
+            JsonNode root = objectMapper.readTree(json);
+            boolean success = root.path("success").asBoolean(false);
+            if (!success) {
+                String msg = root.path("message").asText("Detection failed");
+                log.warn("YOLOv8 returned unsuccessful: {}", msg);
+                return fallbackResult(task);
+            }
+            JsonNode data = root.path("data");
+            if (data.isMissingNode() || data.isNull()) {
+                return fallbackResult(task);
+            }
+            JsonNode detections = data.path("detections");
+            List<DetectionItemResponse> items = new ArrayList<>();
+            if (detections.isArray()) {
+                for (JsonNode d : detections) {
+                    String typeStr = d.path("class_name").asText("CRACK");
+                    double confidence = d.path("confidence").asDouble(0.0);
+                    String severityStr = resolveSeverityFromConfidence(confidence);
+                    JsonNode bboxRaw = d.path("bbox");
+                    BoundingBoxResponse bbox;
+                    if (bboxRaw.isArray() && bboxRaw.size() >= 4) {
+                        bbox = new BoundingBoxResponse(
+                            bboxRaw.get(0).asInt(),
+                            bboxRaw.get(1).asInt(),
+                            bboxRaw.get(2).asInt(),
+                            bboxRaw.get(3).asInt()
+                        );
+                    } else {
+                        bbox = new BoundingBoxResponse(0, 0, 0, 0);
+                    }
+                    String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
+                    items.add(new DetectionItemResponse(null, parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
+                }
+            }
+            int total = data.path("num_detections").asInt(items.size());
+            String summary = "YOLOv8 detection complete: " + total + " items found";
+            String imageBase64 = data.path("image_base64").asText(null);
+            // 解码 base64 写成文件，返回 URL（避免 200KB+ 字符串进数据库/响应体）
+            String imageUrl = persistAnnotatedImage(task, imageBase64);
+            return new DetectionAnalysisResult(summary, items, imageUrl);
+        } catch (Exception e) {
+            log.error("Failed to parse YOLOv8 response: {}", e.getMessage());
+            return fallbackResult(task);
+        }
+    }
+
+    /**
+     * 把 YOLO 返回的标注图 base64 解码为 PNG，写入 uploads/result/task_{id}_{ts}.png。
+     * 失败时返回 null（不影响检测结果数据）。
+     */
+    private String persistAnnotatedImage(DetectionTaskAggregate task, String imageBase64) {
+        if (imageBase64 == null || imageBase64.isBlank()) {
+            return null;
+        }
+        try {
+            byte[] bytes = Base64.getDecoder().decode(imageBase64);
+            java.nio.file.Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+            java.nio.file.Path resultDir = uploadPath.resolve("result");
+            Files.createDirectories(resultDir);
+            String fileName = "task_" + task.getId() + "_" + System.currentTimeMillis() + ".jpg";
+            java.nio.file.Path target = resultDir.resolve(fileName);
+            Files.write(target, bytes);
+            String url = "/uploads/result/" + fileName;
+            log.info("Persisted annotated image for task {} -> {} ({} bytes)", task.getId(), url, bytes.length);
+            return url;
+        } catch (Exception e) {
+            log.error("Failed to persist annotated image for task {}: {}", task.getId(), e.getMessage());
             return null;
         }
     }
 
-    private byte[] downloadRemoteBytes(URI uri) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofMillis(properties.getReadTimeoutMillis()))
-                .GET()
-                .build();
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("failed to download image, status=" + response.statusCode());
-        }
-        return response.body();
+    private String resolveSeverityFromConfidence(double confidence) {
+        if (confidence >= 0.85) return "HIGH";
+        if (confidence >= 0.60) return "MEDIUM";
+        return "LOW";
     }
 
-    private DetectionAnalysisResult parseResponse(String responseBody) throws IOException {
-        JsonNode root = objectMapper.readTree(responseBody);
-        if (root.path("success").isBoolean() && !root.path("success").asBoolean()) {
-            String error = firstText(root, "error", "message");
-            throw new IllegalStateException(error == null ? "algorithm service returned failure" : error);
-        }
-
-        JsonNode payload = root.path("data").isMissingNode() || root.path("data").isNull() ? root : root.path("data");
-        JsonNode itemsNode = findItemsNode(payload);
-
-        List<DetectionItemResponse> items = new ArrayList<>();
-        if (itemsNode.isArray()) {
-            for (JsonNode itemNode : itemsNode) {
-                items.add(toDetectionItem(itemNode));
-            }
-        }
-
-        String summary = firstText(payload, "summary");
-        if (summary == null || summary.isBlank()) {
-            summary = firstText(root, "message");
-        }
-        if (summary == null || summary.isBlank()) {
-            summary = "Algorithm detection completed, found " + items.size() + " potential damage items.";
-        }
-        return new DetectionAnalysisResult(summary, items);
+    private DetectionAnalysisResult fallbackResult(DetectionTaskAggregate task) {
+        return new DetectionAnalysisResult("AI service unavailable", Collections.emptyList());
     }
 
-    private JsonNode findItemsNode(JsonNode payload) {
-        if (payload.isArray()) {
-            return payload;
-        }
-        JsonNode detections = payload.path("detections");
-        if (detections.isArray()) {
-            return detections;
-        }
-        JsonNode items = payload.path("items");
-        if (items.isArray()) {
-            return items;
-        }
-        JsonNode results = payload.path("results");
-        if (results.isArray()) {
-            return results;
-        }
-        return objectMapper.createArrayNode();
-    }
-
-    private DetectionItemResponse toDetectionItem(JsonNode itemNode) {
-        String rawDamageType = firstText(itemNode,
-                "damageType", "type", "category", "label", "class_name", "className", "class_name_cn", "classNameCn", "damage");
-        double confidence = resolveDouble(itemNode,
-                "confidence", "score", "probability", "conf");
-        DamageType damageType = resolveDamageType(rawDamageType);
-        SeverityLevel severityLevel = resolveSeverity(firstText(itemNode,
-                "severityLevel", "severity", "level", "riskLevel"), confidence);
-        BoundingBoxResponse boundingBox = resolveBoundingBox(itemNode);
-        String suggestion = firstText(itemNode,
-                "suggestion", "recommendation", "message", "advice");
-        if (suggestion == null || suggestion.isBlank()) {
-            suggestion = resolveSuggestion(damageType, severityLevel);
-        }
-
-        return new DetectionItemResponse(
-                damageType,
-                severityLevel,
-                confidence,
-                boundingBox,
-                suggestion
-        );
-    }
-
-    private BoundingBoxResponse resolveBoundingBox(JsonNode itemNode) {
-        JsonNode boxNode = itemNode.path("boundingBox");
-        if (boxNode.isMissingNode() || boxNode.isNull()) {
-            boxNode = itemNode.path("bbox");
-        }
-        if (boxNode.isMissingNode() || boxNode.isNull()) {
-            boxNode = itemNode.path("box");
-        }
-
-        if (boxNode.isArray() && boxNode.size() >= 4) {
-            int x = roundNode(boxNode.get(0));
-            int y = roundNode(boxNode.get(1));
-            int x2 = roundNode(boxNode.get(2));
-            int y2 = roundNode(boxNode.get(3));
-            return new BoundingBoxResponse(x, y, Math.max(0, x2 - x), Math.max(0, y2 - y));
-        }
-
-        int x;
-        int y;
-        int width;
-        int height;
-        if (!boxNode.isMissingNode() && !boxNode.isNull()) {
-            x = resolveInt(boxNode, "x", "left", "x1");
-            y = resolveInt(boxNode, "y", "top", "y1");
-            width = resolveInt(boxNode, "width", "w");
-            height = resolveInt(boxNode, "height", "h");
-            if (width == 0 && boxNode.has("x2")) {
-                width = Math.max(0, resolveInt(boxNode, "x2") - x);
-            }
-            if (height == 0 && boxNode.has("y2")) {
-                height = Math.max(0, resolveInt(boxNode, "y2") - y);
-            }
-            return new BoundingBoxResponse(x, y, width, height);
-        }
-
-        if (hasAny(itemNode, "x", "left", "x1")) {
-            x = resolveInt(itemNode, "x", "left", "x1");
-            y = resolveInt(itemNode, "y", "top", "y1");
-            width = resolveInt(itemNode, "width", "w");
-            height = resolveInt(itemNode, "height", "h");
-            if (width == 0 && itemNode.has("x2")) {
-                width = Math.max(0, resolveInt(itemNode, "x2") - x);
-            }
-            if (height == 0 && itemNode.has("y2")) {
-                height = Math.max(0, resolveInt(itemNode, "y2") - y);
-            }
-            return new BoundingBoxResponse(x, y, width, height);
-        }
-        return null;
-    }
-
-    private DamageType resolveDamageType(String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return DamageType.UNKNOWN;
-        }
-        String normalized = normalize(rawValue);
-        return switch (normalized) {
-            case "CRACK", "VERTICAL_CRACK", "HORIZONTAL_CRACK", "ALLIGATOR_CRACK" -> DamageType.CRACK;
-            case "MARKING_DAMAGE", "MARKING", "LINE" -> DamageType.MARKING_DAMAGE;
-            case "ROAD_SPILL", "SPILL" -> DamageType.ROAD_SPILL;
-            case "POTHOLE" -> DamageType.POTHOLE;
-            default -> DamageType.UNKNOWN;
-        };
-    }
-
-    private SeverityLevel resolveSeverity(String rawValue, double confidence) {
-        if (rawValue != null && !rawValue.isBlank()) {
-            String normalized = normalize(rawValue);
-            return switch (normalized) {
-                case "LOW" -> SeverityLevel.LOW;
-                case "HIGH", "SEVERE" -> SeverityLevel.HIGH;
-                default -> SeverityLevel.MEDIUM;
-            };
-        }
-        if (confidence >= 0.85D) {
-            return SeverityLevel.HIGH;
-        }
-        if (confidence >= 0.60D) {
-            return SeverityLevel.MEDIUM;
-        }
-        return SeverityLevel.LOW;
-    }
-
-    private String resolveSuggestion(DamageType damageType, SeverityLevel severityLevel) {
+    private String generateSuggestion(DamageType damageType, SeverityLevel severityLevel) {
         if (severityLevel == SeverityLevel.HIGH) {
-            return "High priority issue. Please schedule field verification as soon as possible.";
+            return "建议立即派单，优先安排现场核查与处置。";
         }
         return switch (damageType) {
-            case ROAD_SPILL -> "Recommend notifying the sanitation team to clear the road section quickly.";
-            case MARKING_DAMAGE -> "Recommend arranging a repair check for the road marking facilities.";
-            case POTHOLE -> "Recommend scheduling pothole repair and reviewing traffic safety risk.";
-            case CRACK, UNKNOWN -> "Recommend reviewing the damage range and arranging follow-up handling.";
+            case ROAD_SPILL -> "建议通知环卫部门尽快清理，避免二次交通风险。";
+            case MARKING_DAMAGE -> "建议路政部门补画或修复标志线。";
+            case POTHOLE -> "建议安排坑槽修补，必要时同步交通管制。";
+            default -> "建议继续复核裂缝宽度和延展趋势。";
         };
     }
 
-    private String normalize(String value) {
-        return value.trim().replace('-', '_').replace(' ', '_').toUpperCase(Locale.ROOT);
+    private String simpleToJson(Map<String, Object> map) {
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            return "{}";
+        }
     }
 
-    private double resolveDouble(JsonNode node, String... fieldNames) {
-        for (String fieldName : fieldNames) {
-            JsonNode fieldNode = node.path(fieldName);
-            if (!fieldNode.isMissingNode() && fieldNode.isNumber()) {
-                return fieldNode.asDouble();
-            }
-            if (!fieldNode.isMissingNode() && fieldNode.isTextual()) {
-                try {
-                    return Double.parseDouble(fieldNode.asText());
-                } catch (NumberFormatException ignored) {
-                    // Continue trying aliases.
-                }
-            }
+    private DamageType parseDamageType(String s) {
+        if (s == null) return DamageType.CRACK;
+        switch (s.toUpperCase()) {
+            case "CRACK": return DamageType.CRACK;
+            case "POTHOLE": return DamageType.POTHOLE;
+            case "MARKING_DAMAGE": case "MARKING": return DamageType.MARKING_DAMAGE;
+            case "ROAD_SPILL": case "SPILL": case "SPILLAGE": return DamageType.ROAD_SPILL;
+            default: return DamageType.CRACK;
         }
-        return 0D;
     }
 
-    private int resolveInt(JsonNode node, String... fieldNames) {
-        for (String fieldName : fieldNames) {
-            JsonNode fieldNode = node.path(fieldName);
-            if (!fieldNode.isMissingNode() && fieldNode.isNumber()) {
-                return (int) Math.round(fieldNode.asDouble());
-            }
-            if (!fieldNode.isMissingNode() && fieldNode.isTextual()) {
-                try {
-                    return (int) Math.round(Double.parseDouble(fieldNode.asText()));
-                } catch (NumberFormatException ignored) {
-                    // Continue trying aliases.
-                }
-            }
+    private SeverityLevel parseSeverity(String s) {
+        if (s == null) return SeverityLevel.LOW;
+        switch (s.toUpperCase()) {
+            case "HIGH": return SeverityLevel.HIGH;
+            case "MEDIUM": case "MED": return SeverityLevel.MEDIUM;
+            default: return SeverityLevel.LOW;
         }
-        return 0;
-    }
-
-    private int roundNode(JsonNode node) {
-        if (node == null || node.isNull()) {
-            return 0;
-        }
-        if (node.isNumber()) {
-            return (int) Math.round(node.asDouble());
-        }
-        if (node.isTextual()) {
-            try {
-                return (int) Math.round(Double.parseDouble(node.asText()));
-            } catch (NumberFormatException ignored) {
-                return 0;
-            }
-        }
-        return 0;
-    }
-
-    private String firstText(JsonNode node, String... fieldNames) {
-        for (String fieldName : fieldNames) {
-            JsonNode fieldNode = node.path(fieldName);
-            if (!fieldNode.isMissingNode() && !fieldNode.isNull()) {
-                String value = fieldNode.asText();
-                if (value != null && !value.isBlank()) {
-                    return value;
-                }
-            }
-        }
-        return null;
-    }
-
-    private boolean hasAny(JsonNode node, String... fieldNames) {
-        for (String fieldName : fieldNames) {
-            if (!node.path(fieldName).isMissingNode() && !node.path(fieldName).isNull()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isHttpUri(URI uri) {
-        return "http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme());
-    }
-
-    private String trimTrailingSlash(String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException("algorithm base url is not configured");
-        }
-        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 }

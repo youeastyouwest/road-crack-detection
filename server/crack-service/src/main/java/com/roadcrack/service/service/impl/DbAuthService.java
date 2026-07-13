@@ -1,5 +1,7 @@
 package com.roadcrack.service.service.impl;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.roadcrack.api.request.auth.ChangePasswordRequest;
 import com.roadcrack.api.request.auth.LoginRequest;
@@ -17,11 +19,11 @@ import com.roadcrack.dao.mapper.UserMapper;
 import com.roadcrack.dao.mapper.UserRoleMapper;
 import com.roadcrack.dao.mapper.VerificationCodeMapper;
 import com.roadcrack.service.security.JwtUtils;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.AuthService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -45,6 +47,7 @@ public class DbAuthService implements AuthService {
     private final VerificationCodeMapper verificationCodeMapper;
     private final RoleMapper roleMapper;
     private final JwtUtils jwtUtils;
+    private final AuditLogService auditLogService;
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final String mailFrom;
@@ -56,6 +59,7 @@ public class DbAuthService implements AuthService {
                          VerificationCodeMapper verificationCodeMapper,
                          RoleMapper roleMapper,
                          JwtUtils jwtUtils,
+                         AuditLogService auditLogService,
                          ObjectProvider<JavaMailSender> mailSenderProvider,
                          @Value("${spring.mail.username:}") String mailFrom,
                          @Value("${security.login.max-fail-count:5}") int maxFailCount,
@@ -65,6 +69,7 @@ public class DbAuthService implements AuthService {
         this.verificationCodeMapper = verificationCodeMapper;
         this.roleMapper = roleMapper;
         this.jwtUtils = jwtUtils;
+        this.auditLogService = auditLogService;
         this.mailSenderProvider = mailSenderProvider;
         this.mailFrom = mailFrom;
         this.maxFailCount = maxFailCount;
@@ -101,6 +106,13 @@ public class DbAuthService implements AuthService {
                 user.setLockUntil(LocalDateTime.now().plusMinutes(lockDurationMinutes));
             }
             userMapper.updateById(user);
+
+            auditLogService.record(
+                    request.username(), "AUTH", "LOGIN",
+                    "用户登录失败: " + request.username() + " (密码错误)",
+                    ipAddress, 0L, "FAIL", "invalid password"
+            );
+
             throw new BusinessException(ResultCode.USER_PASSWORD_ERROR, "invalid username or password");
         }
 
@@ -110,6 +122,12 @@ public class DbAuthService implements AuthService {
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(ipAddress);
         userMapper.updateById(user);
+
+        auditLogService.record(
+                user.getUsername(), "AUTH", "LOGIN",
+                "用户登录成功: " + user.getUsername() + " (" + (user.getRealName() != null ? user.getRealName() : "") + ")",
+                ipAddress, 0L, "SUCCESS", ""
+        );
 
         return buildLoginResponse(user);
     }

@@ -1,17 +1,23 @@
 package com.roadcrack.service.service.impl;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.roadcrack.api.request.user.UserPageQuery;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.dao.entity.DepartmentEntity;
+import com.roadcrack.dao.entity.RoleEntity;
 import com.roadcrack.dao.entity.UserEntity;
 import com.roadcrack.dao.entity.UserRoleEntity;
+import com.roadcrack.dao.mapper.DepartmentMapper;
+import com.roadcrack.dao.mapper.RoleMapper;
 import com.roadcrack.dao.mapper.UserMapper;
 import com.roadcrack.dao.mapper.UserRoleMapper;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.UserService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,11 +34,21 @@ public class DbUserService implements UserService {
 
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
+    private final RoleMapper roleMapper;
+    private final DepartmentMapper departmentMapper;
+    private final AuditLogService auditLogService;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public DbUserService(UserMapper userMapper, UserRoleMapper userRoleMapper) {
+    public DbUserService(UserMapper userMapper,
+                         UserRoleMapper userRoleMapper,
+                         RoleMapper roleMapper,
+                         DepartmentMapper departmentMapper,
+                         AuditLogService auditLogService) {
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
+        this.roleMapper = roleMapper;
+        this.departmentMapper = departmentMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -59,12 +75,21 @@ public class DbUserService implements UserService {
         }
 
         Page<UserEntity> result = userMapper.selectPage(new Page<>(page, size), wrapper);
+
+        for (UserEntity user : result.getRecords()) {
+            enrich(user);
+        }
+
         return new PageResponse<>(result.getRecords(), result.getTotal(), result.getSize(), result.getCurrent(), result.getPages());
     }
 
     @Override
     public UserEntity getById(Long id) {
-        return userMapper.selectById(id);
+        UserEntity user = userMapper.selectById(id);
+        if (user != null) {
+            enrich(user);
+        }
+        return user;
     }
 
     @Override
@@ -88,6 +113,13 @@ public class DbUserService implements UserService {
         }
         userMapper.insert(user);
         replaceRoles(user.getId(), roleIds);
+
+        enrich(user);
+        auditLogService.record(
+                user.getUsername(), "USER", "CREATE",
+                "创建用户: " + user.getUsername() + " (" + (user.getRealName() != null ? user.getRealName() : "") + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -113,14 +145,30 @@ public class DbUserService implements UserService {
         if (roleIds != null) {
             replaceRoles(user.getId(), roleIds);
         }
+
+        enrich(user);
+        auditLogService.record(
+                user.getUsername(), "USER", "UPDATE",
+                "更新用户: " + user.getUsername() + " (" + (user.getRealName() != null ? user.getRealName() : "") + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
     @Transactional
     public void deleteUser(Long id) {
         UserEntity user = requireUser(id);
+        String username = user.getUsername();
+        String realName = user.getRealName();
+
         userRoleMapper.delete(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getUserId, id));
         userMapper.deleteById(id);
+
+        auditLogService.record(
+                username, "USER", "DELETE",
+                "删除用户: " + username + " (" + realName + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -132,6 +180,14 @@ public class DbUserService implements UserService {
             user.setLockUntil(null);
         }
         userMapper.updateById(user);
+
+        String action = Integer.valueOf(1).equals(status) ? "ENABLE" : "DISABLE";
+        String desc = Integer.valueOf(1).equals(status) ? "启用用户" : "禁用用户";
+        auditLogService.record(
+                user.getUsername(), "USER", action,
+                desc + ": " + user.getUsername(),
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -142,6 +198,12 @@ public class DbUserService implements UserService {
         user.setLoginFailCount(0);
         user.setLockUntil(null);
         userMapper.updateById(user);
+
+        auditLogService.record(
+                user.getUsername(), "USER", "RESET_PASSWORD",
+                "重置用户密码: " + user.getUsername(),
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -151,9 +213,46 @@ public class DbUserService implements UserService {
     }
 
     @Override
+    public UserEntity findByUsername(String username) {
+        LambdaQueryWrapper<UserEntity> wrapper = new LambdaQueryWrapper<UserEntity>()
+                .eq(UserEntity::getUsername, username)
+                .last("LIMIT 1");
+        UserEntity user = userMapper.selectOne(wrapper);
+        if (user != null) enrich(user);
+        return user;
+    }
+
+    @Override
     public List<String> getUserRoleCodes(Long userId) {
         requireUser(userId);
         return userMapper.selectRoleCodesByUserId(userId);
+    }
+
+    private void enrich(UserEntity user) {
+        if (user == null) return;
+        user.setPassword(null);
+
+        List<Long> roleIds = userMapper.selectRoleIdsByUserId(user.getId());
+        List<String> roleCodes = userMapper.selectRoleCodesByUserId(user.getId());
+
+        if (roleIds != null && !roleIds.isEmpty()) {
+            user.setRoleId(roleIds.get(0));
+            RoleEntity role = roleMapper.selectById(roleIds.get(0));
+            if (role != null) {
+                user.setRoleCode(role.getCode());
+                user.setRoleName(role.getName());
+            }
+        }
+        if (roleCodes != null && !roleCodes.isEmpty()) {
+            user.setRoleCode(roleCodes.get(0));
+        }
+
+        if (user.getDeptId() != null) {
+            DepartmentEntity dept = departmentMapper.selectById(user.getDeptId());
+            if (dept != null) {
+                user.setDeptName(dept.getName());
+            }
+        }
     }
 
     private UserEntity requireUser(Long id) {

@@ -1,33 +1,38 @@
+// MapMarkerResponse.java
 package com.roadcrack.api.response.map;
 
-import com.roadcrack.api.enums.DamageType;
-import com.roadcrack.api.enums.DepartmentCode;
-import com.roadcrack.api.enums.SeverityLevel;
-import com.roadcrack.api.enums.WorkOrderStatus;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-public record MapMarkerResponse(
-        Long id,
-        Long taskId,
-        String taskCode,
-        String location,
-        BigDecimal lng,
-        BigDecimal lat,
-        boolean hasCoordinates,
-        DamageType damageType,
-        String damageTypeLabel,
-        SeverityLevel severityLevel,
-        String severityLevelLabel,
-        WorkOrderStatus status,
-        String statusLabel,
-        boolean hasWorkOrder,
-        boolean generatedWorkOrder,
-        Long workOrderId,
-        String workOrderCode,
-        DepartmentCode departmentCode,
-        String departmentName,
-        LocalDateTime detectedAt
-) {
+public class MapMarkerResponse {
+    private Long id;
+    private Double longitude;
+    private Double latitude;
+    private String damageType;
+    private String severity;
+    private String roadName;
+    private String status;
+    private Long taskId;
+    private String address;
+    private String imageBase64;
+    private String fileUrl;
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public String getDamageType() { return damageType; }
+    public void setDamageType(String damageType) { this.damageType = damageType; }
+    public String getSeverity() { return severity; }
+    public void setSeverity(String severity) { this.severity = severity; }
+    public String getRoadName() { return roadName; }
+    public void setRoadName(String roadName) { this.roadName = roadName; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public Long getTaskId() { return taskId; }
+    public void setTaskId(Long taskId) { this.taskId = taskId; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getImageBase64() { return imageBase64; }
+    public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
 }

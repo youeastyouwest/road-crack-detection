@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#2e3440"/>
+  <rect x="0" y="180" width="800" height="240" fill="#4c566a"/>
+  <rect x="0" y="290" width="800" height="4" fill="#ffd700" opacity="0.6"/>
+  <rect x="0" y="310" width="800" height="4" fill="#ffd700" opacity="0.6"/>
+  <ellipse cx="380" cy="280" rx="45" ry="25" fill="#1a1c20"/>
+  <ellipse cx="380" cy="280" rx="35" ry="18" fill="#111"/>
+  <path d="M300 300 Q340 340 380 330" stroke="#1a1c20" stroke-width="3" fill="none"/>
+  <rect x="580" y="10" width="210" height="140" rx="8" fill="rgba(0,0,0,0.7)"/>
+  <text x="595" y="35" fill="#ef4444" font-size="14" font-weight="bold">DETECTION RESULT</text>
+  <text x="595" y="60" fill="#fff" font-size="11">POTHOLE</text>
+  <text x="595" y="80" fill="#9ca3af" font-size="10">Severity: HIGH</text>
+  <text x="595" y="100" fill="#9ca3af" font-size="10">Confidence: 91%</text>
+  <text x="595" y="120" fill="#9ca3af" font-size="10">Area: 2800mm2</text>
+</svg>

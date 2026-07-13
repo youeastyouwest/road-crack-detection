@@ -1,5 +1,7 @@
 package com.roadcrack.service.service.impl;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.ResultCode;
@@ -7,8 +9,8 @@ import com.roadcrack.dao.entity.DepartmentEntity;
 import com.roadcrack.dao.entity.UserEntity;
 import com.roadcrack.dao.mapper.DepartmentMapper;
 import com.roadcrack.dao.mapper.UserMapper;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.DepartmentService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,10 +21,12 @@ public class DbDepartmentService implements DepartmentService {
 
     private final DepartmentMapper departmentMapper;
     private final UserMapper userMapper;
+    private final AuditLogService auditLogService;
 
-    public DbDepartmentService(DepartmentMapper departmentMapper, UserMapper userMapper) {
+    public DbDepartmentService(DepartmentMapper departmentMapper, UserMapper userMapper, AuditLogService auditLogService) {
         this.departmentMapper = departmentMapper;
         this.userMapper = userMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -52,6 +56,12 @@ public class DbDepartmentService implements DepartmentService {
             department.setStatus(1);
         }
         departmentMapper.insert(department);
+
+        auditLogService.record(
+                "system", "DEPARTMENT", "CREATE",
+                "创建部门: " + department.getName() + " (" + department.getCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -61,6 +71,12 @@ public class DbDepartmentService implements DepartmentService {
             throw new BusinessException(ResultCode.DEPT_CODE_EXISTS, "department code already exists");
         }
         departmentMapper.updateById(department);
+
+        auditLogService.record(
+                "system", "DEPARTMENT", "UPDATE",
+                "更新部门: " + department.getName() + " (" + department.getCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -80,6 +96,12 @@ public class DbDepartmentService implements DepartmentService {
         }
 
         departmentMapper.deleteById(department.getId());
+
+        auditLogService.record(
+                "system", "DEPARTMENT", "DELETE",
+                "删除部门: " + department.getName() + " (" + department.getCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     private DepartmentEntity requireDepartment(Long id) {

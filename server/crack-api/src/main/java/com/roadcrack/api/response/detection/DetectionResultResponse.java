@@ -8,6 +8,7 @@ public record DetectionResultResponse(
         String summary,
         List<DetectionItemResponse> items,
         Long generatedWorkOrderId,
-        LocalDateTime completedAt
+        LocalDateTime completedAt,
+        String imageBase64
 ) {
 }

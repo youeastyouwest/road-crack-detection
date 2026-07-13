@@ -1,0 +1,280 @@
+<template>
+  <div class="worker-page">
+    <div class="page-header">
+      <h2>我的工单</h2>
+      <div class="header-stats">
+        <div class="stat-chip pending">{{ pendingCount }} 待处理</div>
+        <div class="stat-chip progress">{{ inProgressCount }} 进行中</div>
+        <div class="stat-chip review">{{ reviewCount }} 待审核</div>
+        <div class="stat-chip done">{{ doneCount }} 已关闭</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <el-input v-model="searchQuery" placeholder="搜索工单标题 / 位置" clearable style="width:260px" />
+      <el-select v-model="statusFilter" placeholder="工单状态" clearable style="width:160px">
+        <el-option label="待处理" value="ASSIGNED" />
+        <el-option label="进行中" value="IN_PROGRESS" />
+        <el-option label="已完成待提交" value="COMPLETED" />
+        <el-option label="待审核" value="PENDING_DEPT_REVIEW" />
+        <el-option label="待终审" value="PENDING_ADMIN_REVIEW" />
+        <el-option label="已驳回" value="REJECTED" />
+        <el-option label="已关闭" value="CLOSED" />
+      </el-select>
+    </div>
+
+    <!-- Work order list -->
+    <div class="work-order-list">
+      <div v-for="item in filteredOrders" :key="item.id" class="wo-card">
+        <div class="wo-top">
+          <span class="wo-title">{{ item.title }}</span>
+          <el-tag :type="statusType(item.status)" size="small">{{ statusLabel(item.status) }}</el-tag>
+        </div>
+        <div class="wo-meta">
+          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ item.location || "位置待定" }}</span>
+          <span v-if="item.departmentCode">部门: {{ deptLabel(item.departmentCode) }}</span>
+          <span>创建: {{ formatDate(item.createdAt) }}</span>
+        </div>
+        <div class="wo-bottom">
+          <el-tag v-if="item.severityLevel === 'HIGH'" type="danger" size="small">严重</el-tag>
+          <el-tag v-else-if="item.severityLevel === 'MEDIUM'" type="warning" size="small">中等</el-tag>
+          <el-tag v-else type="info" size="small">轻微</el-tag>
+          <span class="wo-code">{{ item.workOrderCode || '#' + item.id }}</span>
+          <div class="wo-actions">
+            <button class="action-btn" @click="viewDetail(item)">详情</button>
+            <button class="action-btn action-start" v-if="item.status==='ASSIGNED'" @click="handleStart(item)">开始执行</button>
+            <button class="action-btn action-complete" v-if="item.status==='IN_PROGRESS'" @click="handleComplete(item)">标记完成</button>
+            <button class="action-btn action-report" v-if="item.status==='COMPLETED' || item.status==='REJECTED'" @click="goSubmitReport(item)">
+              {{ item.status === 'REJECTED' ? '重新提交报告' : '提交维修报告' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <el-empty v-if="filteredOrders.length === 0" description="暂无工单" />
+    </div>
+
+    <!-- Detail Modal -->
+    <div v-if="showDetail" class="modal-overlay" @click.self="showDetail=false">
+      <div class="modal-card">
+        <div class="modal-head"><span>工单详情 #{{ detailTarget?.workOrderCode || detailTarget?.id }}</span><button class="modal-close" @click="showDetail=false">x</button></div>
+        <div class="modal-body">
+          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div>
+          <template v-else>
+            <div class="detail-grid">
+              <div><label class="detail-label">标题</label><div class="detail-val">{{ detailTarget?.title }}</div></div>
+              <div><label class="detail-label">状态</label><div class="detail-val"><el-tag :type="statusType(detailTarget?.status || '')" size="small">{{ statusLabel(detailTarget?.status || '') }}</el-tag></div></div>
+              <div><label class="detail-label">位置</label><div class="detail-val">{{ detailTarget?.location || '--' }}</div></div>
+              <div><label class="detail-label">部门</label><div class="detail-val">{{ deptLabel(detailTarget?.departmentCode || '') }}</div></div>
+              <div><label class="detail-label">等级</label><div class="detail-val">
+                <el-tag v-if="detailTarget?.severityLevel === 'HIGH'" type="danger" size="small">严重</el-tag>
+                <el-tag v-else-if="detailTarget?.severityLevel === 'MEDIUM'" type="warning" size="small">中等</el-tag>
+                <el-tag v-else type="info" size="small">轻微</el-tag>
+              </div></div>
+              <div><label class="detail-label">病害类型</label><div class="detail-val">{{ damageTypeLabel(detailTarget?.damageType || '') }}</div></div>
+              <div><label class="detail-label">创建时间</label><div class="detail-val">{{ formatDate(detailTarget?.createdAt) || '--' }}</div></div>
+              <div v-if="detailTarget?.description" style="grid-column:1/-1"><label class="detail-label">描述</label><div class="detail-val">{{ detailTarget.description }}</div></div>
+            </div>
+            <div v-if="detailTarget?.statusLogs?.length" style="margin-top:20px;border-top:1px solid #f0f2f5;padding-top:16px">
+              <label class="detail-label">状态流转记录</label>
+              <div class="status-timeline">
+                <div v-for="(log, i) in detailTarget.statusLogs" :key="i" class="timeline-item">
+                  <div class="timeline-dot"></div>
+                  <div class="timeline-content">
+                    <span class="timeline-status">{{ statusLabel(log.toStatus || '') }}</span>
+                    <span class="timeline-time">{{ log.operatedAt || '--' }}</span>
+                    <span v-if="log.note" class="timeline-note">{{ log.note }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-ghost" @click="showDetail=false">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import { useAuthStore } from "@/stores/auth"
+import { workOrderApi } from "@/api"
+import type { WorkOrderResponse } from "@/types"
+import { ElMessage, ElMessageBox } from "element-plus"
+
+const router = useRouter()
+const authStore = useAuthStore()
+const searchQuery = ref("")
+const statusFilter = ref("")
+const orders = ref<WorkOrderResponse[]>([])
+const loading = ref(false)
+
+const showDetail = ref(false)
+const detailLoading = ref(false)
+const detailTarget = ref<WorkOrderResponse | null>(null)
+
+const pendingCount = computed(() => orders.value.filter(o => o.status === "ASSIGNED").length)
+const inProgressCount = computed(() => orders.value.filter(o => o.status === "IN_PROGRESS").length)
+const reviewCount = computed(() => orders.value.filter(o => o.status === "PENDING_DEPT_REVIEW" || o.status === "PENDING_ADMIN_REVIEW").length)
+const doneCount = computed(() => orders.value.filter(o => o.status === "CLOSED").length)
+
+const filteredOrders = computed(() => {
+  return orders.value.filter(o => {
+    if (searchQuery.value && !o.title?.includes(searchQuery.value) && !o.location?.includes(searchQuery.value)) return false
+    if (statusFilter.value && o.status !== statusFilter.value) return false
+    return true
+  })
+})
+
+onMounted(async () => {
+  await loadData()
+})
+
+async function loadData() {
+  loading.value = true
+  try {
+    const res = await workOrderApi.list({
+      assignee: authStore.realName || authStore.username,
+    } as any)
+    orders.value = res.data.data.records || res.data.data || []
+  } catch {
+    // Fallback: load all and filter client-side
+    try {
+      const res = await workOrderApi.list({} as any)
+      const all = res.data.data.records || res.data.data || []
+      const myName = authStore.realName || authStore.username
+      orders.value = all.filter(o => o.assignee === myName)
+    } catch {
+      orders.value = []
+    }
+  }
+  loading.value = false
+}
+
+function statusType(s: string) {
+  const map: Record<string, string> = {
+    PENDING_ASSIGNMENT: "info", ASSIGNED: "warning", IN_PROGRESS: "primary",
+    COMPLETED: "success", PENDING_DEPT_REVIEW: "warning",
+    PENDING_ADMIN_REVIEW: "warning", REJECTED: "danger",
+    CLOSED: "info", CANCELLED: "info",
+  }
+  return map[s] || "info"
+}
+
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    PENDING_ASSIGNMENT: "待指派", ASSIGNED: "待处理", IN_PROGRESS: "进行中",
+    COMPLETED: "已完成待提交", PENDING_DEPT_REVIEW: "待部门审核",
+    PENDING_ADMIN_REVIEW: "待终审", REJECTED: "已驳回",
+    CLOSED: "已关闭", CANCELLED: "已取消",
+  }
+  return map[s] || s
+}
+
+function deptLabel(code: string) {
+  return ({ ROAD_ADMIN: "道路管理部", SANITATION: "环卫部", TRAFFIC_POLICE: "交警部" } as any)[code] || code || "--"
+}
+
+function damageTypeLabel(t: string) {
+  return ({ CRACK: "裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知" } as any)[t] || t || "--"
+}
+
+function formatDate(dt?: string): string {
+  if (!dt) return ""
+  try {
+    return new Date(dt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+  } catch { return dt || "" }
+}
+
+async function viewDetail(row: WorkOrderResponse) {
+  showDetail.value = true
+  detailLoading.value = true
+  try {
+    const r = await workOrderApi.get(row.id)
+    detailTarget.value = r.data.data
+  } catch {
+    detailTarget.value = row
+  }
+  detailLoading.value = false
+}
+
+async function handleStart(row: WorkOrderResponse) {
+  try {
+    await ElMessageBox.confirm("确认开始执行此工单?", "开始执行", { type: "info" })
+    await workOrderApi.updateStatus(row.id, { status: "IN_PROGRESS" } as any)
+    ElMessage.success("已开始执行")
+    await loadData()
+  } catch { /* cancelled */ }
+}
+
+async function handleComplete(row: WorkOrderResponse) {
+  try {
+    await ElMessageBox.confirm("确认标记此工单为已完成? 标记后需提交维修报告。", "标记完成", { type: "warning" })
+    await workOrderApi.updateStatus(row.id, { status: "COMPLETED" } as any)
+    ElMessage.success("工单已标记完成，请提交维修报告")
+    await loadData()
+  } catch { /* cancelled */ }
+}
+
+function goSubmitReport(row: WorkOrderResponse) {
+  // Navigate to submit report page with work order id
+  router.push({ path: "/submit-report", query: { workOrderId: String(row.id) } })
+}
+</script>
+
+<style scoped>
+.worker-page { max-width: 1000px; margin: 0 auto; font-family: Inter,-apple-system,BlinkMacSystemFont,sans-serif; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-header h2 { font-size: 18px; font-weight: 700; color: #1a202c; margin: 0; }
+.header-stats { display: flex; gap: 8px; }
+.stat-chip { padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.stat-chip.pending { background: #fef3c7; color: #d97706; }
+.stat-chip.progress { background: #dbeafe; color: #2563eb; }
+.stat-chip.review { background: #fef2f2; color: #dc2626; }
+.stat-chip.done { background: #d1fae5; color: #059669; }
+.filter-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+.work-order-list { display: flex; flex-direction: column; gap: 12px; }
+.wo-card { background: #fff; border: 1px solid #eef0f4; border-radius: 12px; padding: 16px; transition: all 0.15s; }
+.wo-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-color: #cbd5e1; }
+.wo-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.wo-title { font-size: 14px; font-weight: 600; color: #1a202c; }
+.wo-meta { display: flex; gap: 16px; font-size: 12px; color: #64748b; margin-bottom: 8px; flex-wrap: wrap; }
+.wo-meta span { display: flex; align-items: center; gap: 4px; }
+.wo-bottom { display: flex; align-items: center; gap: 10px; }
+.wo-code { font-family: monospace; font-size: 11px; color: #94a3b8; }
+.wo-time { font-size: 11px; color: #94a3b8; margin-left: auto; }
+.wo-actions { display: flex; gap: 6px; margin-left: auto; }
+.action-btn { padding: 5px 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 12px; color: #475569; cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+.action-btn:hover { border-color: #2563eb; color: #2563eb; }
+.action-start { border-color: #2563eb; color: #2563eb; }
+.action-start:hover { background: #eef2ff; }
+.action-complete { border-color: #059669; color: #059669; }
+.action-complete:hover { background: #f0fdf4; }
+.action-report { border-color: #d97706; color: #d97706; }
+.action-report:hover { background: #fffbeb; }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.modal-card { background:#fff; border-radius:12px; width:540px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 24px rgba(0,0,0,0.1); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #f0f2f5; font-size:15px; font-weight:600; color:#0f172a; }
+.modal-close { width:26px; height:26px; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border:none; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:12px; }
+.modal-close:hover { background:#e2e8f0; color:#475569; }
+.modal-body { padding:20px; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.detail-label { font-size:11px; color:#64748b; font-weight:600; display:block; }
+.detail-val { font-size:13px; color:#1e293b; margin-top:4px; }
+.modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #f0f2f5; }
+.btn-ghost { padding:6px 14px; border:1px solid #e2e8f0; border-radius:6px; background:#fff; font-size:12px; color:#475569; cursor:pointer; font-family:inherit; }
+.btn-ghost:hover { border-color:#2563eb; color:#2563eb; }
+.status-timeline { position:relative; padding-left:8px; margin-top:10px; }
+.timeline-item { position:relative; padding:0 0 16px 20px; border-left:2px solid #e2e8f0; }
+.timeline-item:last-child { border-left-color:transparent; padding-bottom:0; }
+.timeline-dot { position:absolute; left:-5px; top:2px; width:8px; height:8px; border-radius:50%; background:#2563eb; border:2px solid #fff; box-shadow:0 0 0 1px #2563eb; }
+.timeline-content { display:flex; flex-direction:column; gap:2px; }
+.timeline-status { font-size:12px; font-weight:600; color:#1e293b; }
+.timeline-time { font-size:11px; color:#94a3b8; }
+.timeline-note { font-size:11px; color:#64748b; }
+</style>

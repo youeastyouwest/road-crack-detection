@@ -15,6 +15,7 @@ public class DetectionTaskAggregate {
     private final String fileName;
     private final String fileUrl;
     private final String location;
+    private final Long roadId;
     private final String remark;
     private final String submittedBy;
     private DetectionTaskStatus status;
@@ -29,6 +30,7 @@ public class DetectionTaskAggregate {
                                   String fileName,
                                   String fileUrl,
                                   String location,
+                                  Long roadId,
                                   String remark,
                                   String submittedBy,
                                   LocalDateTime createdAt) {
@@ -38,6 +40,7 @@ public class DetectionTaskAggregate {
         this.fileName = fileName;
         this.fileUrl = fileUrl;
         this.location = location;
+        this.roadId = roadId;
         this.remark = remark;
         this.submittedBy = submittedBy;
         this.status = DetectionTaskStatus.PENDING;
@@ -72,14 +75,21 @@ public class DetectionTaskAggregate {
                 fileName,
                 fileUrl,
                 location,
+                roadId,
                 remark,
                 submittedBy,
                 status,
                 failureReason,
                 createdAt,
                 updatedAt,
+                null,
+                null,
                 result
         );
+    }
+
+    public String getTaskCode() {
+        return taskCode;
     }
 
     public Long getId() {
@@ -102,8 +112,8 @@ public class DetectionTaskAggregate {
         return location;
     }
 
-    public String getRemark() {
-        return remark;
+    public Long getRoadId() {
+        return roadId;
     }
 
     public String getSubmittedBy() {

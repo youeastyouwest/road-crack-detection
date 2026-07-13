@@ -9,7 +9,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @SpringBootApplication(scanBasePackages = "com.roadcrack", exclude = DataSourceAutoConfiguration.class)
 @EnableConfigurationProperties(AlgorithmClientProperties.class)
 public class CrackBackendApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(CrackBackendApplication.class, args);
     }

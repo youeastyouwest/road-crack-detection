@@ -1,68 +1,19 @@
 package com.roadcrack.api.request.auditlog;
 
 public class AuditLogPageQuery {
-
-    private Integer page = 1;
-    private Integer size = 10;
-    private String module;
+    private String operator;
     private String action;
-    private String username;
-    private Integer status;
-    private String keyword;
-
-    public Integer getPage() {
-        return page;
-    }
-
-    public void setPage(Integer page) {
-        this.page = page;
-    }
-
-    public Integer getSize() {
-        return size;
-    }
-
-    public void setSize(Integer size) {
-        this.size = size;
-    }
-
-    public String getModule() {
-        return module;
-    }
-
-    public void setModule(String module) {
-        this.module = module;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public String getKeyword() {
-        return keyword;
-    }
-
-    public void setKeyword(String keyword) {
-        this.keyword = keyword;
-    }
+    private String target;
+    private String startDate;
+    private String endDate;
+    public String getOperator() { return operator; }
+    public void setOperator(String v) { this.operator = v; }
+    public String getAction() { return action; }
+    public void setAction(String v) { this.action = v; }
+    public String getTarget() { return target; }
+    public void setTarget(String v) { this.target = v; }
+    public String getStartDate() { return startDate; }
+    public void setStartDate(String v) { this.startDate = v; }
+    public String getEndDate() { return endDate; }
+    public void setEndDate(String v) { this.endDate = v; }
 }

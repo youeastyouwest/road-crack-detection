@@ -1,0 +1,116 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] road-crack-server                                                  [pom]
+[INFO] crack-common                                                       [jar]
+[INFO] crack-api                                                          [jar]
+[INFO] crack-dao                                                          [jar]
+[INFO] crack-service                                                      [jar]
+[INFO] crack-websocket                                                    [jar]
+[INFO] crack-report                                                       [jar]
+[INFO] crack-bootstrap                                                    [jar]
+[INFO] 
+[INFO] ------------------------< com.roadcrack:server >------------------------
+[INFO] Building road-crack-server 0.1.0-SNAPSHOT                          [1/8]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] ---------------------< com.roadcrack:crack-common >---------------------
+[INFO] Building crack-common 0.1.0-SNAPSHOT                               [2/8]
+[INFO]   from crack-common\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ crack-common ---
+[INFO] skip non existing resourceDirectory D:\road-crack-detection\server\crack-common\src\main\resources
+[INFO] skip non existing resourceDirectory D:\road-crack-detection\server\crack-common\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ crack-common ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 5 source files with javac [debug parameters release 17] to target\classes
+[INFO] 
+[INFO] ----------------------< com.roadcrack:crack-api >-----------------------
+[INFO] Building crack-api 0.1.0-SNAPSHOT                                  [3/8]
+[INFO]   from crack-api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ crack-api ---
+[INFO] skip non existing resourceDirectory D:\road-crack-detection\server\crack-api\src\main\resources
+[INFO] skip non existing resourceDirectory D:\road-crack-detection\server\crack-api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ crack-api ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 55 source files with javac [debug parameters release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[3,31] 无法访问com.roadcrack.api.enums.DamageType
+  错误的源文件: D:\road-crack-detection\server\crack-api\src\main\java\com\roadcrack\api\enums\DamageType.java
+    文件不包含类com.roadcrack.api.enums.DamageType
+    请删除该文件或确保该文件位于正确的源路径子目录中。
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[4,31] 无法访问com.roadcrack.api.enums.SeverityLevel
+  错误的源文件: D:\road-crack-detection\server\crack-api\src\main\java\com\roadcrack\api\enums\SeverityLevel.java
+    文件不包含类com.roadcrack.api.enums.SeverityLevel
+    请删除该文件或确保该文件位于正确的源路径子目录中。
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[16,9] 找不到符号
+  符号:   类 DamageType
+  位置: 类 com.roadcrack.api.request.crowdreport.CreateCrowdReportRequest
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[17,9] 找不到符号
+  符号:   类 SeverityLevel
+  位置: 类 com.roadcrack.api.request.crowdreport.CreateCrowdReportRequest
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/response/crowdreport/CrowdReportResponse.java:[18,9] 找不到符号
+  符号:   类 DamageType
+  位置: 类 com.roadcrack.api.response.crowdreport.CrowdReportResponse
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/response/crowdreport/CrowdReportResponse.java:[19,9] 找不到符号
+  符号:   类 SeverityLevel
+  位置: 类 com.roadcrack.api.response.crowdreport.CrowdReportResponse
+[INFO] 6 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for road-crack-server 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] road-crack-server .................................. SUCCESS [  0.002 s]
+[INFO] crack-common ....................................... SUCCESS [  1.132 s]
+[INFO] crack-api .......................................... FAILURE [  0.327 s]
+[INFO] crack-dao .......................................... SKIPPED
+[INFO] crack-service ...................................... SKIPPED
+[INFO] crack-websocket .................................... SKIPPED
+[INFO] crack-report ....................................... SKIPPED
+[INFO] crack-bootstrap .................................... SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.009 s
+[INFO] Finished at: 2026-07-10T17:30:29+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project crack-api: Compilation failure: Compilation failure: 
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[3,31] 无法访问com.roadcrack.api.enums.DamageType
+[ERROR]   错误的源文件: D:\road-crack-detection\server\crack-api\src\main\java\com\roadcrack\api\enums\DamageType.java
+[ERROR]     文件不包含类com.roadcrack.api.enums.DamageType
+[ERROR]     请删除该文件或确保该文件位于正确的源路径子目录中。
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[4,31] 无法访问com.roadcrack.api.enums.SeverityLevel
+[ERROR]   错误的源文件: D:\road-crack-detection\server\crack-api\src\main\java\com\roadcrack\api\enums\SeverityLevel.java
+[ERROR]     文件不包含类com.roadcrack.api.enums.SeverityLevel
+[ERROR]     请删除该文件或确保该文件位于正确的源路径子目录中。
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[16,9] 找不到符号
+[ERROR]   符号:   类 DamageType
+[ERROR]   位置: 类 com.roadcrack.api.request.crowdreport.CreateCrowdReportRequest
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/request/crowdreport/CreateCrowdReportRequest.java:[17,9] 找不到符号
+[ERROR]   符号:   类 SeverityLevel
+[ERROR]   位置: 类 com.roadcrack.api.request.crowdreport.CreateCrowdReportRequest
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/response/crowdreport/CrowdReportResponse.java:[18,9] 找不到符号
+[ERROR]   符号:   类 DamageType
+[ERROR]   位置: 类 com.roadcrack.api.response.crowdreport.CrowdReportResponse
+[ERROR] /D:/road-crack-detection/server/crack-api/src/main/java/com/roadcrack/api/response/crowdreport/CrowdReportResponse.java:[19,9] 找不到符号
+[ERROR]   符号:   类 SeverityLevel
+[ERROR]   位置: 类 com.roadcrack.api.response.crowdreport.CrowdReportResponse
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :crack-api

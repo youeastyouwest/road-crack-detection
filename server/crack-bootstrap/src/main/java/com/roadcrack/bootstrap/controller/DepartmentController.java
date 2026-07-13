@@ -6,7 +6,7 @@ import com.roadcrack.common.model.ResultCode;
 import com.roadcrack.dao.entity.DepartmentEntity;
 import com.roadcrack.service.service.DepartmentService;
 import jakarta.validation.Valid;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +20,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/department")
-@ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class DepartmentController {
 
     private final DepartmentService departmentService;
@@ -40,7 +39,7 @@ public class DepartmentController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<DepartmentEntity> detail(@PathVariable Long id) {
+    public ApiResponse<DepartmentEntity> detail(@PathVariable("id") Long id) {
         DepartmentEntity department = departmentService.getById(id);
         if (department == null) {
             throw new BusinessException(ResultCode.DEPT_NOT_FOUND, "department not found: " + id);
@@ -55,14 +54,14 @@ public class DepartmentController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Void> update(@PathVariable Long id, @Valid @RequestBody DepartmentEntity department) {
+    public ApiResponse<Void> update(@PathVariable("id") Long id, @Valid @RequestBody DepartmentEntity department) {
         department.setId(id);
         departmentService.updateDepartment(department);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         departmentService.deleteDepartment(id);
         return ApiResponse.success(null);
     }

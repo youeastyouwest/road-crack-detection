@@ -1,10 +1,1 @@
-package com.roadcrack.api.enums;
-
-public enum WorkOrderStatus {
-    PENDING_ASSIGNMENT,
-    ASSIGNED,
-    IN_PROGRESS,
-    COMPLETED,
-    CLOSED,
-    CANCELLED
-}
+package com.roadcrack.api.enums;  public enum WorkOrderStatus {     PENDING_ASSIGNMENT,     ASSIGNED,     IN_PROGRESS,     COMPLETED,     PENDING_DEPT_REVIEW,     PENDING_ADMIN_REVIEW,     REJECTED,     CLOSED,     CANCELLED }

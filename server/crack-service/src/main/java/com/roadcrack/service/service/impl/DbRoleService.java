@@ -1,5 +1,7 @@
 package com.roadcrack.service.service.impl;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.ResultCode;
@@ -7,8 +9,8 @@ import com.roadcrack.dao.entity.RoleEntity;
 import com.roadcrack.dao.entity.UserRoleEntity;
 import com.roadcrack.dao.mapper.RoleMapper;
 import com.roadcrack.dao.mapper.UserRoleMapper;
+import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.RoleService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,10 +21,12 @@ public class DbRoleService implements RoleService {
 
     private final RoleMapper roleMapper;
     private final UserRoleMapper userRoleMapper;
+    private final AuditLogService auditLogService;
 
-    public DbRoleService(RoleMapper roleMapper, UserRoleMapper userRoleMapper) {
+    public DbRoleService(RoleMapper roleMapper, UserRoleMapper userRoleMapper, AuditLogService auditLogService) {
         this.roleMapper = roleMapper;
         this.userRoleMapper = userRoleMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -46,6 +50,12 @@ public class DbRoleService implements RoleService {
             role.setStatus(1);
         }
         roleMapper.insert(role);
+
+        auditLogService.record(
+                "system", "ROLE", "CREATE",
+                "创建角色: " + role.getName() + " (" + role.getCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -55,6 +65,12 @@ public class DbRoleService implements RoleService {
             throw new BusinessException(ResultCode.ROLE_CODE_EXISTS, "role code already exists");
         }
         roleMapper.updateById(role);
+
+        auditLogService.record(
+                "system", "ROLE", "UPDATE",
+                "更新角色: " + role.getName() + " (" + role.getCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     @Override
@@ -66,6 +82,12 @@ public class DbRoleService implements RoleService {
             throw new BusinessException(ResultCode.ROLE_HAS_USERS, "role is still assigned to users");
         }
         roleMapper.deleteById(role.getId());
+
+        auditLogService.record(
+                "system", "ROLE", "DELETE",
+                "删除角色: " + role.getName() + " (" + role.getCode() + ")",
+                "", 0L, "SUCCESS", ""
+        );
     }
 
     private RoleEntity requireRole(Long id) {

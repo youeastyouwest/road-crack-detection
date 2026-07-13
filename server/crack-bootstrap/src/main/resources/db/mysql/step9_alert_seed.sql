@@ -1,0 +1,10 @@
+-- 告警种子数据
+INSERT INTO alert (alert_code, alert_type, alert_level, title, content, damage_type, location, work_order_id, detection_task_id, status, handled_by, handled_at, handle_remark, created_at, updated_at) VALUES
+('ALT-2026-001', 'SEVERITY_DAMAGE', 'HIGH', '高速路段检测到严重纵向裂缝', 'G15沈海高速K1025+300段检测到一条长度约15米的纵向裂缝，宽度超过5mm，已达到严重损坏标准，需立即处理', 'CRACK', 'G15沈海高速K1025+300', 1, 1, 'PENDING', NULL, NULL, NULL, NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 2 DAY),
+('ALT-2026-002', 'SEVERITY_DAMAGE', 'HIGH', '城市主干道出现大面积坑槽', '解放路与中山路交叉口东侧检测到面积约2平方米的坑槽，深度超过3cm，影响行车安全', 'POTHOLE', '解放路与中山路交叉口东侧', 2, 2, 'PENDING', NULL, NULL, NULL, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY),
+('ALT-2026-003', 'OVERDUE_WORKORDER', 'MEDIUM', '工单WO-2026-003处理超时', '工单3天前仍未完成处理，已超过SLA规定的48小时处理时限', 'CRACK', '国道G107 K85+200', 3, NULL, 'PENDING', NULL, NULL, NULL, NOW() - INTERVAL 12 HOUR, NOW() - INTERVAL 12 HOUR),
+('ALT-2026-004', 'SUDDEN_CRACK', 'MEDIUM', '新检测到龟裂病害区域', '省道S303 K15+500段路面出现龟裂现象，面积持续扩大中', 'ALLIGATOR', '省道S303 K15+500', NULL, 3, 'HANDLED', 'admin', NOW() - INTERVAL 6 HOUR, '已指派维修团队处理', NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 6 HOUR),
+('ALT-2026-005', 'SEVERITY_DAMAGE', 'LOW', '常规检测发现轻微横向裂缝', '滨江路K2+100段发现横向裂缝，宽度约1mm，暂不影响通行', 'CRACK', '滨江路K2+100', NULL, 4, 'HANDLED', 'road_admin', NOW() - INTERVAL 3 HOUR, '已记录，列入定期维护计划', NOW() - INTERVAL 2 DAY, NOW() - INTERVAL 3 HOUR),
+('ALT-2026-006', 'OVERDUE_WORKORDER', 'HIGH', '紧急工单处理超时48小时', '工单WO-2026-005为HIGH级别紧急工单，已超过48小时未完成处理', 'POTHOLE', '绕城高速K8+750', 5, NULL, 'PENDING', NULL, NULL, NULL, NOW() - INTERVAL 4 HOUR, NOW() - INTERVAL 4 HOUR),
+('ALT-2026-007', 'SUDDEN_CRACK', 'MEDIUM', '检测到新的块状裂缝', '国道G318 K200+050段出现块状裂缝，建议进一步检测评估', 'BLOCK', '国道G318 K200+050', NULL, 5, 'PENDING', NULL, NULL, NULL, NOW() - INTERVAL 2 HOUR, NOW() - INTERVAL 2 HOUR),
+('ALT-2026-008', 'SEVERITY_DAMAGE', 'LOW', '路面修补区域边缘出现裂缝', '上月修补的沥青路面边缘出现细小裂缝，建议观察', 'CRACK', '人民路K3+200', NULL, 6, 'HANDLED', 'road_admin', NOW() - INTERVAL 1 HOUR, '持续观察中，暂不需要处理', NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 1 HOUR);

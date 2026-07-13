@@ -5,58 +5,69 @@ spring:
   application:
     name: road-crack-backend
   datasource:
-    url: ${DB_URL:}
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
-    driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
+    url: jdbc:mysql://localhost:3308/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
   sql:
     init:
-      mode: ${DB_INIT_MODE:never}
-      schema-locations:
-        - classpath:db/mysql/step0_auth_schema.sql
-        - classpath:db/mysql/step1_detection_schema.sql
-        - classpath:db/mysql/step2_work_order_schema.sql
-        - classpath:db/mysql/step3_maintenance_report_schema.sql
-  mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: ${MAIL_SMTP_AUTH:true}
-          starttls:
-            enable: ${MAIL_SMTP_STARTTLS:true}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /v3/api-docs
+      mode: always
+      schema-locations: classpath:db/mysql/step0_auth_schema.sql,classpath:db/mysql/step1_detection_schema.sql,classpath:db/mysql/step2_work_order_schema.sql,classpath:db/mysql/step3_maintenance_report_schema.sql,classpath:db/mysql/step4_alert_schema.sql,classpath:db/mysql/step5_road_schema.sql,classpath:db/mysql/step6_health_archive_schema.sql,classpath:db/mysql/step7_crowd_report_schema.sql,classpath:db/mysql/step8_operation_log_schema.sql,classpath:db/mysql/step9_alert_seed.sql,classpath:db/mysql/step10_detection_audit_schema.sql
+      data-locations: classpath:db/mysql/seed.sql
 
 crack:
   persistence:
-    mode: ${CRACK_PERSISTENCE_MODE:memory}
+    mode: db
   algorithm:
-    mock-enabled: true
+    mock-enabled: false
     base-url: http://localhost:8000
-    analyze-path: /detect/base64
-    connect-timeout-millis: 3000
-    read-timeout-millis: 15000
+  agent:
+    siliconflow:
+      # 硅基流动 API Key — 请在 https://cloud.siliconflow.cn/account/ak 获取
+      # 配置后 AI 助手将接入硅基流动大模型（Qwen2.5-7B-Instruct）
+      # 留空则使用本地关键词匹配降级回复
+      api-key: sk-gtkmbkyqhsqeombmwyhooefszyohwkdcjgokqpwfvetvfpkq
+      base-url: https://api.siliconflow.cn/v1
+      model: Qwen/Qwen2.5-7B-Instruct
+  upload:
+    dir: D:/road-crack-detection/uploads
+  websocket:
+    endpoint: /ws/crack
+
+# 高德地图 Web API 配置（用于逆地理编码反查道路名）
+# 申请地址：https://console.amap.com/dev/key/app
+amap:
+  api-key: bba0da8b9d68b88dfd30c470fdb26f97
 
 jwt:
-  secret: ${JWT_SECRET:road-crack-detection-default-secret-key-please-change}
-  expiration: ${JWT_EXPIRATION:86400000}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  secret: r0ad-crack-d3tecti0n-jwt-s3cret-k3y-2025-please-change
+  expiration: 86400000
+  refresh-expiration: 604800000
 
-security:
-  login:
-    max-fail-count: ${LOGIN_MAX_FAIL_COUNT:5}
-    lock-duration: ${LOGIN_LOCK_DURATION:15}
+logging:
+  level:
+    com.roadcrack: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: db
+  datasource:
+    url: jdbc:mysql://localhost:3308/road_crack?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/mysql/step0_auth_schema.sql,classpath:db/mysql/step1_detection_schema.sql,classpath:db/mysql/step2_work_order_schema.sql,classpath:db/mysql/step3_maintenance_report_schema.sql,classpath:db/mysql/step4_alert_schema.sql,classpath:db/mysql/step5_road_schema.sql,classpath:db/mysql/step6_health_archive_schema.sql,classpath:db/mysql/step7_crowd_report_schema.sql,classpath:db/mysql/step8_operation_log_schema.sql,classpath:db/mysql/step9_alert_seed.sql,classpath:db/mysql/step10_detection_audit_schema.sql
+      data-locations: classpath:db/mysql/seed.sql
+
+crack:
+  persistence:
+    mode: db

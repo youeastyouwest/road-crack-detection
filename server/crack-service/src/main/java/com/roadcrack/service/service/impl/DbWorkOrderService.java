@@ -15,16 +15,21 @@ import com.roadcrack.api.response.workorder.WorkOrderStatusLogResponse;
 import com.roadcrack.common.model.BusinessException;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.dao.entity.DetectionTaskEntity;
+import com.roadcrack.dao.entity.DetectionResultItemEntity;
+import com.roadcrack.dao.entity.RoadEntity;
 import com.roadcrack.dao.entity.WorkOrderEntity;
 import com.roadcrack.dao.entity.WorkOrderFlowEntity;
+import com.roadcrack.dao.mapper.DetectionResultItemMapper;
+import com.roadcrack.dao.mapper.DetectionTaskMapper;
+import com.roadcrack.dao.mapper.RoadMapper;
 import com.roadcrack.dao.mapper.WorkOrderFlowMapper;
 import com.roadcrack.dao.mapper.WorkOrderMapper;
 import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.port.RealtimeMessagePublisher;
 import com.roadcrack.service.service.AuditLogService;
 import com.roadcrack.service.service.WorkOrderService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.roadcrack.service.util.RoadHealthScoreCalculator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,15 +59,23 @@ public class DbWorkOrderService implements WorkOrderService {
     private final WorkOrderFlowMapper workOrderFlowMapper;
     private final AuditLogService auditLogService;
     private final RealtimeMessagePublisher realtimeMessagePublisher;
+    private final RoadMapper roadMapper;
+    private final DetectionTaskMapper detectionTaskMapper;
+    private final DetectionResultItemMapper detectionResultItemMapper;
 
     public DbWorkOrderService(WorkOrderMapper workOrderMapper,
                               WorkOrderFlowMapper workOrderFlowMapper,
-                              AuditLogService auditLogService,
-                              RealtimeMessagePublisher realtimeMessagePublisher) {
+                              RealtimeMessagePublisher realtimeMessagePublisher,
+                              RoadMapper roadMapper,
+                              DetectionTaskMapper detectionTaskMapper,
+                              DetectionResultItemMapper detectionResultItemMapper) {
         this.workOrderMapper = workOrderMapper;
         this.workOrderFlowMapper = workOrderFlowMapper;
         this.auditLogService = auditLogService;
         this.realtimeMessagePublisher = realtimeMessagePublisher;
+        this.roadMapper = roadMapper;
+        this.detectionTaskMapper = detectionTaskMapper;
+        this.detectionResultItemMapper = detectionResultItemMapper;
     }
 
     @Override
@@ -154,14 +167,46 @@ public class DbWorkOrderService implements WorkOrderService {
         entity.setUpdatedAt(now);
         workOrderMapper.updateById(entity);
 
+        String assignee = request.assignee();
+        String assignNote = (assignee != null && !assignee.isBlank())
+                ? "assigned to " + assignee
+                : "assigned to department " + request.departmentCode();
+
         insertFlow(entity.getId(),
                 WorkOrderStatus.PENDING_ASSIGNMENT,
                 WorkOrderStatus.ASSIGNED,
                 "ASSIGN",
                 DEFAULT_OPERATOR,
                 request.departmentCode(),
-                request.assignee(),
-                "assigned to " + request.assignee(),
+                assignee,
+                assignNote,
+                now);
+
+        return publishAndReturn(entity.getId());
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderResponse assignWorker(Long workOrderId, String assignee) {
+        WorkOrderEntity entity = getRequired(workOrderId);
+        WorkOrderStatus currentStatus = WorkOrderStatus.valueOf(entity.getStatus());
+        if (currentStatus != WorkOrderStatus.ASSIGNED && currentStatus != WorkOrderStatus.REJECTED) {
+            throw new BusinessException(ResultCode.CONFLICT, "only ASSIGNED or REJECTED work orders can have worker reassigned");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        entity.setAssignee(assignee);
+        entity.setUpdatedAt(now);
+        workOrderMapper.updateById(entity);
+
+        insertFlow(entity.getId(),
+                currentStatus,
+                currentStatus,
+                "ASSIGN_WORKER",
+                DEFAULT_OPERATOR,
+                entity.getDepartmentCode() == null ? null : DepartmentCode.valueOf(entity.getDepartmentCode()),
+                assignee,
+                "assigned worker: " + assignee,
                 now);
 
         log.info("Work order assigned in db: workOrderId={}, workOrderCode={}, department={}, assignee={}",
@@ -280,8 +325,8 @@ public class DbWorkOrderService implements WorkOrderService {
     public void closeByReport(Long workOrderId, String note) {
         WorkOrderEntity entity = getRequired(workOrderId);
         WorkOrderStatus currentStatus = WorkOrderStatus.valueOf(entity.getStatus());
-        if (currentStatus != WorkOrderStatus.COMPLETED) {
-            throw new BusinessException(ResultCode.CONFLICT, "only completed work orders can be closed by maintenance report");
+        if (currentStatus != WorkOrderStatus.PENDING_ADMIN_REVIEW) {
+            throw new BusinessException(ResultCode.CONFLICT, "only admin-reviewed work orders can be closed by maintenance report");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -299,18 +344,54 @@ public class DbWorkOrderService implements WorkOrderService {
                 note,
                 now);
 
-        log.info("Work order closed by report in db: workOrderId={}, workOrderCode={}, note={}",
-                entity.getId(),
-                entity.getWorkOrderCode(),
-                note);
-        auditLogService.record(AuditLogRecord.success(
-                        MODULE_WORK_ORDER,
-                        "CLOSE",
-                        "Closed work order " + entity.getWorkOrderCode() + " by maintenance report")
-                .setUsername(DEFAULT_OPERATOR)
-                .setParams(buildCloseParams(entity, currentStatus, note))
-                .setCreateTime(now));
+        // 工单关闭后，更新关联道路的统计信息
+        updateRoadStatsOnClose(entity, now);
+
         publishAndReturn(entity.getId());
+    }
+
+    /**
+     * 工单关闭时更新道路统计：
+     * - current_damage_count 减 1（不低于 0）
+     * - health_score 使用 RoadHealthScoreCalculator 基于该道路所有剩余病害重新计算
+     * - last_maintained 设为当前时间
+     * - status 如果之前是 MAINTAINING 则改为 ACTIVE
+     * - damage_level 根据新的 health_score 重新评估
+     */
+    private void updateRoadStatsOnClose(WorkOrderEntity workOrder, LocalDateTime now) {
+        if (workOrder.getDetectionTaskId() == null) return;
+        DetectionTaskEntity task = detectionTaskMapper.selectById(workOrder.getDetectionTaskId());
+        if (task == null || task.getRoadId() == null) return;
+        RoadEntity road = roadMapper.selectById(task.getRoadId());
+        if (road == null) return;
+
+        int currentDamage = road.getCurrentDamageCount() != null ? road.getCurrentDamageCount() : 0;
+        currentDamage = Math.max(0, currentDamage - 1);
+        road.setCurrentDamageCount(currentDamage);
+
+        // 使用 RoadHealthScoreCalculator 基于该道路所有剩余病害重新计算健康评分
+        List<DetectionTaskEntity> roadTasks = detectionTaskMapper.selectList(
+                new LambdaQueryWrapper<DetectionTaskEntity>()
+                        .eq(DetectionTaskEntity::getRoadId, task.getRoadId())
+                        .eq(DetectionTaskEntity::getStatus, "COMPLETED"));
+        List<Long> taskIds = roadTasks.stream().map(DetectionTaskEntity::getId).toList();
+        List<DetectionResultItemEntity> allItems = taskIds.isEmpty()
+                ? Collections.emptyList()
+                : detectionResultItemMapper.selectList(
+                        new LambdaQueryWrapper<DetectionResultItemEntity>()
+                                .in(DetectionResultItemEntity::getTaskId, taskIds));
+
+        java.math.BigDecimal healthScore = RoadHealthScoreCalculator.calculate(road, allItems);
+        String damageLevel = RoadHealthScoreCalculator.resolveDamageLevel(healthScore);
+
+        road.setHealthScore(healthScore);
+        road.setDamageLevel(damageLevel);
+        road.setLastMaintained(now);
+        road.setUpdatedAt(now);
+        if ("MAINTAINING".equals(road.getStatus())) {
+            road.setStatus("ACTIVE");
+        }
+        roadMapper.updateById(road);
     }
 
     private WorkOrderResponse createWorkOrderInternal(CreateWorkOrderRequest request, String sourceType, String operatorName) {
@@ -373,7 +454,10 @@ public class DbWorkOrderService implements WorkOrderService {
             case PENDING_ASSIGNMENT -> targetStatus == WorkOrderStatus.CANCELLED;
             case ASSIGNED -> targetStatus == WorkOrderStatus.IN_PROGRESS || targetStatus == WorkOrderStatus.CANCELLED;
             case IN_PROGRESS -> targetStatus == WorkOrderStatus.COMPLETED || targetStatus == WorkOrderStatus.CANCELLED;
-            case COMPLETED -> targetStatus == WorkOrderStatus.CANCELLED;
+            case COMPLETED -> targetStatus == WorkOrderStatus.PENDING_DEPT_REVIEW || targetStatus == WorkOrderStatus.CANCELLED;
+            case PENDING_DEPT_REVIEW -> targetStatus == WorkOrderStatus.PENDING_ADMIN_REVIEW || targetStatus == WorkOrderStatus.REJECTED;
+            case PENDING_ADMIN_REVIEW -> targetStatus == WorkOrderStatus.REJECTED;
+            case REJECTED -> targetStatus == WorkOrderStatus.PENDING_DEPT_REVIEW;
             case CLOSED, CANCELLED -> false;
         };
     }

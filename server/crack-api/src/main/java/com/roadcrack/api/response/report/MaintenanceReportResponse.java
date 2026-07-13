@@ -12,6 +12,10 @@ public record MaintenanceReportResponse(
         String materials,
         String description,
         LocalDateTime finishedAt,
+        String status,
+        String reviewRemark,
+        String reviewer,
+        LocalDateTime reviewedAt,
         LocalDateTime createdAt
 ) {
 }

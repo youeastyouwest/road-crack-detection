@@ -150,6 +150,17 @@ public class InMemoryWorkOrderService implements WorkOrderService {
     }
 
     @Override
+    public WorkOrderResponse assignWorker(Long workOrderId, String assignee) {
+        WorkOrderAggregate aggregate = getRequired(workOrderId);
+        WorkOrderStatus currentStatus = aggregate.getStatus();
+        if (currentStatus != WorkOrderStatus.ASSIGNED && currentStatus != WorkOrderStatus.REJECTED) {
+            throw new BusinessException(ResultCode.CONFLICT, "仅已指派或已驳回的工单可重新分配维修工");
+        }
+        aggregate.assignWorker(assignee);
+        return publishAndReturn(aggregate);
+    }
+
+    @Override
     public WorkOrderResponse updateStatus(Long workOrderId, UpdateWorkOrderStatusRequest request) {
         WorkOrderAggregate aggregate = getRequired(workOrderId);
         aggregate.updateStatus(request.status(), request.note());

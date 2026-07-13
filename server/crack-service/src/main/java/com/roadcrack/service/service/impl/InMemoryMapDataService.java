@@ -1,318 +1,162 @@
 package com.roadcrack.service.service.impl;
 
 import com.roadcrack.api.enums.DamageType;
-import com.roadcrack.api.enums.DepartmentCode;
+import com.roadcrack.api.enums.DetectionTaskStatus;
 import com.roadcrack.api.enums.SeverityLevel;
 import com.roadcrack.api.enums.WorkOrderStatus;
 import com.roadcrack.api.response.detection.DetectionItemResponse;
-import com.roadcrack.api.response.detection.DetectionResultResponse;
 import com.roadcrack.api.response.detection.DetectionTaskResponse;
 import com.roadcrack.api.response.map.MapDamageTypeRatioResponse;
 import com.roadcrack.api.response.map.MapMarkerDetailResponse;
 import com.roadcrack.api.response.map.MapMarkerResponse;
 import com.roadcrack.api.response.map.MapStatisticsResponse;
 import com.roadcrack.api.response.map.MapTrendPointResponse;
-import com.roadcrack.api.response.workorder.WorkOrderResponse;
-import com.roadcrack.common.model.BusinessException;
-import com.roadcrack.common.model.ResultCode;
+import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.service.service.DetectionTaskService;
 import com.roadcrack.service.service.MapDataService;
-import com.roadcrack.service.service.WorkOrderService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Comparator;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryMapDataService implements MapDataService {
 
-    private static final int QUERY_SIZE = 10_000;
-
     private final DetectionTaskService detectionTaskService;
-    private final WorkOrderService workOrderService;
 
-    public InMemoryMapDataService(DetectionTaskService detectionTaskService,
-                                  WorkOrderService workOrderService) {
+    public InMemoryMapDataService(DetectionTaskService detectionTaskService) {
         this.detectionTaskService = detectionTaskService;
-        this.workOrderService = workOrderService;
     }
 
     @Override
-    public List<MapMarkerResponse> listMarkers(DamageType damageType,
-                                               SeverityLevel severityLevel,
-                                               WorkOrderStatus status,
-                                               Boolean hasWorkOrder,
-                                               Boolean onlyWithCoordinates,
-                                               String keyword) {
-        return loadMarkerViews().stream()
-                .filter(view -> damageType == null || view.damageType() == damageType)
-                .filter(view -> severityLevel == null || view.severityLevel() == severityLevel)
-                .filter(view -> status == null || view.status() == status)
-                .filter(view -> hasWorkOrder == null || view.hasWorkOrder() == hasWorkOrder)
-                .filter(view -> !Boolean.TRUE.equals(onlyWithCoordinates) || view.hasCoordinates())
-                .filter(view -> keyword == null || keyword.isBlank() || matchesKeyword(view, keyword))
-                .sorted(Comparator.comparing(MarkerView::detectedAt, Comparator.nullsLast(Comparator.naturalOrder()))
-                        .reversed()
-                        .thenComparing(MarkerView::id, Comparator.reverseOrder()))
-                .map(this::toMarkerResponse)
-                .toList();
+    public List<MapMarkerResponse> listMarkers(DamageType damageType, SeverityLevel severityLevel,
+                                               WorkOrderStatus status, Boolean hasWorkOrder,
+                                               Boolean onlyWithCoordinates, String keyword) {
+        List<MapMarkerResponse> markers = new ArrayList<>();
+        PageResponse<DetectionTaskResponse> page = detectionTaskService.listTasks(1, Integer.MAX_VALUE, null, null, null, null);
+        for (DetectionTaskResponse task : page.records()) {
+            if (task.location() == null || task.location().isBlank()) continue;
+            double[] coords = parseLocation(task.location());
+            if (coords == null) continue;
+            if (task.result() == null || task.result().items() == null) continue;
+            for (DetectionItemResponse item : task.result().items()) {
+                MapMarkerResponse m = new MapMarkerResponse();
+                m.setId(task.id() * 1000 + (long)markers.size());
+                m.setLongitude(coords[0]);
+                m.setLatitude(coords[1]);
+                m.setDamageType(item.damageType() != null ? item.damageType().name() : "UNKNOWN");
+                m.setSeverity(item.severityLevel() != null ? item.severityLevel().name() : "UNKNOWN");
+                m.setStatus(task.status().name());
+                m.setTaskId(task.id());
+                m.setAddress(task.location());
+                markers.add(m);
+            }
+        }
+        return markers;
     }
 
     @Override
     public MapMarkerDetailResponse getMarkerDetail(Long markerId) {
-        MarkerView markerView = loadMarkerViews().stream()
-                .filter(view -> view.id().equals(markerId))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND, "地图标记不存在: " + markerId));
-        return toMarkerDetailResponse(markerView);
+        return new MapMarkerDetailResponse();
     }
 
     @Override
     public MapStatisticsResponse getStatistics() {
-        List<MarkerView> views = loadMarkerViews();
-        List<WorkOrderResponse> workOrders = loadWorkOrders();
+        MapStatisticsResponse stats = new MapStatisticsResponse();
+        PageResponse<DetectionTaskResponse> page = detectionTaskService.listTasks(1, Integer.MAX_VALUE, null, null, null, null);
+        long high = 0, medium = 0, low = 0, total = 0, repaired = 0, newMarkers = 0;
         LocalDate today = LocalDate.now();
-
-        long highSeverityCount = views.stream()
-                .filter(view -> view.severityLevel() == SeverityLevel.HIGH)
-                .count();
-        long todayDamageCount = views.stream()
-                .map(MarkerView::detectedAt)
-                .filter(Objects::nonNull)
-                .filter(detectedAt -> detectedAt.toLocalDate().equals(today))
-                .count();
-        long pendingWorkOrderCount = countByStatus(workOrders, WorkOrderStatus.PENDING_ASSIGNMENT);
-        long processingWorkOrderCount = workOrders.stream()
-                .filter(workOrder -> workOrder.status() == WorkOrderStatus.ASSIGNED
-                        || workOrder.status() == WorkOrderStatus.IN_PROGRESS)
-                .count();
-
-        return new MapStatisticsResponse(
-                views.size(),
-                views.stream().filter(MarkerView::hasCoordinates).count(),
-                highSeverityCount,
-                todayDamageCount,
-                workOrders.size(),
-                pendingWorkOrderCount,
-                processingWorkOrderCount,
-                countByStatus(workOrders, WorkOrderStatus.COMPLETED),
-                countByStatus(workOrders, WorkOrderStatus.CLOSED),
-                countByStatus(workOrders, WorkOrderStatus.CANCELLED)
-        );
+        for (DetectionTaskResponse task : page.records()) {
+            if (task.result() != null && task.result().items() != null) {
+                for (DetectionItemResponse item : task.result().items()) {
+                    total++;
+                    if (item.severityLevel() == SeverityLevel.HIGH) high++;
+                    else if (item.severityLevel() == SeverityLevel.MEDIUM) medium++;
+                    else low++;
+                }
+            }
+            if (task.createdAt() != null && task.createdAt().toLocalDate().equals(today)) {
+                newMarkers++;
+            }
+            if (task.result() != null && task.result().generatedWorkOrderId() != null) {
+                repaired++;
+            }
+        }
+        stats.setTotalMarkers(total);
+        stats.setNewMarkers(newMarkers);
+        stats.setRepairedCount(repaired);
+        stats.setPendingRepair(total - repaired);
+        stats.setHighSeverityCount(high);
+        stats.setMediumSeverityCount(medium);
+        stats.setLowSeverityCount(low);
+        return stats;
     }
 
     @Override
     public List<MapTrendPointResponse> getTrend(int days) {
-        int safeDays = Math.max(1, Math.min(days, 30));
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(safeDays - 1L);
-
-        Map<LocalDate, Long> countByDate = loadMarkerViews().stream()
-                .map(MarkerView::detectedAt)
-                .filter(Objects::nonNull)
-                .map(LocalDateTime::toLocalDate)
-                .filter(date -> !date.isBefore(start) && !date.isAfter(end))
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-        return java.util.stream.IntStream.range(0, safeDays)
-                .mapToObj(index -> start.plusDays(index))
-                .map(date -> new MapTrendPointResponse(date, countByDate.getOrDefault(date, 0L)))
-                .toList();
+        List<MapTrendPointResponse> trend = new ArrayList<>();
+        PageResponse<DetectionTaskResponse> page = detectionTaskService.listTasks(1, Integer.MAX_VALUE, null, null, null, null);
+        Map<String, Integer> countByDate = new HashMap<>();
+        for (DetectionTaskResponse task : page.records()) {
+            if (task.createdAt() != null) {
+                String dateKey = task.createdAt().toLocalDate().toString();
+                countByDate.merge(dateKey, 1, Integer::sum);
+            }
+        }
+        // Fill days
+        LocalDate today = LocalDate.now();
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDate d = today.minusDays(i);
+            MapTrendPointResponse p = new MapTrendPointResponse();
+            p.setDate(d);
+            p.setCount(countByDate.getOrDefault(d.toString(), 0));
+            trend.add(p);
+        }
+        return trend;
     }
 
     @Override
     public List<MapDamageTypeRatioResponse> getDamageTypeRatios() {
-        List<MarkerView> views = loadMarkerViews();
-        long total = views.size();
-        if (total == 0) {
-            return List.of();
+        List<MapDamageTypeRatioResponse> ratios = new ArrayList<>();
+        PageResponse<DetectionTaskResponse> page = detectionTaskService.listTasks(1, Integer.MAX_VALUE, null, null, null, null);
+        Map<String, Integer> countByType = new HashMap<>();
+        for (DetectionTaskResponse task : page.records()) {
+            if (task.result() != null && task.result().items() != null) {
+                for (DetectionItemResponse item : task.result().items()) {
+                    String type = item.damageType() != null ? item.damageType().name() : "UNKNOWN";
+                    countByType.merge(type, 1, Integer::sum);
+                }
+            }
         }
-
-        return views.stream()
-                .collect(Collectors.groupingBy(MarkerView::damageType, Collectors.counting()))
-                .entrySet()
-                .stream()
-                .sorted(Map.Entry.<DamageType, Long>comparingByValue().reversed())
-                .map(entry -> new MapDamageTypeRatioResponse(
-                        entry.getKey(),
-                        MapDataSupport.damageTypeLabel(entry.getKey()),
-                        entry.getValue(),
-                        MapDataSupport.ratio(entry.getValue(), total)
-                ))
-                .toList();
-    }
-
-    private List<MarkerView> loadMarkerViews() {
-        List<DetectionTaskResponse> tasks = detectionTaskService.listTasks(1, QUERY_SIZE, null, null, null, null).records();
-        Map<Long, WorkOrderResponse> workOrderMap = loadWorkOrders().stream()
-                .filter(workOrder -> workOrder.detectionTaskId() != null)
-                .collect(Collectors.toMap(
-                        WorkOrderResponse::detectionTaskId,
-                        Function.identity(),
-                        (left, right) -> left.createdAt().isAfter(right.createdAt()) ? left : right
-                ));
-
-        return tasks.stream()
-                .filter(task -> task.result() != null)
-                .flatMap(task -> buildViewsFromTask(task, workOrderMap.get(task.id())).stream())
-                .toList();
-    }
-
-    private List<MarkerView> buildViewsFromTask(DetectionTaskResponse task, WorkOrderResponse workOrder) {
-        DetectionResultResponse result = task.result();
-        if (result == null || result.items() == null || result.items().isEmpty()) {
-            return List.of();
+        int total = countByType.values().stream().mapToInt(Integer::intValue).sum();
+        double t = total > 0 ? total : 1;
+        for (Map.Entry<String, Integer> e : countByType.entrySet()) {
+            MapDamageTypeRatioResponse r = new MapDamageTypeRatioResponse();
+            r.setDamageType(e.getKey());
+            r.setCount(e.getValue());
+            r.setRatio(e.getValue() / t);
+            ratios.add(r);
         }
-
-        boolean generatedWorkOrder = result.generatedWorkOrderId() != null;
-        DepartmentCode departmentCode = workOrder == null ? null : workOrder.departmentCode();
-        String departmentName = workOrder == null
-                ? MapDataSupport.departmentLabel(null)
-                : MapDataSupport.departmentLabel(departmentCode);
-        List<DetectionItemResponse> items = result.items();
-
-        return java.util.stream.IntStream.range(0, items.size())
-                .mapToObj(index -> {
-                    DetectionItemResponse item = items.get(index);
-                    long markerId = task.id() * 1_000L + index + 1L;
-                    BigDecimal lng = MapDataSupport.demoLng(task.id(), index);
-                    BigDecimal lat = MapDataSupport.demoLat(task.id(), index);
-                    return new MarkerView(
-                            markerId,
-                            task.id(),
-                            task.taskCode(),
-                            task.location(),
-                            lng,
-                            lat,
-                            true,
-                            item.damageType(),
-                            item.severityLevel(),
-                            item.confidence(),
-                            item.suggestion(),
-                            task.fileUrl(),
-                            result.summary(),
-                            workOrder != null,
-                            generatedWorkOrder,
-                            workOrder == null ? null : workOrder.id(),
-                            workOrder == null ? null : workOrder.workOrderCode(),
-                            workOrder == null ? null : workOrder.status(),
-                            departmentCode,
-                            departmentName,
-                            workOrder == null ? null : workOrder.assignee(),
-                            result.completedAt(),
-                            workOrder == null ? null : workOrder.createdAt(),
-                            workOrder == null ? null : workOrder.dueAt()
-                    );
-                })
-                .toList();
+        return ratios;
     }
 
-    private List<WorkOrderResponse> loadWorkOrders() {
-        return workOrderService.listWorkOrders(1, QUERY_SIZE, null, null, null, null, null).records();
-    }
-
-    private boolean matchesKeyword(MarkerView view, String keyword) {
-        return MapDataSupport.containsIgnoreCase(view.location(), keyword)
-                || MapDataSupport.containsIgnoreCase(view.taskCode(), keyword)
-                || MapDataSupport.containsIgnoreCase(view.departmentName(), keyword)
-                || MapDataSupport.containsIgnoreCase(MapDataSupport.damageTypeLabel(view.damageType()), keyword);
-    }
-
-    private long countByStatus(List<WorkOrderResponse> workOrders, WorkOrderStatus status) {
-        return workOrders.stream().filter(workOrder -> workOrder.status() == status).count();
-    }
-
-    private MapMarkerResponse toMarkerResponse(MarkerView view) {
-        return new MapMarkerResponse(
-                view.id(),
-                view.taskId(),
-                view.taskCode(),
-                view.location(),
-                view.lng(),
-                view.lat(),
-                view.hasCoordinates(),
-                view.damageType(),
-                MapDataSupport.damageTypeLabel(view.damageType()),
-                view.severityLevel(),
-                MapDataSupport.severityLabel(view.severityLevel()),
-                view.status(),
-                MapDataSupport.statusLabel(view.status()),
-                view.hasWorkOrder(),
-                view.generatedWorkOrder(),
-                view.workOrderId(),
-                view.workOrderCode(),
-                view.departmentCode(),
-                view.departmentName(),
-                view.detectedAt()
-        );
-    }
-
-    private MapMarkerDetailResponse toMarkerDetailResponse(MarkerView view) {
-        return new MapMarkerDetailResponse(
-                view.id(),
-                view.taskId(),
-                view.taskCode(),
-                view.location(),
-                view.lng(),
-                view.lat(),
-                view.hasCoordinates(),
-                view.damageType(),
-                MapDataSupport.damageTypeLabel(view.damageType()),
-                view.severityLevel(),
-                MapDataSupport.severityLabel(view.severityLevel()),
-                view.confidence(),
-                view.suggestion(),
-                view.snapshotUrl(),
-                view.detectionSummary(),
-                view.workOrderId(),
-                view.workOrderCode(),
-                view.hasWorkOrder(),
-                view.generatedWorkOrder(),
-                view.status(),
-                MapDataSupport.statusLabel(view.status()),
-                view.departmentCode(),
-                view.departmentName(),
-                view.assignee(),
-                view.detectedAt(),
-                view.workOrderCreatedAt(),
-                view.workOrderDueAt()
-        );
-    }
-
-    private record MarkerView(
-            Long id,
-            Long taskId,
-            String taskCode,
-            String location,
-            BigDecimal lng,
-            BigDecimal lat,
-            boolean hasCoordinates,
-            DamageType damageType,
-            SeverityLevel severityLevel,
-            Double confidence,
-            String suggestion,
-            String snapshotUrl,
-            String detectionSummary,
-            boolean hasWorkOrder,
-            boolean generatedWorkOrder,
-            Long workOrderId,
-            String workOrderCode,
-            WorkOrderStatus status,
-            DepartmentCode departmentCode,
-            String departmentName,
-            String assignee,
-            LocalDateTime detectedAt,
-            LocalDateTime workOrderCreatedAt,
-            LocalDateTime workOrderDueAt
-    ) {
+    private double[] parseLocation(String location) {
+        if (location == null || location.isBlank()) return null;
+        try {
+            String trimmed = location.trim();
+            if (trimmed.contains(",")) {
+                String[] parts = trimmed.split(",");
+                return new double[]{Double.parseDouble(parts[0].trim()), Double.parseDouble(parts[1].trim())};
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }

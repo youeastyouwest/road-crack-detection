@@ -1,18 +1,19 @@
 package com.roadcrack.service.service.impl;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.roadcrack.api.request.auditlog.AuditLogPageQuery;
 import com.roadcrack.api.response.auditlog.AuditLogResponse;
 import com.roadcrack.common.model.PageResponse;
 import com.roadcrack.dao.entity.OperationLogEntity;
 import com.roadcrack.dao.mapper.OperationLogMapper;
-import com.roadcrack.service.model.AuditLogRecord;
 import com.roadcrack.service.service.AuditLogService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
@@ -25,93 +26,58 @@ public class DbAuditLogService implements AuditLogService {
     }
 
     @Override
-    public PageResponse<AuditLogResponse> pageQuery(AuditLogPageQuery query) {
-        int page = query.getPage() == null ? 1 : Math.max(query.getPage(), 1);
-        int size = query.getSize() == null ? 10 : Math.max(query.getSize(), 1);
-
-        Page<OperationLogEntity> queryPage = new Page<>(page, size);
+    public PageResponse<AuditLogResponse> page(int page, int size, String module, String status) {
         LambdaQueryWrapper<OperationLogEntity> wrapper = new LambdaQueryWrapper<OperationLogEntity>()
-                .orderByDesc(OperationLogEntity::getCreateTime)
-                .orderByDesc(OperationLogEntity::getId);
-        if (hasText(query.getModule())) {
-            wrapper.eq(OperationLogEntity::getModule, query.getModule());
+                .orderByDesc(OperationLogEntity::getCreateTime);
+
+        if (module != null && !module.isBlank()) {
+            wrapper.eq(OperationLogEntity::getModule, module);
         }
-        if (hasText(query.getAction())) {
-            wrapper.eq(OperationLogEntity::getAction, query.getAction());
-        }
-        if (hasText(query.getUsername())) {
-            wrapper.like(OperationLogEntity::getUsername, query.getUsername());
-        }
-        if (query.getStatus() != null) {
-            wrapper.eq(OperationLogEntity::getStatus, query.getStatus());
-        }
-        if (hasText(query.getKeyword())) {
-            wrapper.and(item -> item.like(OperationLogEntity::getDescription, query.getKeyword())
-                    .or()
-                    .like(OperationLogEntity::getParams, query.getKeyword())
-                    .or()
-                    .like(OperationLogEntity::getUsername, query.getKeyword()));
+        if (status != null && !status.isBlank()) {
+            if ("SUCCESS".equalsIgnoreCase(status) || "1".equals(status)) {
+                wrapper.eq(OperationLogEntity::getStatus, 1);
+            } else if ("FAIL".equalsIgnoreCase(status) || "0".equals(status)) {
+                wrapper.eq(OperationLogEntity::getStatus, 0);
+            }
         }
 
-        operationLogMapper.selectPage(queryPage, wrapper);
-        java.util.List<AuditLogResponse> records = queryPage.getRecords().stream()
+        Page<OperationLogEntity> result = operationLogMapper.selectPage(new Page<>(page, size), wrapper);
+
+        List<AuditLogResponse> records = result.getRecords().stream()
                 .map(this::toResponse)
-                .toList();
-        return new PageResponse<>(records, queryPage.getTotal(), queryPage.getSize(), queryPage.getCurrent(), queryPage.getPages());
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(records, result.getTotal(), result.getSize(), result.getCurrent(), result.getPages());
     }
 
     @Override
-    public void record(AuditLogRecord record) {
+    public void record(String operator, String module, String action, String description,
+                       String ip, Long duration, String status, String errorMsg) {
         OperationLogEntity entity = new OperationLogEntity();
-        applyRecord(record, entity);
+        entity.setUsername(operator);
+        entity.setModule(module);
+        entity.setAction(action);
+        entity.setDescription(description);
+        entity.setIp(ip);
+        entity.setCostTime(duration != null ? duration : 0L);
+        entity.setStatus("SUCCESS".equalsIgnoreCase(status) || "1".equals(status) ? 1 : 0);
+        entity.setErrorMsg(errorMsg != null ? errorMsg : "");
+        entity.setCreateTime(LocalDateTime.now());
+
         operationLogMapper.insert(entity);
     }
 
-    private void applyRecord(AuditLogRecord record, OperationLogEntity entity) {
-        AuditLogRequestContext.ResolvedContext context = AuditLogRequestContext.resolve();
-        entity.setUserId(record.getUserId() != null ? record.getUserId() : context.userId());
-        entity.setUsername(firstNonBlank(record.getUsername(), context.username(), "system"));
-        entity.setModule(record.getModule());
-        entity.setAction(record.getAction());
-        entity.setDescription(record.getDescription());
-        entity.setIp(firstNonBlank(record.getIp(), context.ip()));
-        entity.setParams(record.getParams());
-        entity.setStatus(record.getStatus() == null ? 1 : record.getStatus());
-        entity.setErrorMsg(record.getErrorMsg());
-        entity.setCostTime(record.getCostTime());
-        entity.setCreateTime(record.getCreateTime() == null ? LocalDateTime.now() : record.getCreateTime());
-    }
-
     private AuditLogResponse toResponse(OperationLogEntity entity) {
-        return new AuditLogResponse(
-                entity.getId(),
-                entity.getUserId(),
-                entity.getUsername(),
-                entity.getModule(),
-                entity.getAction(),
-                entity.getDescription(),
-                entity.getIp(),
-                entity.getParams(),
-                entity.getStatus(),
-                entity.getErrorMsg(),
-                entity.getCostTime(),
-                entity.getCreateTime()
-        );
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private String firstNonBlank(String... values) {
-        if (values == null) {
-            return null;
-        }
-        for (String value : values) {
-            if (hasText(value)) {
-                return value;
-            }
-        }
-        return null;
+        AuditLogResponse resp = new AuditLogResponse();
+        resp.setId(entity.getId());
+        resp.setOperator(entity.getUsername());
+        resp.setAction(entity.getAction());
+        resp.setTarget(entity.getModule());
+        resp.setDetail(entity.getDescription());
+        resp.setIp(entity.getIp());
+        resp.setDuration(entity.getCostTime());
+        resp.setStatus(entity.getStatus() != null && entity.getStatus() == 1 ? "SUCCESS" : "FAIL");
+        resp.setCreatedAt(entity.getCreateTime());
+        return resp;
     }
 }
