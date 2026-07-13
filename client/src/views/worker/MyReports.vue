@@ -2,54 +2,54 @@
   <div class="mr-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">完成报告</h2>
-        <p class="page-desc">查看我提交的维修报告及审核状态</p>
+        <h2 class="page-title">{{ t("myreport.title") }}</h2>
+        <p class="page-desc">{{ t("myreport.desc") }}</p>
       </div>
       <div class="tab-bar">
         <button :class="['tab-btn', activeTab==='all'?'active':'']" @click="activeTab='all'">
-          全部 <span class="tab-badge">{{ reports.length }}</span>
+          {{ t("myreport.tabAll") }} <span class="tab-badge">{{ reports.length }}</span>
         </button>
         <button :class="['tab-btn', activeTab==='pending'?'active':'']" @click="activeTab='pending'">
-          审核中 <span class="tab-badge">{{ pendingReports.length }}</span>
+          {{ t("myreport.tabPending") }} <span class="tab-badge">{{ pendingReports.length }}</span>
         </button>
         <button :class="['tab-btn', activeTab==='approved'?'active':'']" @click="activeTab='approved'">
-          已通过 <span class="tab-badge">{{ approvedReports.length }}</span>
+          {{ t("myreport.tabApproved") }} <span class="tab-badge">{{ approvedReports.length }}</span>
         </button>
         <button :class="['tab-btn', activeTab==='rejected'?'active':'']" @click="activeTab='rejected'">
-          已驳回 <span class="tab-badge">{{ rejectedReports.length }}</span>
+          {{ t("myreport.tabRejected") }} <span class="tab-badge">{{ rejectedReports.length }}</span>
         </button>
       </div>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><span class="stat-val">{{ reports.length }}</span><span class="stat-lbl">总报告数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><span class="stat-val">{{ pendingReports.length }}</span><span class="stat-lbl">审核中</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ approvedReports.length }}</span><span class="stat-lbl">已通过</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ rejectedReports.length }}</span><span class="stat-lbl">已驳回</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><span class="stat-val">{{ reports.length }}</span><span class="stat-lbl">{{ t("myreport.totalReports") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><span class="stat-val">{{ pendingReports.length }}</span><span class="stat-lbl">{{ t("myreport.tabPending") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ approvedReports.length }}</span><span class="stat-lbl">{{ t("myreport.tabApproved") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ rejectedReports.length }}</span><span class="stat-lbl">{{ t("myreport.tabRejected") }}</span></div></div>
     </div>
 
     <div class="content-card">
       <div class="card-head">
         <div class="card-head-left">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          {{ activeTab === 'pending' ? '审核中的报告' : activeTab === 'approved' ? '已通过的报告' : activeTab === 'rejected' ? '已驳回的报告' : '全部报告' }}
+          {{ activeTab === 'pending' ? t("myreport.pendingTitle") : activeTab === 'approved' ? t("myreport.approvedTitle") : activeTab === 'rejected' ? t("myreport.rejectedTitle") : t("myreport.allTitle") }}
         </div>
         <div class="card-head-right">
           <button class="refresh-btn" @click="loadData" :disabled="loading">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" :class="{spinning: loading}"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-            刷新
+            {{ t("myreport.refresh") }}
           </button>
-          <span class="toolbar-info">{{ displayReports.length }} 条记录</span>
+          <span class="toolbar-info">{{ displayReports.length }} {{ t("myreport.records") }}</span>
         </div>
       </div>
 
       <div class="report-list" v-loading="loading">
         <div v-for="r in displayReports" :key="r.id" class="report-item">
           <div class="ri-left">
-            <div class="ri-code">{{ r.reportCode || '报告#' + r.id }}</div>
+            <div class="ri-code">{{ r.reportCode || t("myreport.reportCode") + r.id }}</div>
             <div class="ri-info">
               <span class="ri-road">{{ getWorkOrderTitle(r.workOrderId) }}</span>
-              <span class="ri-meta">{{ r.executor }} · {{ r.materials || '未记录材料' }} · {{ formatDate(r.finishedAt) }}</span>
+              <span class="ri-meta">{{ r.executor }} · {{ r.materials || t("myreport.noMaterials") }} · {{ formatDate(r.finishedAt) }}</span>
             </div>
           </div>
           <div class="ri-center">
@@ -61,13 +61,13 @@
             </div>
           </div>
           <div class="ri-right">
-            <button class="action-btn" @click="viewDetail(r)">详情</button>
-            <button v-if="r.status === 'REJECTED'" class="action-btn action-resubmit" @click="goResubmit(r)">重新提交</button>
+            <button class="action-btn" @click="viewDetail(r)">{{ t("myreport.detail") }}</button>
+            <button v-if="r.status === 'REJECTED'" class="action-btn action-resubmit" @click="goResubmit(r)">{{ t("myreport.resubmit") }}</button>
           </div>
         </div>
         <div v-if="!loading && displayReports.length === 0" class="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d0d5dd" stroke-width="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>暂无报告记录</span>
+          <span>{{ t("myreport.noReports") }}</span>
         </div>
       </div>
     </div>
@@ -76,40 +76,40 @@
     <div v-if="showDetail" class="modal-overlay" @click.self="showDetail=false">
       <div class="modal-card">
         <div class="modal-head">
-          <span>报告详情 - {{ detailTarget?.reportCode || '报告#' + detailTarget?.id }}</span>
+          <span>{{ t("myreport.reportDetail") }}{{ detailTarget?.reportCode || t("myreport.reportCode") + detailTarget?.id }}</span>
           <button class="modal-close" @click="showDetail=false">✕</button>
         </div>
         <div class="modal-body" v-loading="detailLoading">
           <template v-if="detailTarget">
             <div class="detail-grid">
-              <div class="detail-item"><label>报告编号</label><span>{{ detailTarget.reportCode || '--' }}</span></div>
-              <div class="detail-item"><label>状态</label><span :style="{color: reportStatusColor(detailTarget.status), fontWeight:600}">{{ reportStatusLabel(detailTarget.status) }}</span></div>
-              <div class="detail-item"><label>关联工单</label><span>#{{ detailTarget.workOrderId }} {{ getWorkOrderTitle(detailTarget.workOrderId) }}</span></div>
-              <div class="detail-item"><label>执行人</label><span>{{ detailTarget.executor }}</span></div>
-              <div class="detail-item"><label>完成时间</label><span>{{ formatDate(detailTarget.finishedAt) }}</span></div>
-              <div class="detail-item"><label>提交时间</label><span>{{ formatDate(detailTarget.createdAt) }}</span></div>
-              <div class="detail-item"><label>使用材料</label><span>{{ detailTarget.materials || '--' }}</span></div>
-              <div class="detail-item" v-if="detailTarget.reviewer"><label>审核人</label><span>{{ detailTarget.reviewer }}</span></div>
-              <div class="detail-item" v-if="detailTarget.reviewedAt"><label>审核时间</label><span>{{ formatDate(detailTarget.reviewedAt) }}</span></div>
-              <div class="detail-item" style="grid-column:1/-1"><label>维修描述</label><span style="line-height:1.6">{{ detailTarget.description || '--' }}</span></div>
+              <div class="detail-item"><label>{{ t("myreport.reportId") }}</label><span>{{ detailTarget.reportCode || '--' }}</span></div>
+              <div class="detail-item"><label>{{ t("common.status") }}</label><span :style="{color: reportStatusColor(detailTarget.status), fontWeight:600}">{{ reportStatusLabel(detailTarget.status) }}</span></div>
+              <div class="detail-item"><label>{{ t("myreport.relatedOrder") }}</label><span>#{{ detailTarget.workOrderId }} {{ getWorkOrderTitle(detailTarget.workOrderId) }}</span></div>
+              <div class="detail-item"><label>{{ t("myreport.executor") }}</label><span>{{ detailTarget.executor }}</span></div>
+              <div class="detail-item"><label>{{ t("myreport.finishedAt") }}</label><span>{{ formatDate(detailTarget.finishedAt) }}</span></div>
+              <div class="detail-item"><label>{{ t("myreport.submittedAt") }}</label><span>{{ formatDate(detailTarget.createdAt) }}</span></div>
+              <div class="detail-item"><label>{{ t("myreport.materials") }}</label><span>{{ detailTarget.materials || '--' }}</span></div>
+              <div class="detail-item" v-if="detailTarget.reviewer"><label>{{ t("myreport.reviewer") }}</label><span>{{ detailTarget.reviewer }}</span></div>
+              <div class="detail-item" v-if="detailTarget.reviewedAt"><label>{{ t("myreport.reviewedAt") }}</label><span>{{ formatDate(detailTarget.reviewedAt) }}</span></div>
+              <div class="detail-item" style="grid-column:1/-1"><label>{{ t("common.description") }}</label><span style="line-height:1.6">{{ detailTarget.description || '--' }}</span></div>
               <div class="detail-item" v-if="detailTarget.reviewRemark" style="grid-column:1/-1">
-                <label>审核意见</label>
+                <label>{{ t("myreport.reviewOpinion") }}</label>
                 <span style="line-height:1.6;color:#dc2626">{{ detailTarget.reviewRemark }}</span>
               </div>
               <div class="detail-item" v-if="detailTarget.beforeImageUrl" style="grid-column:1/-1">
-                <label>维修前图片</label>
-                <img :src="detailTarget.beforeImageUrl" class="report-img" alt="维修前" />
+                <label>{{ t("myreport.beforeImg") }}</label>
+                <img :src="detailTarget.beforeImageUrl" class="report-img" :alt="t('myreport.beforeImg')" />
               </div>
               <div class="detail-item" v-if="detailTarget.afterImageUrl" style="grid-column:1/-1">
-                <label>维修后图片</label>
-                <img :src="detailTarget.afterImageUrl" class="report-img" alt="维修后" />
+                <label>{{ t("myreport.afterImg") }}</label>
+                <img :src="detailTarget.afterImageUrl" class="report-img" :alt="t('myreport.afterImg')" />
               </div>
             </div>
           </template>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showDetail=false">关闭</button>
-          <button v-if="detailTarget && detailTarget.status === 'REJECTED'" class="btn-resubmit" @click="goResubmit(detailTarget)">重新提交报告</button>
+          <button class="btn-ghost" @click="showDetail=false">{{ t("myreport.close") }}</button>
+          <button v-if="detailTarget && detailTarget.status === 'REJECTED'" class="btn-resubmit" @click="goResubmit(detailTarget)">{{ t("myreport.resubmitReport") }}</button>
         </div>
       </div>
     </div>
@@ -122,6 +122,7 @@ import { useRouter } from "vue-router"
 import { ElMessage } from "element-plus"
 import { reportApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
+import { t } from "@/i18n"
 import type { MaintenanceReportResponse, WorkOrderResponse } from "@/types"
 
 const router = useRouter()
@@ -146,7 +147,7 @@ const displayReports = computed(() => {
 
 function getWorkOrderTitle(workOrderId: number): string {
   const wo = workOrderMap.value.get(workOrderId)
-  return wo?.title || `工单 #${workOrderId}`
+  return wo?.title || `${t("wo.id")} #${workOrderId}`
 }
 
 function reportStatusCls(s?: string) {
@@ -159,11 +160,11 @@ function reportStatusCls(s?: string) {
 }
 function reportStatusLabel(s?: string) {
   return ({
-    PENDING: "待部门审核",
-    DEPT_APPROVED: "部门已通过，待终审",
-    APPROVED: "已通过",
-    REJECTED: "已驳回",
-  } as any)[s || ""] || s || "--"
+    PENDING: () => t("myreport.statusDeptReview"),
+    DEPT_APPROVED: () => t("myreport.statusDeptApproved"),
+    APPROVED: () => t("myreport.statusApproved"),
+    REJECTED: () => t("myreport.statusRejected"),
+  } as any)[s || ""]?.() || s || "--"
 }
 function reportStatusColor(s?: string) {
   return ({
@@ -214,7 +215,7 @@ async function loadData() {
       }
       workOrderMap.value = wom
     } catch {
-      ElMessage.error("加载报告数据失败")
+      ElMessage.error(t("myreport.loadFailed"))
     }
   } finally {
     loading.value = false
@@ -229,7 +230,7 @@ async function viewDetail(r: MaintenanceReportResponse) {
     const res = await reportApi.get(r.id)
     detailTarget.value = res.data.data
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || "加载报告详情失败")
+    ElMessage.error(e?.response?.data?.message || t("myreport.detailFailed"))
   } finally {
     detailLoading.value = false
   }

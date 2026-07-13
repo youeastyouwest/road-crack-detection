@@ -2,48 +2,48 @@
   <div class="rm-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">道路养护</h2>
-        <p class="page-desc">养护计划制定、执行跟踪与完成情况</p>
+        <h2 class="page-title">{{ t('maint.title') }}</h2>
+        <p class="page-desc">{{ t('maint.desc') }}</p>
       </div>
       <div class="header-actions">
         <button class="refresh-btn" @click="loadData" :disabled="loading">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" :class="{spinning: loading}"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-          刷新
+          {{ t('common.refresh') }}
         </button>
       </div>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#eef2ff,#dbeafe);color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><span class="stat-val">{{ stats.total }}</span><span class="stat-lbl">总工单</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><span class="stat-val">{{ stats.pending }}</span><span class="stat-lbl">待执行</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div><span class="stat-val">{{ stats.inProgress }}</span><span class="stat-lbl">进行中</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ stats.completed }}</span><span class="stat-lbl">已完成</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#e11d48"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg></div><div><span class="stat-val">{{ stats.overdue }}</span><span class="stat-lbl">已逾期</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#eef2ff,#dbeafe);color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><span class="stat-val">{{ stats.total }}</span><span class="stat-lbl">{{ t('maint.totalOrders') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><span class="stat-val">{{ stats.pending }}</span><span class="stat-lbl">{{ t('maint.pendingExecute') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div><span class="stat-val">{{ stats.inProgress }}</span><span class="stat-lbl">{{ t('maint.inProgress') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ stats.completed }}</span><span class="stat-lbl">{{ t('status.completed') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#e11d48"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg></div><div><span class="stat-val">{{ stats.overdue }}</span><span class="stat-lbl">{{ t('maint.overdue') }}</span></div></div>
     </div>
 
     <div class="content-card">
       <div class="card-head">
         <div class="card-head-left">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          养护时间线
+          {{ t('maint.timeline') }}
           <div class="filter-bar">
             <select v-model="filterStatus" class="filter-select">
-              <option value="">全部状态</option>
-              <option value="PENDING_ASSIGNMENT">待分配</option>
-              <option value="ASSIGNED">已分配</option>
-              <option value="IN_PROGRESS">进行中</option>
-              <option value="COMPLETED">已完成</option>
-              <option value="CLOSED">已关闭</option>
+              <option value="">{{ t('maint.allStatus') }}</option>
+              <option value="PENDING_ASSIGNMENT">{{ t('status.pendingAssignment') }}</option>
+              <option value="ASSIGNED">{{ t('status.assigned') }}</option>
+              <option value="IN_PROGRESS">{{ t('status.inProgress') }}</option>
+              <option value="COMPLETED">{{ t('status.completed') }}</option>
+              <option value="CLOSED">{{ t('maint.closed') }}</option>
             </select>
             <select v-model="filterDept" class="filter-select">
-              <option value="">全部部门</option>
-              <option value="ROAD_ADMIN">道路管理</option>
-              <option value="SANITATION">环卫</option>
-              <option value="TRAFFIC_POLICE">交警</option>
+              <option value="">{{ t('maint.allDept') }}</option>
+              <option value="ROAD_ADMIN">{{ t('maint.roadAdmin') }}</option>
+              <option value="SANITATION">{{ t('maint.sanitation') }}</option>
+              <option value="TRAFFIC_POLICE">{{ t('maint.trafficPolice') }}</option>
             </select>
           </div>
         </div>
-        <span class="toolbar-info">{{ displayTasks.length }} 条记录</span>
+        <span class="toolbar-info">{{ displayTasks.length }} {{ t('mreport.records') }}</span>
       </div>
 
       <div class="timeline" v-loading="loading">
@@ -54,7 +54,7 @@
             <div class="tl-head">
               <span class="tl-title">{{ t.title }}</span>
               <span :class="['tl-badge', badgeClass(t)]">{{ statusText(t.status) }}</span>
-              <span v-if="isOverdue(t)" class="tl-badge badge-overdue">逾期</span>
+              <span v-if="isOverdue(t)" class="tl-badge badge-overdue">{{ t('maint.overdue') }}</span>
             </div>
             <div class="tl-meta">
               <span class="tl-meta-item" v-if="t.location">
@@ -77,11 +77,11 @@
               <div class="tl-report" v-if="getReport(t.id)" :key="'rpt-' + t.id">
                 <div class="tl-report-head">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span class="tl-report-code">{{ getReport(t.id)!.reportCode || '报告#' + getReport(t.id)!.id }}</span>
-                  <span class="tl-report-executor">执行人: {{ getReport(t.id)!.executor }}</span>
+                  <span class="tl-report-code">{{ getReport(t.id)!.reportCode || t('maint.reportCode') + getReport(t.id)!.id }}</span>
+                  <span class="tl-report-executor">{{ t('maint.executor') }}: {{ getReport(t.id)!.executor }}</span>
                   <span class="tl-report-date">{{ formatDate(getReport(t.id)!.finishedAt) }}</span>
                 </div>
-                <div v-if="getReport(t.id)!.materials" class="tl-report-materials">使用材料: {{ getReport(t.id)!.materials }}</div>
+                <div v-if="getReport(t.id)!.materials" class="tl-report-materials">{{ t('maint.materials') }}: {{ getReport(t.id)!.materials }}</div>
                 <div v-if="getReport(t.id)!.description" class="tl-report-desc">{{ getReport(t.id)!.description }}</div>
               </div>
             </template>
@@ -89,7 +89,7 @@
         </div>
         <div v-if="!loading && displayTasks.length === 0" class="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d0d5dd" stroke-width="1"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>暂无养护工单</span>
+          <span>{{ t('maint.noMaintenance') }}</span>
         </div>
       </div>
     </div>
@@ -100,6 +100,7 @@
 import { ref, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { workOrderApi, reportApi } from "@/api"
+import { t } from "@/i18n"
 import type { WorkOrderResponse, MaintenanceReportResponse, WorkOrderStatus } from "@/types"
 
 const loading = ref(false)
@@ -158,12 +159,12 @@ function badgeClass(t: WorkOrderResponse): string {
 
 function statusText(status: string): string {
   const map: Record<string, string> = {
-    PENDING_ASSIGNMENT: '待分配',
-    ASSIGNED: '已分配',
-    IN_PROGRESS: '进行中',
-    COMPLETED: '已完成',
-    CLOSED: '已关闭',
-    CANCELLED: '已取消',
+    PENDING_ASSIGNMENT: t('status.pendingAssignment'),
+    ASSIGNED: t('status.assigned'),
+    IN_PROGRESS: t('status.inProgress'),
+    COMPLETED: t('status.completed'),
+    CLOSED: t('maint.closed'),
+    CANCELLED: t('maint.cancelled'),
   }
   return map[status] || status
 }
@@ -193,7 +194,7 @@ async function loadData() {
     }
     reportMap.value = rm
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || "加载养护数据失败")
+    ElMessage.error(e?.response?.data?.message || t("maint.loadFailed"))
   } finally {
     loading.value = false
   }

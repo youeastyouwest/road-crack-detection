@@ -1,15 +1,15 @@
 <template>
   <div class="worker-page">
     <div class="page-header">
-      <h2>上报维修报告</h2>
-      <p class="page-desc">完成工单处理后，提交维修报告给部门管理员审核</p>
+      <h2>{{ t("submit.title") }}</h2>
+      <p class="page-desc">{{ t("submit.desc") }}</p>
     </div>
 
     <!-- 工单选择 -->
     <div class="report-form">
       <el-form label-width="110px">
-        <el-form-item label="关联工单" required>
-          <el-select v-model="form.workOrderId" placeholder="选择已完成的工单" filterable style="width:100%" @change="onOrderChange">
+        <el-form-item :label="t('submit.relatedOrder')" required>
+          <el-select v-model="form.workOrderId" :placeholder="t('submit.selectOrder')" filterable style="width:100%" @change="onOrderChange">
             <el-option v-for="wo in availableOrders" :key="wo.id" :label="`#${wo.workOrderCode || wo.id} ${wo.title}`" :value="wo.id" />
           </el-select>
         </el-form-item>
@@ -17,42 +17,42 @@
         <!-- 选中工单信息 -->
         <div v-if="selectedOrder" class="order-info-card">
           <div class="order-info-row">
-            <span class="oi-label">位置</span><span class="oi-val">{{ selectedOrder.location || '--' }}</span>
-            <span class="oi-label">部门</span><span class="oi-val">{{ deptLabel(selectedOrder.departmentCode) }}</span>
+            <span class="oi-label">{{ t("ds.road") }}</span><span class="oi-val">{{ selectedOrder.location || '--' }}</span>
+            <span class="oi-label">{{ t("wo.dept") }}</span><span class="oi-val">{{ deptLabel(selectedOrder.departmentCode) }}</span>
           </div>
           <div class="order-info-row">
-            <span class="oi-label">等级</span><span class="oi-val">{{ sevLabel(selectedOrder.severityLevel) }}</span>
-            <span class="oi-label">状态</span><span class="oi-val">{{ statusLabel(selectedOrder.status) }}</span>
+            <span class="oi-label">{{ t("wo.level") }}</span><span class="oi-val">{{ sevLabel(selectedOrder.severityLevel) }}</span>
+            <span class="oi-label">{{ t("common.status") }}</span><span class="oi-val">{{ statusLabel(selectedOrder.status) }}</span>
           </div>
         </div>
 
-        <el-form-item label="执行人员">
-          <el-input v-model="form.executor" :placeholder="authStore.realName || '请输入姓名'" />
+        <el-form-item :label="t('submit.executor')">
+          <el-input v-model="form.executor" :placeholder="authStore.realName || t('submit.executorPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="使用材料">
-          <el-input v-model="form.materials" placeholder="如：沥青混凝土 5吨, 灌缝胶 20kg" />
+        <el-form-item :label="t('submit.materials')">
+          <el-input v-model="form.materials" :placeholder="t('submit.materialsPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="维修前照片URL">
-          <el-input v-model="form.beforeImageUrl" placeholder="输入照片URL（可选）" />
+        <el-form-item :label="t('submit.beforePhoto')">
+          <el-input v-model="form.beforeImageUrl" :placeholder="t('submit.beforePhotoPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="维修后照片URL">
-          <el-input v-model="form.afterImageUrl" placeholder="输入照片URL（可选）" />
+        <el-form-item :label="t('submit.afterPhoto')">
+          <el-input v-model="form.afterImageUrl" :placeholder="t('submit.afterPhotoPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="维修描述">
-          <el-input v-model="form.description" type="textarea" :rows="4" placeholder="详细描述维修过程和结果..." />
+        <el-form-item :label="t('submit.desc2')">
+          <el-input v-model="form.description" type="textarea" :rows="4" :placeholder="t('submit.descPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="完成时间">
+        <el-form-item :label="t('submit.finishTime')">
           <el-date-picker v-model="form.finishedAt" type="datetime" placeholder="选择完成时间" style="width:100%" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DDTHH:mm:ss" />
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" size="large" @click="handleSubmit" :loading="submitting">提交报告</el-button>
-          <el-button size="large" @click="handleReset">重置</el-button>
+          <el-button type="primary" size="large" @click="handleSubmit" :loading="submitting">{{ t("submit.submitBtn") }}</el-button>
+          <el-button size="large" @click="handleReset">{{ t("common.reset") }}</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -66,6 +66,7 @@ import { useAuthStore } from "@/stores/auth"
 import { workOrderApi, reportApi } from "@/api"
 import type { WorkOrderResponse } from "@/types"
 import { ElMessage } from "element-plus"
+import { t } from "@/i18n"
 
 const route = useRoute()
 const router = useRouter()
@@ -132,22 +133,22 @@ function onOrderChange() {
 }
 
 function deptLabel(code?: string) {
-  return ({ ROAD_ADMIN: "道路管理部", SANITATION: "环卫部", TRAFFIC_POLICE: "交警部" } as any)[code || ""] || code || "--"
+  return ({ ROAD_ADMIN: t("user.roleRoadAdmin"), SANITATION: t("user.roleSanitAdmin"), TRAFFIC_POLICE: t("user.roleTrafficAdmin") } as any)[code || ""] || code || "--"
 }
 
 function sevLabel(s?: string) {
-  return ({ LOW: "轻微", MEDIUM: "中等", HIGH: "严重" } as any)[s || ""] || "--"
+  return ({ LOW: t("severity.low"), MEDIUM: t("severity.medium"), HIGH: t("severity.high") } as any)[s || ""] || "--"
 }
 
 function statusLabel(s: string) {
-  return ({ COMPLETED: "已完成", REJECTED: "已驳回（需重新提交）" } as any)[s] || s
+  return ({ COMPLETED: t("status.completed"), REJECTED: t("wo.cancel") } as any)[s] || s
 }
 
 async function handleSubmit() {
-  if (!form.workOrderId) return ElMessage.warning("请选择关联工单")
-  if (!form.executor) return ElMessage.warning("请输入执行人员")
-  if (!form.description) return ElMessage.warning("请填写维修描述")
-  if (!form.finishedAt) return ElMessage.warning("请选择完成时间")
+  if (!form.workOrderId) return ElMessage.warning(t("submit.selectOrder"))
+  if (!form.executor) return ElMessage.warning(t("submit.executor"))
+  if (!form.description) return ElMessage.warning(t("submit.descPlaceholder"))
+  if (!form.finishedAt) return ElMessage.warning(t("submit.finishTime"))
 
   submitting.value = true
   try {
@@ -160,12 +161,12 @@ async function handleSubmit() {
       description: form.description,
       finishedAt: form.finishedAt,
     })
-    ElMessage.success("维修报告已提交，等待部门管理员审核")
+    ElMessage.success(t("submit.submitSuccess"))
     handleReset()
     // Navigate back to my work orders
     router.push("/my-work-orders")
   } catch (err: any) {
-    const msg = err?.response?.data?.message || "提交失败"
+    const msg = err?.response?.data?.message || t("submit.submitFailed")
     ElMessage.error(msg)
   }
   submitting.value = false

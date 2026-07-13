@@ -2,18 +2,18 @@
   <div class="ds-container">
     <div class="ds-map-area">
       <div class="ds-float-stats">
-        <div class="ds-float-stat"><span class="ds-fs-val">{{ totalRoad }}km</span><span class="ds-fs-lbl">总里程</span></div>
-        <div class="ds-float-stat"><span class="ds-fs-val">{{ crackCount }}</span><span class="ds-fs-lbl">裂缝数</span></div>
-        <div class="ds-float-stat"><span class="ds-fs-val">{{ repairedCount }}</span><span class="ds-fs-lbl">已修复</span></div>
-        <div class="ds-float-stat"><span class="ds-fs-val">{{ alertCount }}</span><span class="ds-fs-lbl">告警</span></div>
+        <div class="ds-float-stat"><span class="ds-fs-val">{{ totalRoad }}km</span><span class="ds-fs-lbl">{{ t("ds.totalRoad") }}</span></div>
+        <div class="ds-float-stat"><span class="ds-fs-val">{{ crackCount }}</span><span class="ds-fs-lbl">{{ t("ds.crackCount") }}</span></div>
+        <div class="ds-float-stat"><span class="ds-fs-val">{{ repairedCount }}</span><span class="ds-fs-lbl">{{ t("ds.repairedCount") }}</span></div>
+        <div class="ds-float-stat"><span class="ds-fs-val">{{ alertCount }}</span><span class="ds-fs-lbl">{{ t("ds.alertCount") }}</span></div>
         <div class="ds-float-time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>&nbsp;{{ currentTime }}</div>
       </div>
       <div class="ds-view-controls">
-        <button class="ds-vc-btn" @click="zoomIn" title="放大"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="ds-vc-btn" @click="zoomIn" :title="t('ds.zoomIn')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         <div class="ds-vc-level">{{ zoomLevel }}x</div>
-        <button class="ds-vc-btn" @click="zoomOut" title="缩小"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="ds-vc-btn" @click="zoomOut" :title="t('ds.zoomOut')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         <div class="ds-vc-sep"></div>
-        <button class="ds-vc-btn" :class="{ active: viewMode3D }" @click="toggle3D" :title="viewMode3D ? '切换2D' : '切换3D'">
+        <button class="ds-vc-btn" :class="{ active: viewMode3D }" @click="toggle3D" :title="viewMode3D ? t('ds.switch2D') : t('ds.switch3D')">
           <svg v-if="!viewMode3D" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
         </button>
@@ -22,17 +22,17 @@
           <span class="ds-vc-slider-label">{{ pitchLevel }}°</span>
         </div>
         <div class="ds-vc-sep"></div>
-        <button class="ds-vc-btn ds-vc-locate" @click="locateMe" title="定位"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="ds-vc-btn ds-vc-locate" @click="locateMe" :title="t('ds.locate')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <div ref="mapContainer" class="ds-map"></div>
       <!-- 病害点分布图例 -->
       <div class="ds-heatmap-legend">
-        <div class="ds-legend-title">病害点分布</div>
+        <div class="ds-legend-title">{{ t("ds.diseaseDist") }}</div>
         <div class="ds-legend-items">
-          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#ef4444"></span><span>严重</span></div>
-          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#f59e0b"></span><span>中等</span></div>
-          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#22c55e"></span><span>轻微</span></div>
-          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#cbd5e1"></span><span>畅通</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#ef4444"></span><span>{{ t("severity.high") }}</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#f59e0b"></span><span>{{ t("severity.medium") }}</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#22c55e"></span><span>{{ t("severity.low") }}</span></div>
+          <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#cbd5e1"></span><span>{{ t("ds.smooth") }}</span></div>
         </div>
       </div>
       <DiseaseMarkerLayer
@@ -41,71 +41,71 @@
         :map-instance="map"
       />
       <div v-if="selectedDisease" class="ds-popup">
-        <div class="ds-popup-head"><span>病害详情</span><span style="font-size:11px;color:#64748b;font-weight:400">{{ (selectedDisease as any)?._roadName || (selectedDisease as any)?.location || "" }}</span><button @click="selectedDisease = null">x</button></div>
+        <div class="ds-popup-head"><span>{{ t("ds.diseaseDetail") }}</span><span style="font-size:11px;color:#64748b;font-weight:400">{{ (selectedDisease as any)?._roadName || (selectedDisease as any)?.location || "" }}</span><button @click="selectedDisease = null">x</button></div>
         <div class="ds-popup-body">
-          <div v-if="(selectedDisease as any)?._loading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div>
+          <div v-if="(selectedDisease as any)?._loading" style="text-align:center;padding:30px;color:#94a3b8">{{ t("common.loading") }}</div>
           <div v-else class="ds-popup-img">
-            <img v-if="(selectedDisease as any)?._imageSrc" :src="(selectedDisease as any)?._imageSrc" alt="AI识别结果图" style="width:100%;height:100%;object-fit:cover;border-radius:6px" />
-            <svg v-else width="100%" height="100" viewBox="0 0 200 100" fill="none"><rect width="200" height="100" rx="6" fill="#eef2ff"/><text x="100" y="45" text-anchor="middle" fill="#4361ee" font-size="12" font-weight="600">暂无图片</text><text x="100" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">该病害点未上传图片</text></svg>
+            <img v-if="(selectedDisease as any)?._imageSrc" :src="(selectedDisease as any)?._imageSrc" :alt="t('ds.diseaseDetail')" style="width:100%;height:100%;object-fit:cover;border-radius:6px" />
+            <svg v-else width="100%" height="100" viewBox="0 0 200 100" fill="none"><rect width="200" height="100" rx="6" fill="#eef2ff"/><text x="100" y="45" text-anchor="middle" fill="#4361ee" font-size="12" font-weight="600">{{ t("ds.noImage") }}</text><text x="100" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">{{ t("ds.noImageHint") }}</text></svg>
           </div>
           <div class="ds-popup-info">
-            <div class="ds-popup-row"><span class="ds-popup-label">病害类型</span><strong>{{ damageTypeLabel(selectedDisease.type) }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">严重等级</span><strong><span class="ds-sev-dot" :style="{background: severityColor(selectedDisease.severity)}"></span>{{ selectedDisease.severity }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">检测时间</span><strong>{{ selectedDisease.time }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">道路</span><strong>{{ selectedDisease.location }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">置信度</span><strong class="ds-conf">{{ selectedDisease.confidence }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">病害尺寸</span><strong class="ds-order">{{ selectedDisease.size || '--' }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">工单编号</span><strong>{{ selectedDisease.orderId || '未生成' }}</strong></div>
-            <div class="ds-popup-row"><span>养护建议</span><strong style="font-size:11px;color:#64748b;text-align:right">{{ (selectedDisease as any)?._suggestion || "建议尽快安排修复处理" }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.diseaseType") }}</span><strong>{{ damageTypeLabel(selectedDisease.type) }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.severityLevel") }}</span><strong><span class="ds-sev-dot" :style="{background: severityColor(selectedDisease.severity)}"></span>{{ selectedDisease.severity }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.detectionTime") }}</span><strong>{{ selectedDisease.time }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.road") }}</span><strong>{{ selectedDisease.location }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.confidence") }}</span><strong class="ds-conf">{{ selectedDisease.confidence }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.diseaseSize") }}</span><strong class="ds-order">{{ selectedDisease.size || '--' }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">{{ t("ds.orderNo") }}</span><strong>{{ selectedDisease.orderId || t("ds.notGenerated") }}</strong></div>
+            <div class="ds-popup-row"><span>{{ t("ds.maintenanceSuggestion") }}</span><strong style="font-size:11px;color:#64748b;text-align:right">{{ (selectedDisease as any)?._suggestion || t("ds.suggestRepair") }}</strong></div>
           </div>
         </div>
         <div class="ds-popup-foot">
-          <button class="ds-btn ds-btn-primary" @click="createWorkOrder">生成工单</button>
-          <button class="ds-btn ds-btn-ghost" @click="selectedDisease = null">关闭</button>
+          <button class="ds-btn ds-btn-primary" @click="createWorkOrder">{{ t("ds.createOrder") }}</button>
+          <button class="ds-btn ds-btn-ghost" @click="selectedDisease = null">{{ t("common.close") }}</button>
         </div>
       </div>
       <div v-if="showCapacity" class="ds-popup" style="right:290px;top:80px">
-        <div class="ds-popup-head"><span>点位容量概览</span><button @click="showCapacity = false">x</button></div>
+        <div class="ds-popup-head"><span>{{ t("ds.pointCapacity") }}</span><button @click="showCapacity = false">x</button></div>
         <div class="ds-popup-body" style="padding:0">
-          <div class="ds-popup-row"><span>当前点位</span><strong>{{ currentPoints }} <span style="font-weight:400;color:#94a3b8;font-size:11px">个</span></strong></div>
-          <div class="ds-popup-row"><span>系统上限</span><strong class="ds-conf">{{ maxPoints }} <span style="font-weight:400;color:#94a3b8;font-size:11px">个</span></strong></div>
-          <div class="ds-popup-row"><span>剩余容量</span><strong class="ds-order">{{ maxPoints - currentPoints }} <span style="font-weight:400;color:#94a3b8;font-size:11px">个</span></strong></div>
+          <div class="ds-popup-row"><span>{{ t("ds.currentPoints") }}</span><strong>{{ currentPoints }} <span style="font-weight:400;color:#94a3b8;font-size:11px">个</span></strong></div>
+          <div class="ds-popup-row"><span>{{ t("ds.maxPoints") }}</span><strong class="ds-conf">{{ maxPoints }} <span style="font-weight:400;color:#94a3b8;font-size:11px">个</span></strong></div>
+          <div class="ds-popup-row"><span>{{ t("ds.remaining") }}</span><strong class="ds-order">{{ maxPoints - currentPoints }} <span style="font-weight:400;color:#94a3b8;font-size:11px">个</span></strong></div>
           <div class="ds-popup-row" style="flex-direction:column;align-items:stretch;gap:4px;padding:10px 14px">
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8"><span>使用率</span><span style="font-weight:700;color:#4361ee">{{ (currentPoints / maxPoints * 100).toFixed(1) }}%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8"><span>{{ t("ds.usageRate") }}</span><span style="font-weight:700;color:#4361ee">{{ (currentPoints / maxPoints * 100).toFixed(1) }}%</span></div>
             <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden"><div :style="{height:'100%',width:(currentPoints / maxPoints * 100)+'%',background:'#4361ee',borderRadius:'3px'}"></div></div>
           </div>
-          <div class="ds-popup-row" style="border-bottom:none"><span>存储建议</span><strong style="font-size:11px;line-height:1.5;color:#64748b;max-width:150px">建议定期导出历史数据，释放存储空间</strong></div>
+          <div class="ds-popup-row" style="border-bottom:none"><span>{{ t("ds.storage") }}</span><strong style="font-size:11px;line-height:1.5;color:#64748b;max-width:150px">{{ t("ds.storageTip") }}</strong></div>
         </div>
         <div class="ds-popup-foot">
-          <button class="ds-btn ds-btn-ghost" @click="showCapacity = false">关闭</button>
-          <button class="ds-btn ds-btn-primary" @click="exportReport">导出数据</button>
+          <button class="ds-btn ds-btn-ghost" @click="showCapacity = false">{{ t("common.close") }}</button>
+          <button class="ds-btn ds-btn-primary" @click="exportReport">{{ t("ds.exportData") }}</button>
         </div>
       </div>
     </div>
 
     <div :class="['ds-sidebar', { collapsed: sidebarCollapsed }]">
       <div class="ds-sidebar-inner">
-        <div class="ds-sb-header"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>地图面板</div>
+        <div class="ds-sb-header"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>{{ t("ds.mapPanel") }}</div>
         <div class="ds-sb-tabs">
           <button :class="['ds-sb-tab', { active: activeTab === 'map' }]" @click="activeTab = 'map'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg>
-            <span>图层</span>
+            <span>{{ t("ds.layer") }}</span>
           </button>
           <button :class="['ds-sb-tab', { active: activeTab === 'analysis' }]" @click="activeTab = 'analysis'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/><path d="M2 20h20"/></svg>
-            <span>分析</span>
+            <span>{{ t("ds.analysis") }}</span>
           </button>
           <button :class="['ds-sb-tab', { active: activeTab === 'chat' }]" @click="activeTab = 'chat'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 10h8"/><path d="M8 14h5"/></svg>
-            <span>AI 助手</span>
+            <span>{{ t("nav.aiAssistant") }}</span>
           </button>
         </div>
         <div v-if="activeTab === 'map'" class="ds-tab-panel">
-          <div class="ds-sb-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" placeholder="搜索道路、地点..." /></div>
-          <div class="ds-sb-section"><div class="ds-sb-section-title">图层</div>
+          <div class="ds-sb-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchQuery" :placeholder="t('ds.searchPlaceholder')" /></div>
+          <div class="ds-sb-section"><div class="ds-sb-section-title">{{ t("ds.layer") }}</div>
             <div class="ds-layer-item">
               <div class="ds-layer-toggle">
-                <span class="ds-tt-label" style="font-size:12px;color:#0f172a;font-weight:600">病害标注点</span>
+                <span class="ds-tt-label" style="font-size:12px;color:#0f172a;font-weight:600">{{ t("ds.diseaseMarkers") }}</span>
                 <span class="ds-layer-count" style="margin-left:auto;font-size:11px;color:#94a3b8">{{ diseasePointTotal }}</span>
                 <label class="ds-switch">
                   <input type="checkbox" v-model="showDiseaseMarkers" />
@@ -117,33 +117,33 @@
               <label class="ds-layer-label"><input type="checkbox" :checked="layer.visible" @change="toggleLayerVisibility(layer.id)" /><span class="ds-layer-dot" :style="{ background: layer.color }"></span>{{ layer.label }}<span class="ds-layer-count">{{ layer.count }}</span></label>
             </div>
           </div>
-          <div class="ds-sb-section"><div class="ds-sb-section-title">筛选条件</div>
-            <div class="ds-filter-row"><label>严重程度</label><select v-model="filterSeverity"><option value="">全部</option><option value="HIGH">严重</option><option value="MEDIUM">中等</option><option value="LOW">轻微</option></select></div>
-            <div class="ds-filter-row"><label>检测日期</label><input type="date" v-model="filterDate" /></div>
-            <div class="ds-filter-row"><label>修复状态</label><select v-model="filterStatus"><option value="">全部</option><option value="PENDING">待修复</option><option value="ASSIGNED">已派单</option><option value="COMPLETED">已完成</option></select></div>
-            <div class="ds-filter-row" v-if="filterSeverity || filterDate || filterStatus" style="margin-top:8px"><button class="ds-sb-btn" style="width:100%;font-size:11px" @click="filterSeverity = ''; filterDate = ''; filterStatus = ''">清除筛选</button></div>
+          <div class="ds-sb-section"><div class="ds-sb-section-title">{{ t("ds.filterCondition") }}</div>
+            <div class="ds-filter-row"><label>{{ t("ds.severityLevel") }}</label><select v-model="filterSeverity"><option value="">{{ t("common.all") }}</option><option value="HIGH">{{ t("severity.high") }}</option><option value="MEDIUM">{{ t("severity.medium") }}</option><option value="LOW">{{ t("severity.low") }}</option></select></div>
+            <div class="ds-filter-row"><label>{{ t("ds.detectionTime") }}</label><input type="date" v-model="filterDate" /></div>
+            <div class="ds-filter-row"><label>{{ t("ds.repairStatus") }}</label><select v-model="filterStatus"><option value="">{{ t("common.all") }}</option><option value="PENDING">{{ t("ds.pending") }}</option><option value="ASSIGNED">{{ t("ds.assigned") }}</option><option value="COMPLETED">{{ t("ds.completed") }}</option></select></div>
+            <div class="ds-filter-row" v-if="filterSeverity || filterDate || filterStatus" style="margin-top:8px"><button class="ds-sb-btn" style="width:100%;font-size:11px" @click="filterSeverity = ''; filterDate = ''; filterStatus = ''">{{ t("ds.clearFilter") }}</button></div>
           </div>
-          <div class="ds-sb-actions"><button class="ds-sb-btn primary" @click="refreshMapData">刷新数据</button><div style="display:flex;gap:6px"><button class="ds-sb-btn" style="flex:1" @click="showCapacity = true">存储</button><button class="ds-sb-btn" style="flex:1" @click="exportReport">导出</button></div></div>
+          <div class="ds-sb-actions"><button class="ds-sb-btn primary" @click="refreshMapData">{{ t("ds.refreshData") }}</button><div style="display:flex;gap:6px"><button class="ds-sb-btn" style="flex:1" @click="showCapacity = true">{{ t("ds.storage") }}</button><button class="ds-sb-btn" style="flex:1" @click="exportReport">{{ t("common.export") }}</button></div></div>
         </div>
         <div v-if="activeTab === 'analysis'" class="ds-tab-panel">
           <!-- 病害总数统计卡片 -->
           <div class="ds-an-section">
-            <div class="ds-sb-section-title">病害统计</div>
+            <div class="ds-sb-section-title">{{ t("ds.diseaseStats") }}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eef2ff;color:#4361ee"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val">{{ totalDiseaseCount }}</span><span class="ds-an-card-lbl">病害总数</span></div></div>
-              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#fef2f2;color:#f53f3f"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#f53f3f">{{ highCount }}</span><span class="ds-an-card-lbl">严重</span></div></div>
-              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#fefce8;color:#f59e0b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#f59e0b">{{ mediumCount }}</span><span class="ds-an-card-lbl">中等</span></div></div>
-              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eff6ff;color:#1677ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#1677ff">{{ lowCount }}</span><span class="ds-an-card-lbl">轻微</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eef2ff;color:#4361ee"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val">{{ totalDiseaseCount }}</span><span class="ds-an-card-lbl">{{ t("ds.totalDisease") }}</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#fef2f2;color:#f53f3f"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#f53f3f">{{ highCount }}</span><span class="ds-an-card-lbl">{{ t("severity.high") }}</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#fefce8;color:#f59e0b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#f59e0b">{{ mediumCount }}</span><span class="ds-an-card-lbl">{{ t("severity.medium") }}</span></div></div>
+              <div class="ds-an-card"><div class="ds-an-card-icon" style="background:#eff6ff;color:#1677ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="ds-an-card-info"><span class="ds-an-card-val" style="color:#1677ff">{{ lowCount }}</span><span class="ds-an-card-lbl">{{ t("severity.low") }}</span></div></div>
             </div>
           </div>
           <!-- 病害类型分布饼图 -->
-          <div class="ds-an-section"><div class="ds-sb-section-title">病害类型分布</div><div ref="pieChartRef" style="height:130px;margin-top:4px"></div></div>
+          <div class="ds-an-section"><div class="ds-sb-section-title">{{ t("ds.diseaseTypeRatio") }}</div><div ref="pieChartRef" style="height:130px;margin-top:4px"></div></div>
           <!-- 严重等级分布柱图 -->
-          <div class="ds-an-section"><div class="ds-sb-section-title">严重等级分布</div><div ref="severityChartRef" style="height:90px;margin-top:4px"></div></div>
+          <div class="ds-an-section"><div class="ds-sb-section-title">{{ t("ds.severityLevel") }}</div><div ref="severityChartRef" style="height:90px;margin-top:4px"></div></div>
           <!-- 道路病害排行 TOP5 -->
           <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
-            <div class="ds-sb-section-title">道路病害排行 TOP5</div>
-            <div v-if="roadRanking.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div class="ds-sb-section-title">{{ t("ds.roadRanking") }}</div>
+            <div v-if="roadRanking.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">{{ t("common.noData") }}</div>
             <div v-for="(r, ri) in roadRanking" :key="r.roadId" style="margin-bottom:8px">
               <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                 <span style="color:#64748b">#{{ ri+1 }} {{ roadNameCn(r.roadName) }}</span>
@@ -161,21 +161,21 @@
             </div>
           </div>
           <!-- 病害趋势图 -->
-          <div class="ds-an-section"><div class="ds-sb-section-title">病害趋势</div><div ref="trendChartRef" style="height:110px;margin-top:4px"></div></div>
+          <div class="ds-an-section"><div class="ds-sb-section-title">{{ t("ds.diseaseTrend") }}</div><div ref="trendChartRef" style="height:110px;margin-top:4px"></div></div>
           <!-- 地图标记统计卡片 -->
           <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
-            <div class="ds-sb-section-title">地图标记统计</div>
+            <div class="ds-sb-section-title">{{ t("ds.mapMarkerStats") }}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#4361ee">{{ mapStatsData?.totalMarkers ?? 0 }}</span><span class="ds-an-mini-lbl">标记总数</span></div>
-              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#16a34a">{{ mapStatsData?.newMarkers ?? 0 }}</span><span class="ds-an-mini-lbl">新增标记</span></div>
-              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#15803d">{{ mapStatsData?.repairedCount ?? 0 }}</span><span class="ds-an-mini-lbl">已修复</span></div>
-              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#d97706">{{ mapStatsData?.pendingRepair ?? 0 }}</span><span class="ds-an-mini-lbl">待修复</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#4361ee">{{ mapStatsData?.totalMarkers ?? 0 }}</span><span class="ds-an-mini-lbl">{{ t("dash.totalMarkers") }}</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#16a34a">{{ mapStatsData?.newMarkers ?? 0 }}</span><span class="ds-an-mini-lbl">{{ t("dash.newMarkers") }}</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#15803d">{{ mapStatsData?.repairedCount ?? 0 }}</span><span class="ds-an-mini-lbl">{{ t("dash.repaired") }}</span></div>
+              <div class="ds-an-card-mini"><span class="ds-an-mini-val" style="color:#d97706">{{ mapStatsData?.pendingRepair ?? 0 }}</span><span class="ds-an-mini-lbl">{{ t("dash.pendingRepair") }}</span></div>
             </div>
           </div>
           <!-- 病害类型占比明细 -->
           <div class="ds-an-section">
-            <div class="ds-sb-section-title">病害类型占比</div>
-            <div v-if="damageTypeRatios.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div class="ds-sb-section-title">{{ t("ds.diseaseTypeRatio") }}</div>
+            <div v-if="damageTypeRatios.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">{{ t("common.noData") }}</div>
             <div v-for="dt in damageTypeRatios" :key="dt.damageType" style="margin-bottom:8px">
               <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
                 <span style="color:#475569;font-weight:500">{{ damageTypeLabel(dt.damageType) }}</span>
@@ -188,8 +188,8 @@
           </div>
           <!-- 道路健康度列表 -->
           <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
-            <div class="ds-sb-section-title">道路健康度</div>
-            <div v-if="roadHealthList.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无数据</div>
+            <div class="ds-sb-section-title">{{ t("ds.roadHealth") }}</div>
+            <div v-if="roadHealthList.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">{{ t("common.noData") }}</div>
             <div v-for="r in roadHealthList" :key="r.roadId" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc">
               <span class="ds-health-dot" :style="{ background: healthColor(r.overallSeverity) }"></span>
               <span style="flex:1;font-size:11px;color:#475569;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ roadNameCn(r.roadName) }}</span>
@@ -200,10 +200,10 @@
           <!-- 实时告警列表 -->
           <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <span class="ds-sb-section-title" style="margin-bottom:0">实时告警</span>
+              <span class="ds-sb-section-title" style="margin-bottom:0">{{ t("ds.realtimeAlert") }}</span>
               <span v-if="alertMarkers.length > 0" style="font-size:10px;color:#ef4444;font-weight:600">{{ alertMarkers.length }}条</span>
             </div>
-            <div v-if="alertMarkers.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无告警</div>
+            <div v-if="alertMarkers.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">{{ t("ds.noAlert") }}</div>
             <div v-for="(am, ai) in alertMarkers.slice(0, 8)" :key="am.id" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8f9fc;animation:rowIn .35s ease both" :style="{ animationDelay: ai * 0.05 + 's' }">
               <span class="ds-alert-dot" :style="{ background: sevDotColor(am.severity) }"></span>
               <span style="flex:1;font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ am.roadName || am.address || (am.longitude ? '(' + Number(am.longitude).toFixed(4) + ', ' + Number(am.latitude).toFixed(4) + ')' : '--') }}</span>
@@ -212,15 +212,15 @@
           </div>
         </div>
         <div v-if="activeTab === 'chat'" class="ds-tab-panel ds-chat-panel" style="display:flex;flex-direction:column;overflow:hidden;">
-          <div class="ds-sb-header" style="flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI 助手<button class="ds-chat-clear" @click="chatMessages = [{role:'ai', text:'您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。'}]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div>
+          <div class="ds-sb-header" style="flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>{{ t("nav.aiAssistant") }}<button class="ds-chat-clear" @click="chatMessages = [{role:'ai', text: t('ds.chatDefault')}]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div>
           <div class="ds-chat-msgs" ref="chatMsgRef">
             <div v-for="(m, i) in chatMessages" :key="i" :class="['ds-chat-msg', m.role]">
-              <div v-if="m.role === 'ai'" class="ds-chat-avatar"><div class="avatar-video-wrap"><img class="avatar-video" :src="avatarSrc" alt="AI助手" /></div></div>
+              <div v-if="m.role === 'ai'" class="ds-chat-avatar"><div class="avatar-video-wrap"><img class="avatar-video" :src="avatarSrc" :alt="t('ds.chatDefault')" /></div></div>
               <div class="ds-chat-bubble" v-html="m.text"></div>
             </div>
             <div v-if="chatTyping" class="ds-chat-typing"><span></span><span></span><span></span></div>
           </div>
-          <div class="ds-chat-input-bar"><input v-model="chatInput" placeholder="输入您的问题，例如：今日病害统计" :disabled="chatTyping" @keyup.enter="sendChat" /><button class="ds-chat-send" :disabled="!chatInput.trim() || chatTyping" @click="sendChat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+          <div class="ds-chat-input-bar"><input v-model="chatInput" :placeholder="t('ds.chatPlaceholder')" :disabled="chatTyping" @keyup.enter="sendChat" /><button class="ds-chat-send" :disabled="!chatInput.trim() || chatTyping" @click="sendChat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
         </div>
       </div>
     </div>
@@ -232,6 +232,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from "vue"
 import { detectionApi, statisticsApi, mapApi, agentApi } from "@/api"
+import { t } from "@/i18n"
 import * as echarts from "echarts"
 import DiseaseMarkerLayer from "@/components/DiseaseMarkerLayer.vue"
 
@@ -253,14 +254,14 @@ const filterDate = ref("")
 const filterStatus = ref("")
 const searchQuery = ref("")
 const layers = ref([
-  { id: "sev_high", label: "严重", color: "#ef4444", count: 0, visible: true },
-  { id: "sev_medium", label: "中等", color: "#f59e0b", count: 0, visible: true },
-  { id: "sev_low", label: "轻微", color: "#22c55e", count: 0, visible: true },
+  { id: "sev_high", label: t("severity.high"), color: "#ef4444", count: 0, visible: true },
+  { id: "sev_medium", label: t("severity.medium"), color: "#f59e0b", count: 0, visible: true },
+  { id: "sev_low", label: t("severity.low"), color: "#22c55e", count: 0, visible: true },
 ])
 const selectedDisease = ref<any>(null)
 const currentPoints = ref(0)
 const maxPoints = ref(5000)
-const chatMessages = ref([{ role: "ai", text: "您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。" }])
+const chatMessages = ref([{ role: "ai", text: t("ds.chatDefault") }])
 const chatInput = ref("")
 const chatTyping = ref(false)
 const diseaseMarkers = ref<any[]>([])
@@ -363,7 +364,7 @@ const severityOption = computed(() => ({
   tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 } },
 }))
 
-function severityColor(sev: string) { const m: Record<string, string> = { "严重": "#ef4444", "中等": "#f59e0b", "轻微": "#10b981" }; return m[sev] || "#94a3b8" }
+function severityColor(sev: string) { const m: Record<string, string> = { [t("severity.high")]: "#ef4444", [t("severity.medium")]: "#f59e0b", [t("severity.low")]: "#10b981" }; return m[sev] || "#94a3b8" }
 function zoomIn() { zoomLevel.value = Math.min(zoomLevel.value + 1, 20); if (map) map.setZoom(zoomLevel.value) }
 function zoomOut() { zoomLevel.value = Math.max(zoomLevel.value - 1, 3); if (map) map.setZoom(zoomLevel.value) }
 function toggle3D() {
@@ -458,7 +459,7 @@ function refreshChartsFromData() {
   // 严重等级柱图
   if (d.severity && d.severity.length && severityChart) {
     const sevColors: Record<string, string> = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" }
-    const sevLabel: Record<string, string> = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }
+    const sevLabel: Record<string, string> = { HIGH: t("severity.high"), MEDIUM: t("severity.medium"), LOW: t("severity.low") }
     // 确保顺序为 严重 > 中等 > 轻微
     const ordered = [...d.severity].sort((a: any, b: any) => {
       const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
@@ -545,7 +546,7 @@ async function loadStats() {
     if (sevR.data.data?.length && severityChart) {
       const sv = sevR.data.data
       const sevColors: Record<string, string> = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" }
-      const sevLabel: Record<string, string> = { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }
+      const sevLabel: Record<string, string> = { HIGH: t("severity.high"), MEDIUM: t("severity.medium"), LOW: t("severity.low") }
       const ordered = [...sv].sort((a: any, b: any) => {
         const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
         return (order[a.level] ?? 3) - (order[b.level] ?? 3)
@@ -585,10 +586,10 @@ async function loadDiseaseData() {
  * 颜色按病害严重等级区分
  */
 const MARKER_COLORS: Record<string, { fill: string; stroke: string; label: string }> = {
-  HIGH:     { fill: "#ef4444", stroke: "#b91c1c", label: "严重" },
-  MEDIUM:   { fill: "#f59e0b", stroke: "#b45309", label: "中等" },
-  LOW:      { fill: "#22c55e", stroke: "#15803d", label: "轻微" },
-  REPAIRED: { fill: "#3b82f6", stroke: "#1d4ed8", label: "已维修" },
+  HIGH:     { fill: "#ef4444", stroke: "#b91c1c", label: t("severity.high") },
+  MEDIUM:   { fill: "#f59e0b", stroke: "#b45309", label: t("severity.medium") },
+  LOW:      { fill: "#22c55e", stroke: "#15803d", label: t("severity.low") },
+  REPAIRED: { fill: "#3b82f6", stroke: "#1d4ed8", label: t("ds.repaired_status") },
 }
 
 /**
@@ -605,7 +606,7 @@ const ROAD_NAME_CN: Record<string, string> = {
   "Xizhimen Outer St":   "西直门外大街",
 }
 function roadNameCn(name: string): string {
-  if (!name) return "未知道路"
+  if (!name) return t("detect.unknownRoad")
   return ROAD_NAME_CN[name] || name
 }
 
@@ -640,11 +641,11 @@ function reverseGeocodeRoad(lng: number, lat: number): Promise<string> {
             if (m) roadName = m[0]
           }
         }
-        geocodeCache.set(key, roadName || "未知道路")
-        resolve(roadName || "未知道路")
+        geocodeCache.set(key, roadName || t("detect.unknownRoad"))
+        resolve(roadName || t("detect.unknownRoad"))
       })
     } catch(e) {
-      resolve("未知道路")
+      resolve(t("detect.unknownRoad"))
     }
   })
 }
@@ -832,7 +833,7 @@ async function loadRoadDiseaseData() {
             max-width:140px;
             overflow:hidden;
             text-overflow:ellipsis;
-          ">加载中...</div>`,
+          ">${t("common.loading")}</div>`,
           offset: new window.AMap.Pixel(16, -28),
           anchor: "middle-left",
           zIndex: 110,
@@ -858,19 +859,19 @@ async function loadRoadDiseaseData() {
         })
 
         marker.on('click', () => {
-          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || t("detect.unknownRoad")
           // 优先使用 AI 识别结果图（imageBase64），其次使用原始上传图（fileUrl）
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
           const woNo = dp.workOrderNo || ""
           const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
           selectedDisease.value = {
-            type: dp.damageType || '道路病害',
-            severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            type: dp.damageType || t("damage.unknown"),
+            severity: isRepaired ? t("ds.repaired_status") : (sev === 'HIGH' ? t("severity.high") : sev === 'MEDIUM' ? t("severity.medium") : t("severity.low")),
             time: dp.detectionTime || '--',
             location: roadName,
             confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
             size: dp.bbox || '--',
-            orderId: woNo || '未生成',
+            orderId: woNo || t("ds.notGenerated"),
             _roadName: roadName,
             _isRoad: false,
             _loading: false,
@@ -879,18 +880,18 @@ async function loadRoadDiseaseData() {
         })
 
         circle.on('click', () => {
-          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || t("detect.unknownRoad")
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
           const woNo = dp.workOrderNo || ""
           const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
           selectedDisease.value = {
-            type: dp.damageType || '道路病害',
-            severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            type: dp.damageType || t("damage.unknown"),
+            severity: isRepaired ? t("ds.repaired_status") : (sev === 'HIGH' ? t("severity.high") : sev === 'MEDIUM' ? t("severity.medium") : t("severity.low")),
             time: dp.detectionTime || '--',
             location: roadName,
             confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
             size: dp.bbox || '--',
-            orderId: woNo || '未生成',
+            orderId: woNo || t("ds.notGenerated"),
             _roadName: roadName,
             _isRoad: false,
             _loading: false,
@@ -1021,7 +1022,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
 
       const label = new window.AMap.Text({
         position: [dp.lng, dp.lat],
-        text: `<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">加载中...</div>`,
+        text: `<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;color:#334155;box-shadow:0 2px 6px rgba(0,0,0,0.1);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${t("common.loading")}</div>`,
         offset: new window.AMap.Pixel(16, -28),
         anchor: "middle-left",
         zIndex: 110,
@@ -1034,18 +1035,18 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       })
 
       marker.on('click', () => {
-        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || t("detect.unknownRoad")
         let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
         const woNo = dp.workOrderNo || ""
         const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
         selectedDisease.value = {
-          type: dp.damageType || '道路病害',
-          severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+          type: dp.damageType || t("damage.unknown"),
+          severity: isRepaired ? t("ds.repaired_status") : (sev === 'HIGH' ? t("severity.high") : sev === 'MEDIUM' ? t("severity.medium") : t("severity.low")),
           time: dp.detectionTime || '--',
           location: roadName,
           confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
           size: dp.bbox || '--',
-          orderId: woNo || '未生成',
+          orderId: woNo || t("ds.notGenerated"),
           _roadName: roadName,
           _isRoad: false,
           _loading: false,
@@ -1054,18 +1055,18 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       })
 
       circle.on('click', () => {
-        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || t("detect.unknownRoad")
         let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
         const woNo = dp.workOrderNo || ""
         const isRepaired = (woNo === "CLOSED" || woNo === "COMPLETED")
         selectedDisease.value = {
-          type: dp.damageType || '道路病害',
-          severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+          type: dp.damageType || t("damage.unknown"),
+          severity: isRepaired ? t("ds.repaired_status") : (sev === 'HIGH' ? t("severity.high") : sev === 'MEDIUM' ? t("severity.medium") : t("severity.low")),
           time: dp.detectionTime || '--',
           location: roadName,
           confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
           size: dp.bbox || '--',
-          orderId: woNo || '未生成',
+          orderId: woNo || t("ds.notGenerated"),
           _roadName: roadName,
           _isRoad: false,
           _loading: false,
@@ -1096,8 +1097,8 @@ watch([filterSeverity, filterDate, filterStatus], () => {
 })
 
 // --- Analysis Tab Helpers ---
-function damageTypeLabel(t: string) {
-  return ({ CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知" } as any)[t] || t || "--"
+function damageTypeLabel(t2: string) {
+  return ({ CRACK: () => t("damage.crack"), TRANSVERSE_CRACK: () => t("damage.transverseCrack"), LONGITUDINAL_CRACK: () => t("damage.longitudinalCrack"), NET_CRACK: () => t("damage.netCrack"), POTHOLE: () => t("damage.pothole"), MARKING_DAMAGE: () => t("damage.markingDamage"), ROAD_SPILL: () => t("damage.roadSpill"), UNKNOWN: () => t("damage.unknown") } as any)[t2]?.() || t2 || "--"
 }
 function healthColor(s: string) {
   return ({ HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" } as any)[s] || "#94a3b8"
@@ -1106,7 +1107,7 @@ function healthBg(s: string) {
   return ({ HIGH: "#fef2f2", MEDIUM: "#fffbeb", LOW: "#f0fdf4" } as any)[s] || "#f8f9fc"
 }
 function healthLabel(s: string) {
-  return ({ HIGH: "严重", MEDIUM: "中等", LOW: "良好" } as any)[s] || "未知"
+  return ({ HIGH: () => t("severity.high"), MEDIUM: () => t("severity.medium"), LOW: () => t("severity.good") } as any)[s]?.() || t("damage.unknown")
 }
 function sevDotColor(s: string) {
   return ({ HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" } as any)[s] || "#94a3b8"
@@ -1179,14 +1180,14 @@ async function sendChat() {
 
       if (m.includes("最多") || m.includes("top") || m.includes("排行")) {
         const sorted = [...rd].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0))
-        reply = "病害最多的道路排行：<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + "：" + r.totalCount + "处（严重" + r.highCount + "处）").join("<br>")
+        reply = t("ds.chatTopRoads") + "<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + ": " + t("ds.chatStatsPattern", { total: r.totalCount, high: r.highCount })).join("<br>")
       } else if (m.includes("严重") || m.includes("high")) {
         const hasHigh = rd.filter((r: any) => (r.highCount || 0) > 0)
-        reply = hasHigh.length > 0 ? "存在严重病害的道路：<br>" + hasHigh.map((r: any) => roadNameCn(r.roadName) + "：" + r.highCount + "处").join("<br>") : "当前没有严重病害道路"
+        reply = hasHigh.length > 0 ? t("ds.chatSevereRoads") + "<br>" + hasHigh.map((r: any) => roadNameCn(r.roadName) + ": " + r.highCount + " 处").join("<br>") : t("ds.chatNoSevere")
       } else if (m.includes("统计") || m.includes("总数") || m.includes("多少")) {
-        reply = "当前病害统计数据：<br>- 病害总数: " + total + " 处<br>- 严重: " + high + " 处<br>- 中等: " + medium + " 处<br>- 轻微: " + low + " 处"
+        reply = t("ds.chatStats", { total, high, medium, low })
       } else {
-        reply = "我是道路病害 AI 助手，您可以问我：<br>- 病害最多的道路<br>- 严重病害分布<br>- 病害统计数据<br>- 道路病害排行"
+        reply = t("ds.chatHelpText")
       }
     }
 
@@ -1204,15 +1205,15 @@ async function sendChat() {
     if (m.includes("最多") || m.includes("top") || m.includes("排行")) {
       const sorted = [...rd].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0))
       reply = sorted.length > 0
-        ? "病害最多的道路排行：<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + "：" + r.totalCount + "处（严重" + r.highCount + "处）").join("<br>")
-        : "暂无道路病害数据"
+        ? t("ds.chatTopRoads") + "<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + ": " + t("ds.chatStatsPattern", { total: r.totalCount, high: r.highCount })).join("<br>")
+        : t("ds.chatNoData")
     } else if (m.includes("严重") || m.includes("high")) {
       const hasHigh = rd.filter((r: any) => (r.highCount || 0) > 0)
-      reply = hasHigh.length > 0 ? "存在严重病害的道路：<br>" + hasHigh.map((r: any) => roadNameCn(r.roadName) + "：" + r.highCount + "处").join("<br>") : "当前没有严重病害道路"
+      reply = hasHigh.length > 0 ? t("ds.chatSevereRoads") + "<br>" + hasHigh.map((r: any) => roadNameCn(r.roadName) + ": " + r.highCount + " 处").join("<br>") : t("ds.chatNoSevere")
     } else if (m.includes("统计") || m.includes("总数") || m.includes("多少")) {
-      reply = "当前病害统计数据：<br>- 病害总数: " + total + " 处<br>- 严重: " + high + " 处<br>- 中等: " + medium + " 处<br>- 轻微: " + low + " 处"
+      reply = t("ds.chatStats", { total, high, medium, low })
     } else {
-      reply = "AI 服务暂时不可用，以下是基于当前地图数据的回复：<br>- 病害总数: " + total + " 处<br>- 严重: " + high + " 处<br>- 中等: " + medium + " 处<br>- 轻微: " + low + " 处<br><br>您可以问我：病害最多的道路、严重病害分布、病害统计数据等"
+      reply = t("ds.chatNoService", { total, high, medium, low })
     }
     chatMessages.value.push({ role: "ai", text: reply })
   }

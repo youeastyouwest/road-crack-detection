@@ -2,19 +2,19 @@
   <div class="rha-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">道路健康档案</h2>
-        <p class="page-desc">路段健康评分、历史追溯与趋势分析</p>
+        <h2 class="page-title">{{ t("road.healthArchive") }}</h2>
+        <p class="page-desc">{{ t("road.desc") }}</p>
       </div>
       <div class="header-actions">
-        <button class="btn-primary" @click="showGenerate=true">生成档案</button>
+        <button class="btn-primary" @click="showGenerate=true">{{ t("road.generate") }}</button>
       </div>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#eef2ff,#dbeafe);color:#2563eb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><span class="stat-val">{{ dashboard.totalRoads }}</span><span class="stat-lbl">总道路数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#16a34a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div><span class="stat-val">{{ dashboard.healthyRoads }}</span><span class="stat-lbl">健康路段</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><span class="stat-val">{{ dashboard.subHealthyRoads }}</span><span class="stat-lbl">待维修路段</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#e11d48"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div><span class="stat-val">{{ dashboard.averageHealthScore?.toFixed(1) ?? '0.0' }}</span><span class="stat-lbl">平均评分</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#eef2ff,#dbeafe);color:#2563eb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><span class="stat-val">{{ dashboard.totalRoads }}</span><span class="stat-lbl">{{ t("road.totalRoads") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#16a34a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div><span class="stat-val">{{ dashboard.healthyRoads }}</span><span class="stat-lbl">{{ t("road.healthy") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><span class="stat-val">{{ dashboard.subHealthyRoads }}</span><span class="stat-lbl">{{ t("road.subHealthy") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#e11d48"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div><span class="stat-val">{{ dashboard.averageHealthScore?.toFixed(1) ?? '0.0' }}</span><span class="stat-lbl">{{ t("road.avgScore") }}</span></div></div>
     </div>
 
     <div class="content-card">
@@ -22,12 +22,12 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         路段健康档案
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <select v-model="filterLevel" class="filter-select"><option value="">全部等级</option><option value="LOW">轻微</option><option value="MEDIUM">中等</option><option value="HIGH">严重</option></select>
+          <select v-model="filterLevel" class="filter-select"><option value="">{{ t("road.allLevels") }}</option><option value="LOW">{{ t("severity.low") }}</option><option value="MEDIUM">{{ t("severity.medium") }}</option><option value="HIGH">{{ t("severity.high") }}</option></select>
         </div>
       </div>
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>道路</th><th>档案日期</th><th>健康评分</th><th>病害等级</th><th>检测次数</th><th>病害总数</th><th>严重病害</th><th>状态</th><th>操作</th></tr></thead>
+          <thead><tr><th>{{ t("road.roadCode") }}</th><th>{{ t("road.archiveDate") }}</th><th>{{ t("road.healthScore") }}</th><th>{{ t("road.damageLevel") }}</th><th>{{ t("road.detectionCount") }}</th><th>{{ t("road.totalDamages") }}</th><th>{{ t("road.severeDamages") }}</th><th>{{ t("common.status") }}</th><th>{{ t("common.actions") }}</th></tr></thead>
           <tbody>
             <tr v-for="a in filteredArchives" :key="a.id" @click="viewDetail(a)" style="cursor:pointer">
               <td class="td-primary">{{ a.road?.roadName || '道路 #' + a.roadId }}</td>
@@ -42,66 +42,66 @@
               <td>{{ a.totalDetectionCount ?? 0 }}</td>
               <td>{{ a.totalDamageCount ?? 0 }}</td>
               <td><span :class="{'td-danger': (a.severityHighCount ?? 0) > 0}">{{ a.severityHighCount ?? 0 }}</span></td>
-              <td><span :class="['stat-tag', (a.healthScore ?? 0) >= 80 ? 'tag-green' : (a.healthScore ?? 0) >= 60 ? 'tag-yellow' : 'tag-red']">{{ (a.healthScore ?? 0) >= 80 ? '健康' : (a.healthScore ?? 0) >= 60 ? '需关注' : '病害' }}</span></td>
-              <td><button class="action-btn" @click.stop="viewDetail(a)">详情</button></td>
+              <td><span :class="['stat-tag', (a.healthScore ?? 0) >= 80 ? 'tag-green' : (a.healthScore ?? 0) >= 60 ? 'tag-yellow' : 'tag-red']">{{ (a.healthScore ?? 0) >= 80 ? t("road.healthStatus") : (a.healthScore ?? 0) >= 60 ? t("road.needAttentionStatus") : t("road.damageStatus") }}</span></td>
+              <td><button class="action-btn" @click.stop="viewDetail(a)">{{ t("common.detail") }}</button></td>
             </tr>
-            <tr v-if="!loading && filteredArchives.length === 0"><td colspan="9" class="empty-row">暂无健康档案数据</td></tr>
+            <tr v-if="!loading && filteredArchives.length === 0"><td colspan="9" class="empty-row">{{ t("road.noArchiveData") }}</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
     <div class="insight-row">
-      <div class="insight-card"><div class="insight-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><span class="insight-val">{{ dashboard.archivedRoads }}/{{ dashboard.totalRoads }}</span><span class="insight-lbl">已建档道路比例</span></div></div>
-      <div class="insight-card"><div class="insight-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><span class="insight-val">{{ dashboard.unhealthyRoads }}</span><span class="insight-lbl">需优先养护路段</span></div></div>
-      <div class="insight-card"><div class="insight-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><span class="insight-val">{{ dashboard.totalRoads > 0 ? ((dashboard.healthyRoads / dashboard.totalRoads) * 100).toFixed(0) + '%' : '0%' }}</span><span class="insight-lbl">达标路段比例</span></div></div>
+      <div class="insight-card"><div class="insight-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><span class="insight-val">{{ dashboard.archivedRoads }}/{{ dashboard.totalRoads }}</span><span class="insight-lbl">{{ t("road.archivedRatio") }}</span></div></div>
+      <div class="insight-card"><div class="insight-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><span class="insight-val">{{ dashboard.unhealthyRoads }}</span><span class="insight-lbl">{{ t("road.priorityRepair") }}</span></div></div>
+      <div class="insight-card"><div class="insight-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><span class="insight-val">{{ dashboard.totalRoads > 0 ? ((dashboard.healthyRoads / dashboard.totalRoads) * 100).toFixed(0) + '%' : '0%' }}</span><span class="insight-lbl">{{ t("road.qualifiedRatio") }}</span></div></div>
     </div>
 
     <!-- Detail Modal -->
     <div v-if="showDetail" class="modal-overlay" @click.self="showDetail=false">
       <div class="modal-card">
-        <div class="modal-head"><span>档案详情 - {{ detailTarget?.road?.roadName || '道路 #' + detailTarget?.roadId }}</span><button class="modal-close" @click="showDetail=false">✕</button></div>
+        <div class="modal-head"><span>{{ t("road.archiveDetail") }}{{ detailTarget?.road?.roadName || '道路 #' + detailTarget?.roadId }}</span><button class="modal-close" @click="showDetail=false">✕</button></div>
         <div class="modal-body">
-          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div>
+          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">{{ t("common.loading") }}</div>
           <template v-else>
             <div class="detail-grid">
-              <div class="detail-item"><label>道路名称</label><span>{{ detailTarget?.road?.roadName || '--' }}</span></div>
-              <div class="detail-item"><label>档案日期</label><span>{{ detailTarget?.archiveDate || '--' }}</span></div>
-              <div class="detail-item"><label>健康评分</label><span :style="{color: scoreColor(detailTarget?.healthScore), fontWeight:700}">{{ detailTarget?.healthScore ?? '--' }}</span></div>
-              <div class="detail-item"><label>病害等级</label><span>{{ damageLevelLabel(detailTarget?.damageLevel) }}</span></div>
-              <div class="detail-item"><label>累计检测</label><span>{{ detailTarget?.totalDetectionCount ?? 0 }} 次</span></div>
-              <div class="detail-item"><label>累计病害</label><span>{{ detailTarget?.totalDamageCount ?? 0 }} 处</span></div>
+              <div class="detail-item"><label>{{ t("road.roadCode") }}</label><span>{{ detailTarget?.road?.roadName || '--' }}</span></div>
+              <div class="detail-item"><label>{{ t("road.archiveDate") }}</label><span>{{ detailTarget?.archiveDate || '--' }}</span></div>
+              <div class="detail-item"><label>{{ t("road.healthScore") }}</label><span :style="{color: scoreColor(detailTarget?.healthScore), fontWeight:700}">{{ detailTarget?.healthScore ?? '--' }}</span></div>
+              <div class="detail-item"><label>{{ t("road.damageLevel") }}</label><span>{{ damageLevelLabel(detailTarget?.damageLevel) }}</span></div>
+              <div class="detail-item"><label>{{ t("road.totalDetections") }}</label><span>{{ detailTarget?.totalDetectionCount ?? 0 }}{{ t("road.totalSpots") }}</span></div>
+              <div class="detail-item"><label>{{ t("road.totalDamagesCount") }}</label><span>{{ detailTarget?.totalDamageCount ?? 0 }}{{ t("road.totalSpots2") }}</span></div>
             </div>
             <div style="margin-top:16px;border-top:1px solid #f0f2f5;padding-top:14px">
-              <label class="detail-label">病害分类统计</label>
+              <label class="detail-label">{{ t("road.damageCategoryStats") }}</label>
               <div class="disease-stats">
-                <div class="ds-item"><span class="ds-label">裂缝</span><span class="ds-val">{{ detailTarget?.crackCount ?? 0 }}</span></div>
-                <div class="ds-item"><span class="ds-label">坑槽</span><span class="ds-val">{{ detailTarget?.potholeCount ?? 0 }}</span></div>
-                <div class="ds-item"><span class="ds-label">标线损坏</span><span class="ds-val">{{ detailTarget?.markingDamageCount ?? 0 }}</span></div>
-                <div class="ds-item"><span class="ds-label">路面抛洒</span><span class="ds-val">{{ detailTarget?.roadSpillCount ?? 0 }}</span></div>
-                <div class="ds-item"><span class="ds-label">未知</span><span class="ds-val">{{ detailTarget?.unknownCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label">{{ t("damage.crack") }}</span><span class="ds-val">{{ detailTarget?.crackCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label">{{ t("damage.pothole") }}</span><span class="ds-val">{{ detailTarget?.potholeCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label">{{ t("damage.markingDamage") }}</span><span class="ds-val">{{ detailTarget?.markingDamageCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label">{{ t("damage.roadSpill") }}</span><span class="ds-val">{{ detailTarget?.roadSpillCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label">{{ t("damage.unknown") }}</span><span class="ds-val">{{ detailTarget?.unknownCount ?? 0 }}</span></div>
               </div>
             </div>
             <div style="margin-top:16px;border-top:1px solid #f0f2f5;padding-top:14px">
-              <label class="detail-label">严重程度分布</label>
+              <label class="detail-label">{{ t("road.severityDistribution") }}</label>
               <div class="disease-stats">
-                <div class="ds-item"><span class="ds-label" style="color:#16a34a">轻微</span><span class="ds-val">{{ detailTarget?.severityLowCount ?? 0 }}</span></div>
-                <div class="ds-item"><span class="ds-label" style="color:#d97706">中等</span><span class="ds-val">{{ detailTarget?.severityMediumCount ?? 0 }}</span></div>
-                <div class="ds-item"><span class="ds-label" style="color:#dc2626">严重</span><span class="ds-val">{{ detailTarget?.severityHighCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label" style="color:#16a34a">{{ t("severity.low") }}</span><span class="ds-val">{{ detailTarget?.severityLowCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label" style="color:#d97706">{{ t("severity.medium") }}</span><span class="ds-val">{{ detailTarget?.severityMediumCount ?? 0 }}</span></div>
+                <div class="ds-item"><span class="ds-label" style="color:#dc2626">{{ t("severity.high") }}</span><span class="ds-val">{{ detailTarget?.severityHighCount ?? 0 }}</span></div>
               </div>
             </div>
             <div v-if="detailTarget?.evaluation" style="margin-top:16px;border-top:1px solid #f0f2f5;padding-top:14px">
-              <label class="detail-label">评估结论</label>
+              <label class="detail-label">{{ t("road.evaluation") }}</label>
               <div style="font-size:13px;color:#1e293b;line-height:1.6;margin-top:4px">{{ detailTarget.evaluation }}</div>
             </div>
             <div v-if="detailTarget?.suggestion" style="margin-top:12px">
-              <label class="detail-label">养护建议</label>
+              <label class="detail-label">{{ t("road.maintenanceSuggestion") }}</label>
               <div style="font-size:13px;color:#1e293b;line-height:1.6;margin-top:4px">{{ detailTarget.suggestion }}</div>
             </div>
           </template>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showDetail=false">关闭</button>
+          <button class="btn-ghost" @click="showDetail=false">{{ t("common.close") }}</button>
         </div>
       </div>
     </div>
@@ -109,23 +109,23 @@
     <!-- Generate Modal -->
     <div v-if="showGenerate" class="modal-overlay" @click.self="showGenerate=false">
       <div class="modal-card" style="width:420px">
-        <div class="modal-head"><span>生成健康档案</span><button class="modal-close" @click="showGenerate=false">✕</button></div>
+        <div class="modal-head"><span>{{ t("road.generateArchive") }}</span><button class="modal-close" @click="showGenerate=false">✕</button></div>
         <div class="modal-body">
           <div class="form-group" style="margin-bottom:14px">
-            <label style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block">选择道路</label>
+            <label style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block">{{ t("road.selectRoad") }}</label>
             <select v-model="genForm.roadId" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px">
-              <option :value="0" disabled>请选择道路</option>
+              <option :value="0" disabled>{{ t("road.selectRoadPlaceholder") }}</option>
               <option v-for="r in roadOptions" :key="r.id" :value="r.id">{{ r.roadName }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block">档案日期</label>
+            <label style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;display:block">{{ t("road.archiveDate") }}</label>
             <input v-model="genForm.archiveDate" type="date" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px" />
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showGenerate=false">取消</button>
-          <button class="btn-primary" :disabled="generating" @click="handleGenerate">{{ generating ? '生成中...' : '确认生成' }}</button>
+          <button class="btn-ghost" @click="showGenerate=false">{{ t("road.cancel") }}</button>
+          <button class="btn-primary" :disabled="generating" @click="handleGenerate">{{ generating ? t("road.generating") : t("road.confirmGenerate") }}</button>
         </div>
       </div>
     </div>
@@ -137,6 +137,7 @@ import { ref, computed, reactive, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { roadHealthArchiveApi, roadApi } from "@/api"
 import type { RoadHealthArchiveResponse, RoadHealthArchiveDashboardResponse, RoadResponse } from "@/types"
+import { t } from "@/i18n"
 
 const loading = ref(false)
 const archives = ref<RoadHealthArchiveResponse[]>([])
@@ -158,7 +159,7 @@ const filteredArchives = computed(() => {
 function scoreCls(s?: number) { return s == null ? 'sc-low' : s >= 80 ? 'sc-high' : s >= 60 ? 'sc-mid' : 'sc-low' }
 function scoreColor(s?: number) { return s == null ? '#ef4444' : s >= 80 ? '#22c55e' : s >= 60 ? '#f59e0b' : '#ef4444' }
 function damageLevelLabel(level?: string) {
-  return ({ LOW: '轻微', MEDIUM: '中等', HIGH: '严重' } as any)[level || ''] || '--'
+  return ({ LOW: t("severity.low"), MEDIUM: t("severity.medium"), HIGH: t("severity.high") } as any)[level || ''] || '--'
 }
 
 async function loadData() {
@@ -171,7 +172,7 @@ async function loadData() {
     dashboard.value = dashRes.data.data
     archives.value = listRes.data.data.records
   } catch {
-    ElMessage.error("加载健康档案数据失败")
+    ElMessage.error(t("road.loadArchiveFailed"))
   }
   loading.value = false
 }
@@ -197,16 +198,16 @@ async function loadRoadOptions() {
 }
 
 async function handleGenerate() {
-  if (!genForm.roadId) return ElMessage.warning("请选择道路")
-  if (!genForm.archiveDate) return ElMessage.warning("请选择日期")
+  if (!genForm.roadId) return ElMessage.warning(t("road.pleaseSelectRoad"))
+  if (!genForm.archiveDate) return ElMessage.warning(t("road.pleaseSelectDate"))
   generating.value = true
   try {
     await roadHealthArchiveApi.generate({ roadId: genForm.roadId, archiveDate: genForm.archiveDate })
-    ElMessage.success("档案已生成")
+    ElMessage.success(t("road.archiveGenerated"))
     showGenerate.value = false
     await loadData()
   } catch {
-    ElMessage.error("生成档案失败")
+    ElMessage.error(t("road.generateFailed"))
   }
   generating.value = false
 }

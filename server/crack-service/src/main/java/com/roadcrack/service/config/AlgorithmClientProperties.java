@@ -8,8 +8,10 @@ public class AlgorithmClientProperties {
     private boolean mockEnabled = true;
     private String baseUrl = "http://localhost:8000";
     private String analyzePath = "/detect/base64";
+    private String videoPath = "/detect/video";
     private int connectTimeoutMillis = 3000;
     private int readTimeoutMillis = 15000;
+    private int videoReadTimeoutMillis = 300000;
 
     public boolean isMockEnabled() {
         return mockEnabled;
@@ -35,6 +37,14 @@ public class AlgorithmClientProperties {
         this.analyzePath = analyzePath;
     }
 
+    public String getVideoPath() {
+        return videoPath;
+    }
+
+    public void setVideoPath(String videoPath) {
+        this.videoPath = videoPath;
+    }
+
     public int getConnectTimeoutMillis() {
         return connectTimeoutMillis;
     }
@@ -49,5 +59,13 @@ public class AlgorithmClientProperties {
 
     public void setReadTimeoutMillis(int readTimeoutMillis) {
         this.readTimeoutMillis = readTimeoutMillis;
+    }
+
+    public int getVideoReadTimeoutMillis() {
+        return videoReadTimeoutMillis;
+    }
+
+    public void setVideoReadTimeoutMillis(int videoReadTimeoutMillis) {
+        this.videoReadTimeoutMillis = videoReadTimeoutMillis;
     }
 }

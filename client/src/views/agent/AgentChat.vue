@@ -1,9 +1,9 @@
-﻿<template>
+<template>
   <div class="agent-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">AI 助手</h2>
-        <p class="page-desc">智能问答 · 数据分析 · 报告生成</p>
+        <h2 class="page-title">{{ t('agent.title') }}</h2>
+        <p class="page-desc">{{ t('agent.desc') }}</p>
       </div>
     </div>
     <div class="chat-card">
@@ -13,11 +13,11 @@
             <div class="avatar-wrap"><img class="avatar-img" src="/avatar-agent.png" alt="AI" /></div>
           </div>
           <div class="msg-content">
-            <div class="msg-bubble" v-html="m.content"></div>
+            <div class="msg-bubble" v-html="renderMarkdown(m.content)"></div>
             <div v-if="m.role === 'ai' && m.showGenerate" class="msg-actions">
               <button class="gen-report-btn" @click="generateReport(m)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                生成分析报告
+                {{ t('agent.generateReport') }}
               </button>
             </div>
             <div class="msg-time">{{ m.time }}</div>
@@ -31,7 +31,7 @@
         </div>
       </div>
       <div class="chat-input-bar">
-        <input v-model="input" placeholder="请输入问题，如：今日病害统计、生成检测周报..." :disabled="typing" @keyup.enter="send" />
+        <input v-model="input" :placeholder="t('agent.placeholder')" :disabled="typing" @keyup.enter="send" />
         <button class="send-btn" :disabled="!input.trim() || typing" @click="send">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -42,15 +42,15 @@
     <div v-if="showReport" class="modal-overlay" @click.self="showReport=false">
       <div class="modal-card">
         <div class="modal-head">
-          <span>📄 分析报告</span>
+          <span>📄 {{ t('agent.reportTitle') }}</span>
           <button class="modal-close" @click="showReport=false">✕</button>
         </div>
         <div class="modal-body">
           <div class="report-preview" v-html="reportContent"></div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showReport=false">关闭</button>
-          <button class="btn-primary" @click="downloadReport">下载报告</button>
+          <button class="btn-ghost" @click="showReport=false">{{ t('common.close') }}</button>
+          <button class="btn-primary" @click="downloadReport">{{ t('agent.downloadReport') }}</button>
         </div>
       </div>
     </div>
@@ -58,9 +58,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from "vue"
+import { ref, nextTick, computed } from "vue"
 import { agentApi } from "@/api/agent"
 import { ElMessage } from "element-plus"
+import { t } from "@/i18n"
+import { renderMarkdown } from "@/utils/markdown"
 
 const msgRef = ref()
 const input = ref("")
@@ -74,7 +76,7 @@ function getTime() {
 }
 
 const messages = ref([
-  { role: "ai", content: "您好！我是道路裂缝检测智能助手，可以帮您：<br>• 分析最新检测数据<br>• 查询病害详情与工单状态<br>• 生成检测周报与趋势预测<br>• 提供养护建议与优先级排序", time: getTime(), showGenerate: false }
+  { role: "ai", content: t('agent.welcome'), time: getTime(), showGenerate: false }
 ])
 
 function scrollBottom() {
@@ -100,7 +102,7 @@ async function send() {
     const data = res.data.data
     messages.value.push({ role: "ai", content: data.answer || "暂无回复", time: getTime(), dataSource: data.dataSource || "ai" })
   } catch {
-    messages.value.push({ role: "ai", content: "AI服务暂时不可用，请稍后重试。", time: getTime(), dataSource: "error" })
+    messages.value.push({ role: "ai", content: t('agent.unavailable'), time: getTime(), dataSource: "error" })
   }
   typing.value = false
   scrollBottom()
@@ -111,15 +113,14 @@ function generateReport(msg: any) {
   const now = new Date()
   const dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0")
   reportContent.value = `
-    <h3 style="margin-top:0">路面健康分析报告</h3>
-    <p style="color:#64748b;font-size:13px">生成日期：${dateStr} | 数据来源：AI 智能分析</p>
+    <h3 style="margin-top:0">${t('agent.reportPageTitle')}</h3>
+    <p style="color:#64748b;font-size:13px">${t('agent.reportDateLabel')}：${dateStr} | ${t('agent.reportDataSource')}</p>
     <hr style="border:none;border-top:1px solid #eef0f4;margin:12px 0">
     <div style="font-size:13px;line-height:1.8">
       ${msg.content}
       <br><br>
-      <strong>结论与建议：</strong><br>
-      当前道路整体状况良好，但部分路段裂缝呈增长趋势，建议优先处理高严重度病害。<br>
-      定期检测与及时养护可有效延长路面使用寿命，降低长期维护成本。
+      <strong>${t('agent.reportConclusion')}</strong><br>
+      ${t('agent.reportAdvice')}
     </div>
   `
   showReport.value = true
@@ -133,7 +134,7 @@ function downloadReport() {
   a.download = "road_health_report_" + Date.now() + ".html"
   a.click()
   URL.revokeObjectURL(url)
-  ElMessage.success("报告已下载")
+  ElMessage.success(t('agent.reportDownloaded'))
 }
 </script>
 
@@ -155,6 +156,20 @@ function downloadReport() {
 .msg-bubble { padding:10px 14px; border-radius:10px; font-size:13px; line-height:1.6; word-break:break-word; }
 .msg-row.ai .msg-bubble { background:#f1f5f9; color:#1a202c; border-bottom-left-radius:4px; }
 .msg-row.user .msg-bubble { background:#2563eb; color:#fff; border-bottom-right-radius:4px; }
+.msg-bubble ::v-deep strong { font-weight:600; color:#0f172a; }
+.msg-row.user .msg-bubble ::v-deep strong { color:#fff; }
+.msg-bubble ::v-deep em { font-style:italic; color:#475569; }
+.msg-row.user .msg-bubble ::v-deep em { color:#dbeafe; }
+.msg-bubble ::v-deep code { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:12px; background:#e2e8f0; color:#334155; padding:2px 5px; border-radius:4px; }
+.msg-row.user .msg-bubble ::v-deep code { background:rgba(255,255,255,0.2); color:#fff; }
+.msg-bubble ::v-deep pre { background:#0f172a; color:#e2e8f0; padding:10px 12px; border-radius:8px; overflow-x:auto; margin:6px 0; }
+.msg-bubble ::v-deep pre code { background:transparent; color:inherit; padding:0; }
+.msg-bubble ::v-deep blockquote { margin:6px 0; padding:6px 12px; border-left:3px solid #94a3b8; background:#f8fafc; color:#475569; border-radius:0 4px 4px 0; }
+.msg-row.user .msg-bubble ::v-deep blockquote { background:rgba(255,255,255,0.1); border-left-color:rgba(255,255,255,0.4); color:#fff; }
+.msg-bubble ::v-deep ul, .msg-bubble ::v-deep ol { margin:6px 0; padding-left:18px; }
+.msg-bubble ::v-deep li { margin-bottom:3px; }
+.msg-bubble ::v-deep a { color:#2563eb; text-decoration:underline; }
+.msg-row.user .msg-bubble ::v-deep a { color:#bfdbfe; }
 .msg-actions { margin-top:6px; display:flex; gap:6px; }
 .gen-report-btn { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border:1px solid #dbeafe; border-radius:6px; background:#eff6ff; color:#2563eb; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; transition:all .15s; }
 .gen-report-btn:hover { background:#dbeafe; border-color:#93c5fd; }

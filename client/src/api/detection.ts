@@ -38,6 +38,7 @@ export const detectionApi = {
   createWithFile(fd: FormData) {
     return http.post<ApiResponse<DetectionTaskResponse>>("/detection-tasks/upload", fd, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: 300000, // 视频上传最多5分钟
     })
   },
 }

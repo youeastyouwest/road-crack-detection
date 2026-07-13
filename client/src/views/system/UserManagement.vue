@@ -2,19 +2,19 @@
   <div class="sys-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">用户管理</h2>
-        <p class="page-desc">管理用户账户、角色分配与启用状态</p>
+        <h2 class="page-title">{{ t('user.title') }}</h2>
+        <p class="page-desc">{{ t('user.desc') }}</p>
       </div>
       <button class="btn-primary" @click="openCreate()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建用户
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{{ t('user.createUser') }}
       </button>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div><span class="stat-val">{{ users.length }}</span><span class="stat-lbl">总用户数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ enabledCount }}</span><span class="stat-lbl">已启用</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ disabledCount }}</span><span class="stat-lbl">已禁用</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fce7f3;color:#e11d48"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div><div><span class="stat-val">{{ adminCount }}</span><span class="stat-lbl">管理员数</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div><span class="stat-val">{{ users.length }}</span><span class="stat-lbl">{{ t('user.totalUsers') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ enabledCount }}</span><span class="stat-lbl">{{ t('user.enabled') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ disabledCount }}</span><span class="stat-lbl">{{ t('user.disabled') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fce7f3;color:#e11d48"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div><div><span class="stat-val">{{ adminCount }}</span><span class="stat-lbl">{{ t('user.adminCount') }}</span></div></div>
     </div>
 
     <div class="content-card">
@@ -22,24 +22,24 @@
         <div class="toolbar-left">
           <div class="filter-group">
             <select v-model="query.roleCode" class="filter-select" @change="loadData">
-              <option value="">全部角色</option>
+              <option value="">{{ t('user.allRoles') }}</option>
               <option v-for="r in roleOptions" :key="r.code" :value="r.code">{{ r.label }}</option>
             </select>
             <select v-model="query.status" class="filter-select" @change="loadData">
-              <option value="">全部状态</option>
-              <option value="1">启用</option>
-              <option value="0">禁用</option>
+              <option value="">{{ t('user.allStatus') }}</option>
+              <option value="1">{{ t('common.enabled') }}</option>
+              <option value="0">{{ t('common.disabled') }}</option>
             </select>
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="query.username" placeholder="搜索用户名..." @keyup.enter="loadData" /></div>
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="query.realName" placeholder="搜索姓名..." @keyup.enter="loadData" /></div>
-            <button class="btn-ghost" @click="loadData">搜索</button>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="query.username" :placeholder="t('user.searchUsername')" @keyup.enter="loadData" /></div>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="query.realName" :placeholder="t('user.searchName')" @keyup.enter="loadData" /></div>
+            <button class="btn-ghost" @click="loadData">{{ t('common.search') }}</button>
           </div>
         </div>
       </div>
 
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>ID</th><th>用户名</th><th>姓名</th><th>邮箱</th><th>手机</th><th>角色</th><th>状态</th><th style="width:200px">操作</th></tr></thead>
+          <thead><tr><th>ID</th><th>{{ t('user.username') }}</th><th>{{ t('user.realName') }}</th><th>{{ t('user.email') }}</th><th>{{ t('user.phone') }}</th><th>{{ t('user.role') }}</th><th>{{ t('common.status') }}</th><th style="width:200px">{{ t('common.actions') }}</th></tr></thead>
           <tbody>
             <tr v-for="u in users" :key="u.id">
               <td><span class="code-tag">{{ u.id }}</span></td>
@@ -48,25 +48,25 @@
               <td class="td-muted">{{ u.email || '--' }}</td>
               <td class="td-muted">{{ u.phone || '--' }}</td>
               <td><span :class="['role-badge', roleBadgeClass(u.roleCode)]">{{ roleLabel(u.roleCode) }}</span></td>
-              <td><span :class="['status-tag', u.status === 1 ? 'stat-success' : 'stat-cancel']">{{ u.status === 1 ? '启用' : '禁用' }}</span></td>
+              <td><span :class="['status-tag', u.status === 1 ? 'stat-success' : 'stat-cancel']">{{ u.status === 1 ? t('common.enabled') : t('common.disabled') }}</span></td>
               <td><div class="action-group">
-                <button class="action-btn" @click="editUser(u)">编辑</button>
-                <button class="action-btn" @click="toggleStatus(u)">{{ u.status === 1 ? '禁用' : '启用' }}</button>
-                <button class="action-btn" @click="resetPwd(u)">重置密码</button>
-                <button class="action-btn action-danger" @click="handleDelete(u)">删除</button>
+                <button class="action-btn" @click="editUser(u)">{{ t('common.edit') }}</button>
+                <button class="action-btn" @click="toggleStatus(u)">{{ u.status === 1 ? t('common.disabled') : t('common.enabled') }}</button>
+                <button class="action-btn" @click="resetPwd(u)">{{ t('user.resetPwd') }}</button>
+                <button class="action-btn action-danger" @click="handleDelete(u)">{{ t('common.delete') }}</button>
               </div></td>
             </tr>
-            <tr v-if="!loading && users.length === 0"><td colspan="8" class="empty-row">暂无用户数据</td></tr>
+            <tr v-if="!loading && users.length === 0"><td colspan="8" class="empty-row">{{ t('user.noUsers') }}</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="pagination">
-        <span class="page-info">共 {{ total }} 条</span>
+        <span class="page-info">{{ t('common.total', { count: total }) }}</span>
         <div class="page-btns">
-          <button class="page-btn" :disabled="page<=1" @click="page--;loadData()">上一页</button>
+          <button class="page-btn" :disabled="page<=1" @click="page--;loadData()">{{ t('common.prevPage') }}</button>
           <span class="page-cur">{{ page }}</span>
-          <button class="page-btn" :disabled="page*20>=total" @click="page++;loadData()">下一页</button>
+          <button class="page-btn" :disabled="page*20>=total" @click="page++;loadData()">{{ t('common.nextPage') }}</button>
         </div>
       </div>
     </div>
@@ -74,15 +74,15 @@
     <!-- Create/Edit Modal -->
     <div v-if="showCreate" class="modal-overlay" @click.self="showCreate=false">
       <div class="modal-card">
-        <div class="modal-head"><span>{{ editingUser ? '编辑用户' : '新建用户' }}</span><button class="modal-close" @click="showCreate=false">✕</button></div>
+        <div class="modal-head"><span>{{ editingUser ? t('user.editUser') : t('user.newUser') }}</span><button class="modal-close" @click="showCreate=false">✕</button></div>
         <div class="modal-body">
           <div class="form-grid">
-            <div class="form-group"><label>用户名</label><input v-model="userForm.username" placeholder="登录用户名" :disabled="!!editingUser" /></div>
-            <div class="form-group" v-if="!editingUser"><label>密码</label><input v-model="userForm.password" type="password" placeholder="初始密码" /></div>
-            <div class="form-group"><label>姓名</label><input v-model="userForm.realName" placeholder="真实姓名" /></div>
-            <div class="form-group"><label>邮箱</label><input v-model="userForm.email" placeholder="电子邮箱" /></div>
-            <div class="form-group"><label>手机</label><input v-model="userForm.phone" placeholder="手机号码" /></div>
-            <div class="form-group"><label>角色</label>
+            <div class="form-group"><label>{{ t('user.username') }}</label><input v-model="userForm.username" :placeholder="t('user.loginUsername')" :disabled="!!editingUser" /></div>
+            <div class="form-group" v-if="!editingUser"><label>{{ t('user.password') }}</label><input v-model="userForm.password" type="password" :placeholder="t('user.initialPwd')" /></div>
+            <div class="form-group"><label>{{ t('user.realName') }}</label><input v-model="userForm.realName" :placeholder="t('user.realName')" /></div>
+            <div class="form-group"><label>{{ t('user.email') }}</label><input v-model="userForm.email" :placeholder="t('user.emailPlaceholder')" /></div>
+            <div class="form-group"><label>{{ t('user.phone') }}</label><input v-model="userForm.phone" :placeholder="t('user.phonePlaceholder')" /></div>
+            <div class="form-group"><label>{{ t('user.role') }}</label>
               <select v-model="userForm.roleCode">
                 <option v-for="r in roleOptions" :key="r.code" :value="r.code">{{ r.label }}</option>
               </select>
@@ -90,8 +90,8 @@
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showCreate=false">取消</button>
-          <button class="btn-primary" :disabled="saving" @click="handleSave">{{ saving ? '保存中...' : '保存' }}</button>
+          <button class="btn-ghost" @click="showCreate=false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" :disabled="saving" @click="handleSave">{{ saving ? t('common.saving') : t('common.save') }}</button>
         </div>
       </div>
     </div>
@@ -103,6 +103,7 @@ import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { userApi } from "@/api"
 import type { UserEntity } from "@/types"
+import { t } from "@/i18n"
 
 const users = ref<UserEntity[]>([])
 const loading = ref(false)
@@ -114,21 +115,22 @@ const editingUser = ref<UserEntity | null>(null)
 const query = reactive({ username: "", realName: "", roleCode: "", status: "" as string })
 const userForm = reactive({ username: "", password: "", realName: "", email: "", phone: "", roleCode: "ROLE_ROAD_ADMIN" })
 
-const roleOptions = [
-  { id: 1, code: "ROLE_ADMIN", label: "超级管理员" },
-  { id: 2, code: "ROLE_ROAD_ADMIN", label: "道路管理员" },
-  { id: 3, code: "ROLE_SANIT_ADMIN", label: "环卫管理员" },
-  { id: 4, code: "ROLE_INSPECTOR", label: "巡检员" },
-  { id: 5, code: "ROLE_MAINTAINER", label: "维修工" },
-  { id: 6, code: "ROLE_VIEWER", label: "查看员" },
-]
+const roleOptions = computed(() => [
+  { id: 1, code: "ROLE_ADMIN", label: t("user.roleAdmin") },
+  { id: 2, code: "ROLE_ROAD_ADMIN", label: t("user.roleRoadAdmin") },
+  { id: 3, code: "ROLE_SANIT_ADMIN", label: t("user.roleSanitAdmin") },
+  { id: 4, code: "ROLE_TRAFFIC_ADMIN", label: t("user.roleTrafficAdmin") },
+  { id: 5, code: "ROLE_INSPECTOR", label: t("user.roleInspector") },
+  { id: 6, code: "ROLE_MAINTAINER", label: t("user.roleMaintainer") },
+  { id: 7, code: "ROLE_VIEWER", label: t("user.roleViewer") },
+])
 
 const enabledCount = computed(() => users.value.filter(u => u.status === 1).length)
 const disabledCount = computed(() => users.value.filter(u => u.status === 0).length)
 const adminCount = computed(() => users.value.filter(u => u.roleCode === "ROLE_ADMIN").length)
 
 function roleLabel(code?: string) {
-  const r = roleOptions.find(r => r.code === code)
+  const r = roleOptions.value.find(r => r.code === code)
   return r ? r.label : code || "--"
 }
 function roleBadgeClass(code?: string) {
@@ -153,7 +155,7 @@ async function loadData() {
     const r = await userApi.page(params)
     users.value = r.data.data.records
     total.value = r.data.data.total
-  } catch { ElMessage.error("加载用户列表失败") }
+  } catch { ElMessage.error(t("user.loadFailed")) }
   loading.value = false
 }
 
@@ -177,8 +179,8 @@ function editUser(row: UserEntity) {
 }
 
 async function handleSave() {
-  if (!userForm.username) return ElMessage.warning("请输入用户名")
-  if (!editingUser.value && !userForm.password) return ElMessage.warning("请输入密码")
+  if (!userForm.username) return ElMessage.warning(t("user.needUsername"))
+  if (!editingUser.value && !userForm.password) return ElMessage.warning(t("user.needPassword"))
   saving.value = true
   try {
     const data: any = {
@@ -188,17 +190,17 @@ async function handleSave() {
       phone: userForm.phone,
     }
     if (!editingUser.value) data.password = userForm.password
-    const role = roleOptions.find(r => r.code === userForm.roleCode)
+    const role = roleOptions.value.find(r => r.code === userForm.roleCode)
     if (editingUser.value) {
       await userApi.update(editingUser.value.id!, data, role ? [role.id] : undefined)
-      ElMessage.success("用户已更新")
+      ElMessage.success(t("common.updated"))
     } else {
       await userApi.create(data, role ? [role.id] : undefined)
-      ElMessage.success("用户已创建")
+      ElMessage.success(t("common.created"))
     }
     showCreate.value = false
     await loadData()
-  } catch { ElMessage.error("操作失败") }
+  } catch { ElMessage.error(t("common.operationFailed")) }
   finally { saving.value = false }
 }
 
@@ -206,30 +208,30 @@ async function toggleStatus(row: UserEntity) {
   if (!row.id) return
   try {
     await userApi.toggleStatus(row.id, row.status === 1 ? 0 : 1)
-    ElMessage.success(row.status === 1 ? "已禁用" : "已启用")
+    ElMessage.success(row.status === 1 ? t("common.disabled") : t("common.enabled"))
     await loadData()
-  } catch { ElMessage.error("操作失败") }
+  } catch { ElMessage.error(t("common.operationFailed")) }
 }
 
 async function resetPwd(row: UserEntity) {
-  ElMessageBox.confirm(`确认重置用户「${row.username}」的密码为默认密码？`, "重置密码", { type: "warning" })
+  ElMessageBox.confirm(t("user.confirmResetPwd", { name: row.username }), t("user.resetPwdTitle"), { type: "warning" })
     .then(async () => {
       try {
         await userApi.resetPassword(row.id!)
-        ElMessage.success("密码已重置")
-      } catch { ElMessage.error("重置失败") }
+        ElMessage.success(t("user.pwdReset"))
+      } catch { ElMessage.error(t("user.resetFailed")) }
     }).catch(() => {})
 }
 
 async function handleDelete(row: UserEntity) {
   if (!row.id) return
-  ElMessageBox.confirm(`确认删除用户「${row.username}」？此操作不可逆。`, "确认删除", { type: "warning" })
+  ElMessageBox.confirm(t("user.confirmDelete", { name: row.username }), t("common.confirmDelete"), { type: "warning" })
     .then(async () => {
       try {
         await userApi.remove(row.id!)
-        ElMessage.success("已删除")
+        ElMessage.success(t("common.deleted"))
         await loadData()
-      } catch { ElMessage.error("删除失败") }
+      } catch { ElMessage.error(t("user.deleteFailed")) }
     }).catch(() => {})
 }
 

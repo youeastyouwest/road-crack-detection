@@ -3,13 +3,13 @@
     <!-- Page Header -->
     <div class="page-head">
       <div>
-        <h2 class="page-title">告警管理</h2>
-        <p class="page-desc">路面异常预警与处理跟踪</p>
+        <h2 class="page-title">{{ t('alert.title') }}</h2>
+        <p class="page-desc">{{ t('alert.desc') }}</p>
       </div>
       <div class="head-right">
         <button class="btn-ghost" @click="loadData" :disabled="loading">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          刷新
+          {{ t('alert.refresh') }}
         </button>
       </div>
     </div>
@@ -30,29 +30,29 @@
     <!-- Filter Bar -->
     <div class="filter-bar">
       <select v-model="filters.level" @change="loadData" class="sel">
-        <option value="">全部等级</option>
-        <option value="HIGH">严重</option>
-        <option value="MEDIUM">中等</option>
-        <option value="LOW">一般</option>
+        <option value="">{{ t('alert.allLevels') }}</option>
+        <option value="HIGH">{{ t('alert.severe') }}</option>
+        <option value="MEDIUM">{{ t('alert.medium') }}</option>
+        <option value="LOW">{{ t('alert.general') }}</option>
       </select>
       <select v-model="filters.type" @change="loadData" class="sel">
-        <option value="">全部类型</option>
-        <option value="SEVERITY_DAMAGE">严重损坏</option>
-        <option value="OVERDUE_WORKORDER">工单超时</option>
-        <option value="SUDDEN_CRACK">突发裂缝</option>
+        <option value="">{{ t('alert.allTypes') }}</option>
+        <option value="SEVERITY_DAMAGE">{{ t('alert.typeSeverity') }}</option>
+        <option value="OVERDUE_WORKORDER">{{ t('alert.typeOverdue') }}</option>
+        <option value="SUDDEN_CRACK">{{ t('alert.typeCrack') }}</option>
       </select>
       <select v-model="filters.status" @change="loadData" class="sel">
-        <option value="">全部状态</option>
-        <option value="PENDING">待处理</option>
-        <option value="HANDLED">已处理</option>
+        <option value="">{{ t('alert.allStatus') }}</option>
+        <option value="PENDING">{{ t('alert.pending') }}</option>
+        <option value="HANDLED">{{ t('alert.handled') }}</option>
       </select>
-      <span class="filter-count" v-if="total > 0">共 {{ total }} 条告警</span>
+      <span class="filter-count" v-if="total > 0">{{ t('alert.totalAlerts', { count: total }) }}</span>
     </div>
 
     <!-- Alert List -->
     <div class="alert-list" v-loading="loading">
       <div v-if="alerts.length === 0 && !loading" class="empty-state">
-        <el-empty description="暂无告警记录" :image-size="80" />
+        <el-empty :description="t('alert.noAlerts')" :image-size="80" />
       </div>
 
       <div v-for="a in alerts" :key="a.id" :class="['alert-item', `level-${a.alertLevel?.toLowerCase()}`]">
@@ -64,7 +64,7 @@
             <div class="alert-title-row">
               <span class="alert-title">{{ a.title }}</span>
               <span :class="['status-tag', a.status === 'HANDLED' ? 'st-handled' : 'st-pending']">
-                {{ a.status === 'HANDLED' ? '已处理' : '待处理' }}
+                {{ a.status === 'HANDLED' ? t('alert.handled') : t('alert.pending') }}
               </span>
             </div>
             <div class="alert-content" v-if="a.content">{{ a.content }}</div>
@@ -76,41 +76,41 @@
               <span class="meta-item code" v-if="a.alertCode">{{ a.alertCode }}</span>
             </div>
             <div class="alert-handle" v-if="a.status === 'HANDLED'">
-              <span class="handle-info">处理人: {{ a.handledBy || '—' }}</span>
-              <span class="handle-info" v-if="a.handleRemark">备注: {{ a.handleRemark }}</span>
+              <span class="handle-info">{{ t('alert.handledBy') }}: {{ a.handledBy || '—' }}</span>
+              <span class="handle-info" v-if="a.handleRemark">{{ t('alert.remark') }}: {{ a.handleRemark }}</span>
               <span class="handle-info" v-if="a.handledAt">{{ formatDate(a.handledAt) }}</span>
             </div>
           </div>
         </div>
         <div class="alert-actions" v-if="a.status === 'PENDING'">
-          <button class="btn-handle" @click="openHandleDialog(a)">处理</button>
+          <button class="btn-handle" @click="openHandleDialog(a)">{{ t('alert.handle') }}</button>
         </div>
       </div>
     </div>
 
     <!-- Pagination -->
     <div class="pager" v-if="total > pageSize">
-      <button class="pg-btn" :disabled="page <= 1" @click="page--; loadData()">上一页</button>
-      <span class="pg-info">第 {{ page }} / {{ totalPages }} 页</span>
-      <button class="pg-btn" :disabled="page >= totalPages" @click="page++; loadData()">下一页</button>
+      <button class="pg-btn" :disabled="page <= 1" @click="page--; loadData()">{{ t('alert.prevPage') }}</button>
+      <span class="pg-info">{{ t('alert.pageInfo', { page: page, total: totalPages }) }}</span>
+      <button class="pg-btn" :disabled="page >= totalPages" @click="page++; loadData()">{{ t('alert.nextPage') }}</button>
     </div>
 
     <!-- Handle Dialog -->
     <div v-if="handleDialog.visible" class="dialog-overlay" @click.self="handleDialog.visible = false">
       <div class="dialog-box">
-        <h3 class="dialog-title">处理告警</h3>
+        <h3 class="dialog-title">{{ t('alert.handleTitle') }}</h3>
         <div class="dialog-alert-info" v-if="handleDialog.alert">
-          <span class="dia-label">告警标题:</span> {{ handleDialog.alert.title }}
+          <span class="dia-label">{{ t('alert.alertTitle') }}</span> {{ handleDialog.alert.title }}
         </div>
         <div class="dialog-field">
-          <label class="dia-label">处理备注</label>
+          <label class="dia-label">{{ t('alert.handleRemark') }}</label>
           <textarea v-model="handleDialog.remark" class="dia-textarea" rows="3"
-            placeholder="请输入处理说明..."></textarea>
+            :placeholder="t('alert.handlePlaceholder')"></textarea>
         </div>
         <div class="dialog-actions">
-          <button class="btn-cancel" @click="handleDialog.visible = false">取消</button>
+          <button class="btn-cancel" @click="handleDialog.visible = false">{{ t('common.cancel') }}</button>
           <button class="btn-confirm" @click="submitHandle" :disabled="handleDialog.submitting">
-            {{ handleDialog.submitting ? '提交中...' : '确认处理' }}
+            {{ handleDialog.submitting ? t('alert.handleSubmitting') : t('alert.handleConfirm') }}
           </button>
         </div>
       </div>
@@ -119,8 +119,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
+import { t } from "@/i18n"
 import { alertApi } from "@/api"
 import type { AlertResponse } from "@/types"
 
@@ -137,10 +138,11 @@ const filters = ref({
   status: "",
 })
 
-const alertStats = ref([
-  { label: "严重告警", value: 0, color: "#dc2626", bg: "#fef2f2", icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-  { label: "中等告警", value: 0, color: "#d97706", bg: "#fffbeb", icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
-  { label: "一般告警", value: 0, color: "#6366f1", bg: "#eef2ff", icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' },
+const statValues = reactive({ high: 0, medium: 0, low: 0 })
+const alertStats = computed(() => [
+  { label: t('alert.severeAlert'), value: statValues.high, color: "#dc2626", bg: "#fef2f2", icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  { label: t('alert.mediumAlert'), value: statValues.medium, color: "#d97706", bg: "#fffbeb", icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
+  { label: t('alert.generalAlert'), value: statValues.low, color: "#6366f1", bg: "#eef2ff", icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' },
 ])
 
 const handleDialog = ref({
@@ -151,10 +153,10 @@ const handleDialog = ref({
 })
 
 function levelLabel(level: string) {
-  return ({ HIGH: "严重", MEDIUM: "中等", LOW: "一般" } as any)[level] || level
+  return ({ HIGH: t('alert.severe'), MEDIUM: t('alert.medium'), LOW: t('alert.general') } as any)[level] || level
 }
 function typeLabel(type: string) {
-  return ({ SEVERITY_DAMAGE: "严重损坏", OVERDUE_WORKORDER: "工单超时", SUDDEN_CRACK: "突发裂缝" } as any)[type] || type
+  return ({ SEVERITY_DAMAGE: t('alert.typeSeverity'), OVERDUE_WORKORDER: t('alert.typeOverdue'), SUDDEN_CRACK: t('alert.typeCrack') } as any)[type] || type
 }
 function formatDate(dt: string) {
   if (!dt) return "—"
@@ -179,11 +181,11 @@ async function loadData() {
 
     // 使用后端统计接口获取按等级分组的数量
     const stats = statsRes.data.data
-    alertStats.value[0].value = stats.highCount
-    alertStats.value[1].value = stats.mediumCount
-    alertStats.value[2].value = stats.lowCount
+    statValues.high = stats.highCount
+    statValues.medium = stats.mediumCount
+    statValues.low = stats.lowCount
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || "加载告警数据失败")
+    ElMessage.error(e?.response?.data?.message || t('alert.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -203,11 +205,11 @@ async function submitHandle() {
   handleDialog.value.submitting = true
   try {
     await alertApi.handle(handleDialog.value.alert.id, handleDialog.value.remark)
-    ElMessage.success("告警处理成功")
+    ElMessage.success(t('alert.handleSuccess'))
     handleDialog.value.visible = false
     await loadData()
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || "处理告警失败")
+    ElMessage.error(e?.response?.data?.message || t('alert.handleFailed'))
   } finally {
     handleDialog.value.submitting = false
   }

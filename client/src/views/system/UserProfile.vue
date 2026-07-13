@@ -2,8 +2,8 @@
   <div class="sys-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">个人中心</h2>
-        <p class="page-desc">个人信息管理与密码修改</p>
+        <h2 class="page-title">{{ t("profile.title") }}</h2>
+        <p class="page-desc">{{ t("profile.desc") }}</p>
       </div>
     </div>
 
@@ -24,35 +24,35 @@
           <div class="info-row">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <div class="info-content">
-              <span class="info-label">用户名</span>
+              <span class="info-label">{{ t("profile.username") }}</span>
               <span class="info-val">{{ authStore.username }}</span>
             </div>
           </div>
           <div class="info-row" v-if="userDetail?.user?.email">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <div class="info-content">
-              <span class="info-label">邮箱</span>
+              <span class="info-label">{{ t("user.email") }}</span>
               <span class="info-val">{{ userDetail.user.email }}</span>
             </div>
           </div>
           <div class="info-row" v-if="userDetail?.user?.phone">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
             <div class="info-content">
-              <span class="info-label">手机</span>
+              <span class="info-label">{{ t("profile.phone") }}</span>
               <span class="info-val">{{ userDetail.user.phone }}</span>
             </div>
           </div>
           <div class="info-row" v-if="userDetail?.user?.deptName">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
             <div class="info-content">
-              <span class="info-label">部门</span>
+              <span class="info-label">{{ t("profile.dept") }}</span>
               <span class="info-val">{{ userDetail.user.deptName }}</span>
             </div>
           </div>
           <div class="info-row" v-if="userDetail?.user?.lastLoginTime">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <div class="info-content">
-              <span class="info-label">最近登录</span>
+              <span class="info-label">{{ t("profile.lastLogin") }}</span>
               <span class="info-val">{{ formatTime(userDetail.user.lastLoginTime) }}</span>
             </div>
           </div>
@@ -63,17 +63,17 @@
       <div class="profile-right">
         <!-- Edit Info -->
         <div class="content-card">
-          <div class="toolbar"><span style="font-size:14px;font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>个人信息</span></div>
+          <div class="toolbar"><span style="font-size:14px;font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>{{ t("profile.personalInfo") }}</span></div>
           <div style="padding:20px">
             <div class="form-grid">
-              <div class="form-group"><label>姓名</label><input v-model="profileForm.realName" placeholder="真实姓名" /></div>
-              <div class="form-group"><label>邮箱</label><input v-model="profileForm.email" placeholder="电子邮箱" /></div>
-              <div class="form-group"><label>手机</label><input v-model="profileForm.phone" placeholder="手机号码" /></div>
-              <div class="form-group"><label>用户名</label><input :value="authStore.username" disabled /></div>
+              <div class="form-group"><label>{{ t("profile.name") }}</label><input v-model="profileForm.realName" placeholder="Real name" /></div>
+              <div class="form-group"><label>{{ t("user.email") }}</label><input v-model="profileForm.email" placeholder="Email address" /></div>
+              <div class="form-group"><label>{{ t("profile.phone") }}</label><input v-model="profileForm.phone" placeholder="Phone number" /></div>
+              <div class="form-group"><label>{{ t("profile.username") }}</label><input :value="authStore.username" disabled /></div>
             </div>
             <div style="margin-top:16px">
               <button class="btn-primary" :disabled="savingProfile" @click="handleSaveProfile">
-                {{ savingProfile ? '保存中...' : '保存信息' }}
+                {{ savingProfile ? t("common.saving") : t("profile.saveInfo") }}
               </button>
             </div>
           </div>
@@ -81,11 +81,11 @@
 
         <!-- Change Password -->
         <div class="content-card" style="margin-top:16px">
-          <div class="toolbar"><span style="font-size:14px;font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>修改密码</span></div>
+          <div class="toolbar"><span style="font-size:14px;font-weight:600;color:#0f172a;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>{{ t("profile.changePwd") }}</span></div>
           <div style="padding:20px">
-            <div class="form-group" style="margin-bottom:14px"><label>原密码</label><input v-model="pwdForm.oldPassword" type="password" placeholder="输入当前密码" /></div>
-            <div class="form-group" style="margin-bottom:14px"><label>新密码</label><input v-model="pwdForm.newPassword" type="password" placeholder="输入新密码（至少 6 位）" /></div>
-            <div class="form-group" style="margin-bottom:16px"><label>确认新密码</label><input v-model="pwdForm.confirmPassword" type="password" placeholder="再次输入新密码" /></div>
+            <div class="form-group" style="margin-bottom:14px"><label>{{ t("profile.oldPwd") }}</label><input v-model="pwdForm.oldPassword" type="password" :placeholder="t('profile.oldPwdPlaceholder')" /></div>
+            <div class="form-group" style="margin-bottom:14px"><label>{{ t("profile.newPwd") }}</label><input v-model="pwdForm.newPassword" type="password" :placeholder="t('profile.newPwdPlaceholder')" /></div>
+            <div class="form-group" style="margin-bottom:16px"><label>{{ t("profile.confirmPwd") }}</label><input v-model="pwdForm.confirmPassword" type="password" :placeholder="t('profile.confirmPwdPlaceholder')" /></div>
             <div class="pwd-strength" v-if="pwdForm.newPassword">
               <div class="pwd-bar">
                 <div class="pwd-bar-fill" :class="pwdStrengthClass" :style="{ width: pwdStrengthPercent + '%' }"></div>
@@ -93,7 +93,7 @@
               <span class="pwd-strength-text" :class="pwdStrengthClass">{{ pwdStrengthText }}</span>
             </div>
             <button class="btn-primary" :disabled="changingPwd" @click="handleChangePwd" style="margin-top:12px">
-              {{ changingPwd ? '修改中...' : '更新密码' }}
+              {{ changingPwd ? t("profile.updating") : t("profile.updatePwd") }}
             </button>
           </div>
         </div>
@@ -107,6 +107,7 @@ import { ref, reactive, computed } from "vue"
 import { ElMessage } from "element-plus"
 import { useAuthStore } from "@/stores/auth"
 import { authApi, userApi } from "@/api"
+import { t } from "@/i18n"
 
 const authStore = useAuthStore()
 const userDetail = computed(() => authStore.userDetail)
@@ -140,10 +141,10 @@ const pwdStrengthClass = computed(() => {
 })
 const pwdStrengthText = computed(() => {
   const s = pwdStrengthPercent.value
-  if (s <= 25) return "弱"
-  if (s <= 50) return "一般"
-  if (s <= 75) return "良好"
-  return "强"
+  if (s <= 25) return t("profile.pwdStrength_weak")
+  if (s <= 50) return t("profile.pwdStrength_normal")
+  if (s <= 75) return t("profile.pwdStrength_good")
+  return t("profile.pwdStrength_strong")
 })
 
 function formatTime(s?: string) {
@@ -152,7 +153,7 @@ function formatTime(s?: string) {
 }
 
 async function handleSaveProfile() {
-  if (!profileForm.realName) return ElMessage.warning("请输入姓名")
+  if (!profileForm.realName) return ElMessage.warning(t("profile.needName"))
   savingProfile.value = true
   try {
     const userId = authStore.userId
@@ -161,23 +162,23 @@ async function handleSaveProfile() {
       email: profileForm.email,
       phone: profileForm.phone,
     } as any)
-    ElMessage.success("个人信息已更新")
+    ElMessage.success(t("profile.saveSuccess"))
     await authStore.fetchUserDetail()
-  } catch { ElMessage.error("更新失败") }
+  } catch { ElMessage.error(t("common.failed")) }
   finally { savingProfile.value = false }
 }
 
 async function handleChangePwd() {
-  if (!pwdForm.oldPassword) return ElMessage.warning("请输入原密码")
-  if (!pwdForm.newPassword) return ElMessage.warning("请输入新密码")
-  if (pwdForm.newPassword.length < 6) return ElMessage.warning("新密码至少 6 位")
-  if (pwdForm.newPassword !== pwdForm.confirmPassword) return ElMessage.warning("两次密码不一致")
+  if (!pwdForm.oldPassword) return ElMessage.warning(t("profile.needOldPwd"))
+  if (!pwdForm.newPassword) return ElMessage.warning(t("profile.needNewPwd"))
+  if (pwdForm.newPassword.length < 6) return ElMessage.warning(t("profile.pwdTooShort"))
+  if (pwdForm.newPassword !== pwdForm.confirmPassword) return ElMessage.warning(t("profile.pwdMismatch"))
   changingPwd.value = true
   try {
     await authApi.changePassword({ oldPassword: pwdForm.oldPassword, newPassword: pwdForm.newPassword })
-    ElMessage.success("密码已修改")
+    ElMessage.success(t("profile.pwdSuccess"))
     Object.assign(pwdForm, { oldPassword: "", newPassword: "", confirmPassword: "" })
-  } catch { ElMessage.error("修改失败，请检查原密码是否正确") }
+  } catch { ElMessage.error(t("profile.updateFailed")) }
   finally { changingPwd.value = false }
 }
 </script>

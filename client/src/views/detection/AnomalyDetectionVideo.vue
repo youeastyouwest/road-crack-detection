@@ -60,8 +60,8 @@
           </div>
           <div class="form-group">
             <label class="form-label">视频文件</label>
-            <div class="upload-zone upload-zone-sm" @click="$refs.vidInput.click()">
-              <input ref="vidInput" type="file" accept="video/*" hidden @change="e => { const f=(e.target as HTMLInputElement).files?.[0]; if(f){createForm.fileName=f.name;createForm.fileUrl=URL.createObjectURL(f)} }" />
+            <div class="upload-zone upload-zone-sm" @click="openVidInput">
+              <input :ref="(el: any) => { if (el) vidInput.value = el }" type="file" accept="video/*" hidden @change="e => { const f=(e.target as HTMLInputElement).files?.[0]; if(f){createForm.fileName=f.name;createForm.fileUrl=URL.createObjectURL(f)} }" />
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
               <span class="uz-text-sm">{{ createForm.fileName || '选择文件' }}</span>
             </div>
@@ -123,6 +123,11 @@ const creating = ref(false)
 const showResult = ref(false)
 const resultData = ref<DetectionResultResponse | null>(null)
 const createForm = reactive({ dataSourceType: "DRONE_VIDEO", fileName: "", fileUrl: "", location: "" })
+const vidInput = ref<HTMLInputElement>()
+
+function openVidInput() {
+  vidInput.value?.click()
+}
 
 async function loadTasks() {
   loading.value = true

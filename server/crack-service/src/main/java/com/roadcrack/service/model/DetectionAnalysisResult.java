@@ -7,10 +7,15 @@ import java.util.List;
 public record DetectionAnalysisResult(
         String summary,
         List<DetectionItemResponse> items,
-        String imageBase64
+        String imageBase64,
+        List<String> keyframeUrls
 ) {
         public DetectionAnalysisResult(String summary, List<DetectionItemResponse> items) {
-                this(summary, items, null);
+                this(summary, items, null, null);
+        }
+
+        public DetectionAnalysisResult(String summary, List<DetectionItemResponse> items, String imageBase64) {
+                this(summary, items, imageBase64, null);
         }
 
         /**

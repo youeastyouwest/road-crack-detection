@@ -2,48 +2,48 @@
   <div class="sys-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">部门管理</h2>
-        <p class="page-desc">管理部门组织架构与人员归属</p>
+        <h2 class="page-title">{{ t('dept.title') }}</h2>
+        <p class="page-desc">{{ t('dept.desc') }}</p>
       </div>
       <button class="btn-primary" @click="openCreateDept()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增部门
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{{ t('dept.createDept') }}
       </button>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div><div><span class="stat-val">{{ depts.length }}</span><span class="stat-lbl">部门总数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ enabledCount }}</span><span class="stat-lbl">已启用</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ disabledCount }}</span><span class="stat-lbl">已禁用</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div><div><span class="stat-val">{{ depts.length }}</span><span class="stat-lbl">{{ t('dept.totalDepts') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ enabledCount }}</span><span class="stat-lbl">{{ t('common.enabled') }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#fef2f2;color:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><span class="stat-val">{{ disabledCount }}</span><span class="stat-lbl">{{ t('common.disabled') }}</span></div></div>
     </div>
 
     <div class="content-card">
       <div class="toolbar">
         <div class="toolbar-left">
           <div class="filter-group">
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchKey" placeholder="搜索部门名称..." /></div>
-            <button class="btn-ghost" @click="searchKey=''">重置</button>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchKey" :placeholder="t('dept.searchPlaceholder')" /></div>
+            <button class="btn-ghost" @click="searchKey=''">{{ t('common.reset') }}</button>
           </div>
         </div>
-        <span class="page-info">{{ filteredDepts.length }} 条</span>
+        <span class="page-info">{{ t('common.total', { count: filteredDepts.length }) }}</span>
       </div>
 
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>部门名称</th><th>编码</th><th>描述</th><th>排序</th><th>状态</th><th>创建时间</th><th style="width:160px">操作</th></tr></thead>
+          <thead><tr><th>{{ t('dept.name') }}</th><th>{{ t('dept.code') }}</th><th>{{ t('common.description') }}</th><th>{{ t('dept.sortOrder') }}</th><th>{{ t('common.status') }}</th><th>{{ t('dept.createdAt') }}</th><th style="width:160px">{{ t('common.actions') }}</th></tr></thead>
           <tbody>
             <tr v-for="d in filteredDepts" :key="d.id">
               <td class="td-title">{{ d.name }}</td>
               <td><span class="code-tag">{{ d.code }}</span></td>
               <td class="td-muted">{{ d.description || '--' }}</td>
               <td class="td-muted">{{ d.sortOrder ?? 0 }}</td>
-              <td><span :class="['status-tag', d.status === 1 ? 'stat-success' : 'stat-cancel']">{{ d.status === 1 ? '启用' : '禁用' }}</span></td>
+              <td><span :class="['status-tag', d.status === 1 ? 'stat-success' : 'stat-cancel']">{{ d.status === 1 ? t('common.enabled') : t('common.disabled') }}</span></td>
               <td class="td-muted">{{ d.createdAt || '--' }}</td>
               <td><div class="action-group">
-                <button class="action-btn" @click="editDept(d)">编辑</button>
-                <button class="action-btn action-danger" @click="removeDept(d)">删除</button>
+                <button class="action-btn" @click="editDept(d)">{{ t('common.edit') }}</button>
+                <button class="action-btn action-danger" @click="removeDept(d)">{{ t('common.delete') }}</button>
               </div></td>
             </tr>
-            <tr v-if="filteredDepts.length === 0"><td colspan="7" class="empty-row">暂无部门数据</td></tr>
+            <tr v-if="filteredDepts.length === 0"><td colspan="7" class="empty-row">{{ t('dept.noDepts') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -52,24 +52,24 @@
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
       <div class="modal-card">
-        <div class="modal-head"><span>{{ editingDept ? '编辑部门' : '新增部门' }}</span><button class="modal-close" @click="showModal=false">✕</button></div>
+        <div class="modal-head"><span>{{ editingDept ? t('dept.editDept') : t('dept.newDept') }}</span><button class="modal-close" @click="showModal=false">✕</button></div>
         <div class="modal-body">
           <div class="form-grid">
-            <div class="form-group"><label>部门名称</label><input v-model="deptForm.name" placeholder="如：道路管理部" /></div>
-            <div class="form-group"><label>部门编码</label><input v-model="deptForm.code" placeholder="如：ROAD_ADMIN" :disabled="!!editingDept" /></div>
-            <div class="form-group"><label>排序号</label><input v-model.number="deptForm.sortOrder" type="number" min="0" placeholder="0" /></div>
-            <div class="form-group"><label>状态</label>
+            <div class="form-group"><label>{{ t('dept.name') }}</label><input v-model="deptForm.name" :placeholder="t('dept.namePlaceholder')" /></div>
+            <div class="form-group"><label>{{ t('dept.code') }}</label><input v-model="deptForm.code" :placeholder="t('dept.codePlaceholder')" :disabled="!!editingDept" /></div>
+            <div class="form-group"><label>{{ t('dept.sortOrder') }}</label><input v-model.number="deptForm.sortOrder" type="number" min="0" placeholder="0" /></div>
+            <div class="form-group"><label>{{ t('common.status') }}</label>
               <select v-model="deptForm.status">
-                <option :value="1">启用</option>
-                <option :value="0">禁用</option>
+                <option :value="1">{{ t('common.enabled') }}</option>
+                <option :value="0">{{ t('common.disabled') }}</option>
               </select>
             </div>
-            <div class="form-group" style="grid-column:1/-1"><label>描述</label><input v-model="deptForm.description" placeholder="部门功能描述（可选）" /></div>
+            <div class="form-group" style="grid-column:1/-1"><label>{{ t('common.description') }}</label><input v-model="deptForm.description" :placeholder="t('dept.descPlaceholder')" /></div>
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showModal=false">取消</button>
-          <button class="btn-primary" :disabled="saving" @click="handleSaveDept">{{ saving ? '保存中...' : '保存' }}</button>
+          <button class="btn-ghost" @click="showModal=false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" :disabled="saving" @click="handleSaveDept">{{ saving ? t('common.saving') : t('common.save') }}</button>
         </div>
       </div>
     </div>
@@ -81,6 +81,7 @@ import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { departmentApi } from "@/api"
 import type { DepartmentEntity } from "@/types"
+import { t } from "@/i18n"
 
 const depts = ref<DepartmentEntity[]>([])
 const showModal = ref(false)
@@ -102,7 +103,7 @@ async function loadData() {
   try {
     const r = await departmentApi.list()
     depts.value = r.data.data || []
-  } catch { ElMessage.error("加载部门列表失败") }
+  } catch { ElMessage.error(t("dept.loadFailed")) }
 }
 
 function openCreateDept() {
@@ -124,8 +125,8 @@ function editDept(d: DepartmentEntity) {
 }
 
 async function handleSaveDept() {
-  if (!deptForm.name) return ElMessage.warning("请填写部门名称")
-  if (!deptForm.code) return ElMessage.warning("请填写部门编码")
+  if (!deptForm.name) return ElMessage.warning(t("dept.needName"))
+  if (!deptForm.code) return ElMessage.warning(t("dept.needCode"))
   saving.value = true
   try {
     const data: any = {
@@ -137,25 +138,25 @@ async function handleSaveDept() {
     }
     if (editingDept.value) {
       await departmentApi.update(editingDept.value.id!, data)
-      ElMessage.success("部门已更新")
+      ElMessage.success(t("common.updated"))
     } else {
       await departmentApi.create(data)
-      ElMessage.success("部门已创建")
+      ElMessage.success(t("common.created"))
     }
     showModal.value = false
     await loadData()
-  } catch { ElMessage.error("操作失败") }
+  } catch { ElMessage.error(t("common.operationFailed")) }
   finally { saving.value = false }
 }
 
 async function removeDept(d: DepartmentEntity) {
-  ElMessageBox.confirm(`确认删除部门「${d.name}」？删除后不可恢复。`, "确认删除", { type: "warning" })
+  ElMessageBox.confirm(t("dept.confirmDelete", { name: d.name }), t("common.warning"), { type: "warning" })
     .then(async () => {
       try {
         await departmentApi.remove(d.id!)
-        ElMessage.success("已删除")
+        ElMessage.success(t("common.deleted"))
         await loadData()
-      } catch { ElMessage.error("删除失败，可能存在关联用户") }
+      } catch { ElMessage.error(t("dept.deleteWithUsers")) }
     }).catch(() => {})
 }
 

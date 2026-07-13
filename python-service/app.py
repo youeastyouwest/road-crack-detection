@@ -1,4 +1,4 @@
-﻿"""
+"""
 app.py
 ======
 YOLOv8 道路裂缝检测系统 - FastAPI 后端服务
@@ -6,6 +6,7 @@ YOLOv8 道路裂缝检测系统 - FastAPI 后端服务
 为前端提供 RESTful API，支持:
   - 图片上传检测
   - Base64 图片检测
+  - 视频上传检测（隔帧算法）
   - 批量检测
   - 摄像头实时检测 (WebSocket)
   - 获取检测统计信息
@@ -308,6 +309,7 @@ async def root():
         <div class="endpoint">📋 <code>GET /health</code> - 健康检查</div>
         <div class="endpoint">📷 <code>POST /detect/file</code> - 上传图片检测</div>
         <div class="endpoint">📷 <code>POST /detect/base64</code> - Base64 图片检测</div>
+        <div class="endpoint">🎬 <code>POST /detect/video</code> - 上传视频检测（隔帧算法）</div>
         <div class="endpoint">📷 <code>POST /detect/batch</code> - 批量检测</div>
         <div class="endpoint">📊 <code>GET /stats</code> - 统计信息</div>
         <div class="endpoint">📜 <code>GET /history</code> - 检测历史</div>
@@ -634,6 +636,153 @@ async def reload_model(weights_path: Optional[str] = None):
         return {"success": True, "message": f"模型已加载: {settings.WEIGHTS_PATH}"}
     except Exception as e:
         return {"success": False, "message": f"模型加载失败: {e}", "error": str(e)}
+
+
+@app.post("/detect/video", response_model=DetectResponse)
+async def detect_video(
+    file: UploadFile = File(..., description="上传视频文件"),
+    conf_threshold: Optional[float] = Form(None, description="置信度阈值"),
+    vid_stride: int = Form(2, description="隔帧检测步长"),
+):
+    """
+    上传视频进行裂缝检测
+
+    使用隔帧检测算法，对视频每隔 vid_stride 帧进行 YOLOv8 推理。
+    返回每帧检测结果汇总及标注后的视频路径。
+
+    支持格式: mp4, avi, mov, webm
+    最大文件大小: 500MB
+    """
+    if not file.filename:
+        return DetectResponse(success=False, message="未选择文件", error="No file provided")
+
+    # 检查文件类型
+    video_exts = {".mp4", ".avi", ".mov", ".webm", ".mkv", ".flv", ".wmv"}
+    ext = Path(file.filename).suffix.lower()
+    if ext not in video_exts:
+        return DetectResponse(
+            success=False,
+            message="不支持的视频格式",
+            error=f"支持的格式: {', '.join(video_exts)}",
+        )
+
+    # 读取文件
+    contents = await file.read()
+    if len(contents) > settings.MAX_FILE_SIZE:
+        return DetectResponse(
+            success=False,
+            message="文件过大",
+            error=f"最大支持 {settings.MAX_FILE_SIZE // 1024 // 1024}MB",
+        )
+
+    try:
+        # 保存上传视频
+        file_id = str(uuid.uuid4())[:8]
+        video_filename = f"{file_id}_{file.filename}"
+        upload_path = settings.UPLOAD_DIR / video_filename
+        with open(upload_path, "wb") as f:
+            f.write(contents)
+
+        # 执行视频检测
+        det = get_detector()
+        video_result = det.detect_video(
+            video_path=str(upload_path),
+            output_dir=str(settings.RESULT_DIR),
+            output_name=f"video_{file_id}",
+            conf_threshold=conf_threshold or settings.CONF_THRESHOLD,
+            vid_stride=vid_stride,
+        )
+
+        # 转换 output_video_path 为 URL 可访问路径
+        video_url = None
+        if video_result["output_video_path"]:
+            try:
+                output_path = Path(video_result["output_video_path"]).resolve()
+                rel_path = output_path.relative_to(settings.RESULT_DIR.resolve())
+                video_url = f"http://localhost:8000/results/{rel_path.as_posix()}"
+            except ValueError:
+                video_url = None
+
+        # 提取关键帧标注图片（从检测到裂缝的帧中选取）
+        keyframe_urls = []
+        detected_frames = [fr for fr in video_result["frame_results"] if fr.get("num_detections", 0) > 0]
+        if detected_frames:
+            # 按检测数量降序，最多取 5 帧
+            detected_frames.sort(key=lambda x: x.get("num_detections", 0), reverse=True)
+            selected_frames = detected_frames[:5]
+
+            cap = cv2.VideoCapture(str(upload_path))
+            if cap.isOpened():
+                for fr in selected_frames:
+                    frame_idx = fr.get("frame_idx", 0)
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                    ret, frame = cap.read()
+                    if not ret:
+                        continue
+
+                    # 构建 DetectionResult 用于绘制
+                    from model import DetectionResult
+                    result = DetectionResult(str(upload_path), frame.shape[:2])
+                    for d in fr.get("detections", []):
+                        result.add_detection(
+                            cls_id=d.get("class_id", 0),
+                            class_name=d.get("class_name", ""),
+                            class_name_cn=d.get("class_name_cn", ""),
+                            confidence=d.get("confidence", 0),
+                            bbox=d.get("bbox", [0, 0, 0, 0]),
+                        )
+
+                    drawn = det.draw_detections(frame, result)
+                    kf_name = f"keyframe_{file_id}_f{frame_idx}.jpg"
+                    kf_path = (settings.RESULT_DIR / kf_name).resolve()
+                    cv2.imwrite(str(kf_path), drawn)
+
+                    try:
+                        rel_path = kf_path.relative_to(settings.RESULT_DIR.resolve())
+                        kf_url = f"http://localhost:8000/results/{rel_path.as_posix()}"
+                        keyframe_urls.append(kf_url)
+                    except ValueError:
+                        pass
+                cap.release()
+
+        # 构建响应数据
+        resp_data = {
+            "file_id": file_id,
+            "filename": file.filename,
+            "total_frames_processed": video_result["total_frames_processed"],
+            "frames_with_detections": video_result["frames_with_detections"],
+            "total_detections": video_result["total_detections"],
+            "crack_types": video_result["crack_types"],
+            "output_video_path": video_url,
+            "keyframe_urls": keyframe_urls,
+            "summary": video_result["summary"],
+            "frame_results": video_result["frame_results"],
+        }
+
+        # 保存历史
+        save_history({
+            "id": file_id,
+            "timestamp": datetime.now().isoformat(),
+            "filename": file.filename,
+            "media_type": "video",
+            "num_detections": video_result["total_detections"],
+            "frames_with_detections": video_result["frames_with_detections"],
+            "total_frames": video_result["total_frames_processed"],
+            "crack_types": video_result["crack_types"],
+        })
+
+        return DetectResponse(
+            success=True,
+            message=video_result["summary"],
+            data=resp_data,
+        )
+
+    except Exception as e:
+        return DetectResponse(
+            success=False,
+            message="视频检测失败",
+            error=str(e),
+        )
 
 
 # ============ WebSocket 实时检测 ============

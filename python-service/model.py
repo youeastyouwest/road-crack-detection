@@ -310,6 +310,123 @@ class CrackDetector:
         """
         return self.detect(frame, conf_threshold, iou_threshold, imgsz)
 
+    def detect_video(
+        self,
+        video_path: str,
+        output_dir: str = "runs/app/video_results",
+        output_name: Optional[str] = None,
+        conf_threshold: Optional[float] = None,
+        vid_stride: int = 2,
+    ) -> dict:
+        """
+        对视频文件进行检测（使用视频检测算法，隔帧处理）
+
+        参数:
+            video_path: 视频文件路径
+            output_dir: 输出目录
+            output_name: 输出子目录名称
+            conf_threshold: 置信度阈值
+            vid_stride: 隔帧数（默认2，即每2帧检测1帧）
+
+        返回:
+            dict: {
+                "success": bool,
+                "total_frames_processed": int,
+                "frames_with_detections": int,
+                "total_detections": int,
+                "frame_results": [{"frame_idx": int, "num_detections": int, "detections": [...]}],
+                "output_video_path": str,
+                "summary": str
+            }
+        """
+        from pathlib import Path as PPath
+        import cv2 as cv2_local
+
+        conf = conf_threshold or self.conf_threshold
+
+        # 准备输出目录
+        base_output = PPath(output_dir).resolve()
+        base_output.mkdir(parents=True, exist_ok=True)
+        name = output_name or PPath(video_path).stem
+
+        # 使用 model.predict 直接处理视频（ultralytics 内置视频处理能力）
+        project_path = str(base_output)
+        results = self.model.predict(
+            source=video_path,
+            conf=conf,
+            iou=self.iou_threshold,
+            save=True,
+            save_frames=False,
+            vid_stride=vid_stride,
+            project=project_path,
+            name=name,
+            device=self.device,
+            verbose=False,
+        )
+
+        # 解析结果
+        frame_results = []
+        total_detections = 0
+        frames_with_detections = 0
+
+        for frame_idx, r in enumerate(results):
+            num = 0
+            det_list = []
+            if r.boxes is not None:
+                boxes = r.boxes.data.cpu().numpy() if hasattr(r.boxes.data, 'cpu') else r.boxes.data
+                num = len(boxes)
+                for box in boxes:
+                    x1, y1, x2, y2 = float(box[0]), float(box[1]), float(box[2]), float(box[3])
+                    c = float(box[4])
+                    cls_id = int(box[5])
+                    if cls_id >= self.num_classes:
+                        cls_id = 0
+                    det_list.append({
+                        "class_id": cls_id,
+                        "class_name": self.class_names[cls_id],
+                        "class_name_cn": self.class_names_cn[cls_id],
+                        "confidence": round(c, 4),
+                        "bbox": [round(x1, 2), round(y1, 2), round(x2, 2), round(y2, 2)],
+                    })
+
+            total_detections += num
+            if num > 0:
+                frames_with_detections += 1
+
+            frame_results.append({
+                "frame_idx": frame_idx * vid_stride,
+                "num_detections": num,
+                "detections": det_list,
+            })
+
+        # 查找输出视频路径
+        output_video_path = None
+        predict_dir = base_output / name
+        if predict_dir.exists():
+            for f in predict_dir.iterdir():
+                if f.suffix.lower() in (".mp4", ".avi", ".webm", ".mov"):
+                    output_video_path = str(f)
+                    break
+
+        # 统计病害类型
+        crack_types = set()
+        for fr in frame_results:
+            for d in fr["detections"]:
+                crack_types.add(d["class_name_cn"])
+
+        summary = f"视频检测完成：{len(frame_results)} 帧，{frames_with_detections} 帧含病害，共检测到 {total_detections} 处"
+
+        return {
+            "success": True,
+            "total_frames_processed": len(frame_results),
+            "frames_with_detections": frames_with_detections,
+            "total_detections": total_detections,
+            "crack_types": list(crack_types),
+            "frame_results": frame_results,
+            "output_video_path": output_video_path,
+            "summary": summary,
+        }
+
     def _parse_results(self, raw_results, result_obj: DetectionResult):
         """解析 YOLOv8 原始输出为统一的 DetectionResult"""
         for r in raw_results:

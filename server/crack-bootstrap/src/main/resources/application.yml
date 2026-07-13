@@ -38,6 +38,8 @@ crack:
   algorithm:
     mock-enabled: false
     base-url: http://localhost:8000
+    video-path: /detect/video
+    video-read-timeout-millis: 300000
   agent:
     siliconflow:
       api-key:

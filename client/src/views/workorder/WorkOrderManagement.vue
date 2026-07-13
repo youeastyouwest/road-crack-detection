@@ -2,20 +2,20 @@
   <div class="wo-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">{{ isAdmin ? '工单管理' : '部门工单管理' }}</h2>
-        <p class="page-desc">{{ isAdmin ? '管理检测工单的创建、指派与最终审核' : '管理本部门工单的维修工分配与报告审核' }}</p>
+        <h2 class="page-title">{{ isAdmin ? t('wo.title') : t('wo.deptTitle') }}</h2>
+        <p class="page-desc">{{ isAdmin ? t('wo.desc') : t('wo.deptDesc') }}</p>
       </div>
       <div v-if="isAdmin" style="display:flex;gap:8px">
-        <button class="btn-ghost" @click="handleExport"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出</button>
-        <button class="btn-primary" @click="showCreate=true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建工单</button>
+        <button class="btn-ghost" @click="handleExport"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ t('wo.export') }}</button>
+        <button class="btn-primary" @click="showCreate=true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{{ t('wo.create') }}</button>
       </div>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><span class="stat-val">{{ stats.pending }}</span><span class="stat-lbl">待指派</span></div></div>
-      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><span class="stat-val">{{ stats.inProgress }}</span><span class="stat-lbl">进行中</span></div></div>
-      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#f0f7ff;color:#0ea5e9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div><span class="stat-val">{{ stats.pendingReview }}</span><span class="stat-lbl">待审核</span></div></div>
-      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ stats.completed }}</span><span class="stat-lbl">已关闭</span></div></div>
+      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><span class="stat-val">{{ stats.pending }}</span><span class="stat-lbl">{{ t('wo.statPendingAssignment') }}</span></div></div>
+      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><span class="stat-val">{{ stats.inProgress }}</span><span class="stat-lbl">{{ t('wo.statInProgress') }}</span></div></div>
+      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#f0f7ff;color:#0ea5e9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div><span class="stat-val">{{ stats.pendingReview }}</span><span class="stat-lbl">{{ t('wo.statPendingReview') }}</span></div></div>
+      <div class="stat-card" title="基于当前页数据"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ stats.completed }}</span><span class="stat-lbl">{{ t('wo.statClosed') }}</span></div></div>
     </div>
 
     <div class="content-card">
@@ -23,64 +23,58 @@
         <div class="toolbar-left">
           <div class="filter-group">
             <select v-model="filter.status" class="filter-select">
-              <option value="">全部状态</option>
-              <option value="PENDING_ASSIGNMENT">待指派</option>
-              <option value="ASSIGNED">已指派</option>
-              <option value="IN_PROGRESS">进行中</option>
-              <option value="COMPLETED">已完成</option>
-              <option value="PENDING_DEPT_REVIEW">待部门审核</option>
-              <option value="PENDING_ADMIN_REVIEW">待最终审核</option>
-              <option value="REJECTED">已驳回</option>
-              <option value="CLOSED">已关闭</option>
-              <option value="CANCELLED">已取消</option>
+              <option value="">{{ t('wo.allStatus') }}</option>
+              <option value="PENDING_ASSIGNMENT">{{ t('wo.statusPendingAssignment') }}</option>
+              <option value="ASSIGNED">{{ t('wo.statusAssigned') }}</option>
+              <option value="IN_PROGRESS">{{ t('wo.statusInProgress') }}</option>
+              <option value="COMPLETED">{{ t('wo.statusCompleted') }}</option>
+              <option value="PENDING_DEPT_REVIEW">{{ t('wo.statusPendingDeptReview') }}</option>
+              <option value="PENDING_ADMIN_REVIEW">{{ t('wo.statusPendingAdminReview') }}</option>
+              <option value="REJECTED">{{ t('wo.statusRejected') }}</option>
+              <option value="CLOSED">{{ t('wo.statusClosed') }}</option>
+              <option value="CANCELLED">{{ t('wo.statusCancelled') }}</option>
             </select>
-            <select v-if="isAdmin" v-model="filter.departmentCode" class="filter-select"><option value="">全部部门</option><option value="ROAD_ADMIN">道路管理部</option><option value="SANITATION">环卫部</option><option value="TRAFFIC_POLICE">交警部</option></select>
-            <select v-model="filter.severityLevel" class="filter-select"><option value="">全部等级</option><option value="LOW">轻微</option><option value="MEDIUM">中等</option><option value="HIGH">严重</option></select>
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="filter.keyword" placeholder="搜索工单编号、标题..." @keyup.enter="loadData" /></div>
-            <button class="btn-ghost" @click="loadData">搜索</button>
+            <select v-if="isAdmin" v-model="filter.departmentCode" class="filter-select"><option value="">{{ t('wo.allDept') }}</option><option value="ROAD_ADMIN">{{ t('wo.deptRoadAdmin') }}</option><option value="SANITATION">{{ t('wo.deptSanitation') }}</option><option value="TRAFFIC_POLICE">{{ t('wo.deptTrafficPolice') }}</option></select>
+            <select v-model="filter.severityLevel" class="filter-select"><option value="">{{ t('wo.allLevels') }}</option><option value="LOW">{{ t('severity.low') }}</option><option value="MEDIUM">{{ t('severity.medium') }}</option><option value="HIGH">{{ t('severity.high') }}</option></select>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="filter.keyword" :placeholder="t('wo.searchPlaceholder')" @keyup.enter="loadData" /></div>
+            <button class="btn-ghost" @click="loadData">{{ t('common.search') }}</button>
           </div>
         </div>
       </div>
 
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>编号</th><th>标题</th><th>位置</th><th>等级</th><th>状态</th><th>部门</th><th>指派人</th><th style="width:240px">操作</th></tr></thead>
+          <thead><tr><th>{{ t('wo.id') }}</th><th>{{ t('wo.titleLabel') }}</th><th>{{ t('wo.location') }}</th><th>{{ t('wo.level') }}</th><th>{{ t('common.status') }}</th><th>{{ t('wo.dept') }}</th><th>{{ t('wo.assignee') }}</th><th style="width:240px">{{ t('common.actions') }}</th></tr></thead>
           <tbody>
             <tr v-for="row in orders" :key="row.id">
               <td><span class="code-tag">{{ row.workOrderCode }}</span></td>
               <td class="td-title">{{ row.title }}</td>
               <td class="td-muted">{{ row.location || '--' }}</td>
-              <td><span :class="['sev-badge', row.severityLevel === 'HIGH' ? 'sev-high' : row.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ {LOW:'轻微',MEDIUM:'中等',HIGH:'严重'}[row.severityLevel as string] || '--' }}</span></td>
+              <td><span :class="['sev-badge', row.severityLevel === 'HIGH' ? 'sev-high' : row.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ severityLabel(row.severityLevel as string) }}</span></td>
               <td><span :class="['status-tag', statusCls(row.status)]">{{ statusLabel(row.status) }}</span></td>
               <td class="td-dept">{{ deptLabel(row.departmentCode || '') }}</td>
               <td class="td-muted">{{ row.assignee || '--' }}</td>
               <td><div class="action-group">
-                <button class="action-btn" @click="viewDetail(row)">详情</button>
-                <!-- 超级管理员：指派给部门 -->
-                <button class="action-btn" v-if="isAdmin && row.status==='PENDING_ASSIGNMENT'" @click="openAssignDept(row)">指派部门</button>
-                <!-- 部门管理员：分配维修工 -->
-                <button class="action-btn" v-if="isDeptAdmin && row.status==='ASSIGNED'" @click="openAssignWorker(row)">分配维修工</button>
-                <!-- 部门管理员：重新分配维修工（驳回后） -->
-                <button class="action-btn" v-if="isDeptAdmin && row.status==='REJECTED'" @click="openAssignWorker(row)">重新分配</button>
-                <!-- 部门管理员：审核报告 -->
-                <button class="action-btn action-review" v-if="isDeptAdmin && row.status==='PENDING_DEPT_REVIEW'" @click="openReview(row, 'dept')">审核报告</button>
-                <!-- 超级管理员：最终审核 -->
-                <button class="action-btn action-review" v-if="isAdmin && row.status==='PENDING_ADMIN_REVIEW'" @click="openReview(row, 'admin')">最终审核</button>
-                <!-- 取消 -->
-                <button class="action-btn action-danger" v-if="isAdmin && row.status!=='CLOSED'&&row.status!=='CANCELLED'" @click="handleCancel(row)">取消</button>
+                <button class="action-btn" @click="viewDetail(row)">{{ t('common.detail') }}</button>
+                <button class="action-btn" v-if="isAdmin && row.status==='PENDING_ASSIGNMENT'" @click="openAssignDept(row)">{{ t('wo.assignDept') }}</button>
+                <button class="action-btn" v-if="isDeptAdmin && row.status==='ASSIGNED'" @click="openAssignWorker(row)">{{ t('wo.assignWorker') }}</button>
+                <button class="action-btn" v-if="isDeptAdmin && row.status==='REJECTED'" @click="openAssignWorker(row)">{{ t('wo.reassign') }}</button>
+                <button class="action-btn action-review" v-if="isDeptAdmin && row.status==='PENDING_DEPT_REVIEW'" @click="openReview(row, 'dept')">{{ t('wo.reviewReport') }}</button>
+                <button class="action-btn action-review" v-if="isAdmin && row.status==='PENDING_ADMIN_REVIEW'" @click="openReview(row, 'admin')">{{ t('wo.finalReview') }}</button>
+                <button class="action-btn action-danger" v-if="isAdmin && row.status!=='CLOSED'&&row.status!=='CANCELLED'" @click="handleCancel(row)">{{ t('wo.cancel') }}</button>
               </div></td>
             </tr>
-            <tr v-if="!loading && orders.length === 0"><td colspan="8" class="empty-row">暂无工单数据</td></tr>
+            <tr v-if="!loading && orders.length === 0"><td colspan="8" class="empty-row">{{ t('wo.noData') }}</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="pagination">
-        <span class="page-info">共 {{ total }} 条</span>
+        <span class="page-info">{{ t('common.total', { count: total }) }}</span>
         <div class="page-btns">
-          <button class="page-btn" :disabled="page<=1" @click="page--;loadData()">上一页</button>
+          <button class="page-btn" :disabled="page<=1" @click="page--;loadData()">{{ t('common.prevPage') }}</button>
           <span class="page-cur">{{ page }}</span>
-          <button class="page-btn" :disabled="page*10>=total" @click="page++;loadData()">下一页</button>
+          <button class="page-btn" :disabled="page*10>=total" @click="page++;loadData()">{{ t('common.nextPage') }}</button>
         </div>
       </div>
     </div>
@@ -88,21 +82,21 @@
     <!-- Create Modal (admin only) -->
     <div v-if="showCreate" class="modal-overlay" @click.self="showCreate=false">
       <div class="modal-card">
-        <div class="modal-head"><span>新建工单</span><button class="modal-close" @click="showCreate=false">x</button></div>
+        <div class="modal-head"><span>{{ t('wo.create') }}</span><button class="modal-close" @click="showCreate=false">x</button></div>
         <div class="modal-body">
           <div class="form-grid">
-            <div class="form-group"><label>标题</label><input v-model="createForm.title" placeholder="请输入工单标题" /></div>
-            <div class="form-group"><label>病害类型</label><select v-model="createForm.damageType"><option value="CRACK">裂缝</option><option value="MARKING_DAMAGE">标线损坏</option><option value="ROAD_SPILL">路面抛洒</option><option value="POTHOLE">坑槽</option></select></div>
-            <div class="form-group"><label>严重程度</label><select v-model="createForm.severityLevel"><option value="LOW">轻微</option><option value="MEDIUM">中等</option><option value="HIGH">严重</option></select></div>
-            <div class="form-group"><label>位置</label><input v-model="createForm.location" placeholder="如：G102 K15+300" /></div>
-            <div class="form-group"><label>负责部门</label><select v-model="createForm.departmentCode"><option value="ROAD_ADMIN">道路管理部</option><option value="SANITATION">环卫部</option><option value="TRAFFIC_POLICE">交警部</option></select></div>
-            <div class="form-group"><label>关联检测任务 ID</label><input v-model.number="createForm.detectionTaskId" type="number" min="1" /></div>
+            <div class="form-group"><label>{{ t('wo.titleLabel') }}</label><input v-model="createForm.title" :placeholder="t('wo.formTitlePlaceholder')" /></div>
+            <div class="form-group"><label>{{ t('wo.damageType') }}</label><select v-model="createForm.damageType"><option value="CRACK">{{ t('damage.crack') }}</option><option value="MARKING_DAMAGE">{{ t('damage.markingDamage') }}</option><option value="ROAD_SPILL">{{ t('damage.roadSpill') }}</option><option value="POTHOLE">{{ t('damage.pothole') }}</option></select></div>
+            <div class="form-group"><label>{{ t('wo.formSeverity') }}</label><select v-model="createForm.severityLevel"><option value="LOW">{{ t('severity.low') }}</option><option value="MEDIUM">{{ t('severity.medium') }}</option><option value="HIGH">{{ t('severity.high') }}</option></select></div>
+            <div class="form-group"><label>{{ t('wo.location') }}</label><input v-model="createForm.location" :placeholder="t('wo.formLocationPlaceholder')" /></div>
+            <div class="form-group"><label>{{ t('wo.formDept') }}</label><select v-model="createForm.departmentCode"><option value="ROAD_ADMIN">{{ t('wo.deptRoadAdmin') }}</option><option value="SANITATION">{{ t('wo.deptSanitation') }}</option><option value="TRAFFIC_POLICE">{{ t('wo.deptTrafficPolice') }}</option></select></div>
+            <div class="form-group"><label>{{ t('wo.formDetectionTaskId') }}</label><input v-model.number="createForm.detectionTaskId" type="number" min="1" /></div>
           </div>
-          <div class="form-group" style="margin-top:12px"><label>描述</label><textarea v-model="createForm.description" rows="3" placeholder="请输入工单描述..."></textarea></div>
+          <div class="form-group" style="margin-top:12px"><label>{{ t('wo.description') }}</label><textarea v-model="createForm.description" rows="3" :placeholder="t('wo.formDescriptionPlaceholder')"></textarea></div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showCreate=false">取消</button>
-          <button class="btn-primary" :disabled="creating" @click="handleCreate">{{ creating ? '提交中...' : '提交' }}</button>
+          <button class="btn-ghost" @click="showCreate=false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" :disabled="creating" @click="handleCreate">{{ creating ? t('wo.submittingText') : t('wo.submit') }}</button>
         </div>
       </div>
     </div>
@@ -110,34 +104,34 @@
     <!-- Assign Department Modal (super admin) -->
     <div v-if="showAssignDept" class="modal-overlay" @click.self="showAssignDept=false">
       <div class="modal-card" style="width:480px">
-        <div class="modal-head"><span>指派工单到部门 #{{ assignTarget?.workOrderCode || assignTarget?.id }}</span><button class="modal-close" @click="showAssignDept=false">x</button></div>
+        <div class="modal-head"><span>{{ t('wo.assignToDeptTitle') }}{{ assignTarget?.workOrderCode || assignTarget?.id }}</span><button class="modal-close" @click="showAssignDept=false">x</button></div>
         <div class="modal-body">
           <div class="assign-preview" v-if="assignTarget">
             <div class="assign-preview-head">
               <span class="assign-preview-title">{{ assignTarget.title }}</span>
-              <span :class="['sev-badge', assignTarget.severityLevel === 'HIGH' ? 'sev-high' : assignTarget.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ {LOW:'轻微',MEDIUM:'中等',HIGH:'严重'}[assignTarget.severityLevel as keyof object] || '--' }}</span>
+              <span :class="['sev-badge', assignTarget.severityLevel === 'HIGH' ? 'sev-high' : assignTarget.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ severityLabel(assignTarget.severityLevel as keyof object) }}</span>
             </div>
             <div class="assign-preview-grid">
-              <div class="assign-preview-item"><span class="ap-label">位置</span><span class="ap-val">{{ assignTarget.location || '--' }}</span></div>
-              <div class="assign-preview-item"><span class="ap-label">病害类型</span><span class="ap-val">{{ damageTypeLabel(assignTarget.damageType || '') }}</span></div>
-              <div class="assign-preview-item"><span class="ap-label">创建时间</span><span class="ap-val">{{ formatDate(assignTarget.createdAt) || '--' }}</span></div>
-              <div class="assign-preview-item"><span class="ap-label">描述</span><span class="ap-val">{{ assignTarget.description || '--' }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.location') }}</span><span class="ap-val">{{ assignTarget.location || '--' }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.damageType') }}</span><span class="ap-val">{{ damageTypeLabel(assignTarget.damageType || '') }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.createdAt') }}</span><span class="ap-val">{{ formatDate(assignTarget.createdAt) || '--' }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.description') }}</span><span class="ap-val">{{ assignTarget.description || '--' }}</span></div>
             </div>
           </div>
           <div class="form-group" style="margin-top:16px">
-            <label>选择部门 <span class="required">*</span></label>
+            <label>{{ t('wo.selectDept') }} <span class="required">*</span></label>
             <select v-model="assignDeptForm.departmentCode">
               <option v-for="d in deptOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
             </select>
           </div>
           <div class="dept-hint">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <span>工单将指派给所选部门，由该部门管理员后续分配具体维修工</span>
+            <span>{{ t('wo.assignDeptHint') }}</span>
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showAssignDept=false">取消</button>
-          <button class="btn-primary" :disabled="assigning" @click="confirmAssignDept">{{ assigning ? '指派中...' : '确认指派' }}</button>
+          <button class="btn-ghost" @click="showAssignDept=false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" :disabled="assigning" @click="confirmAssignDept">{{ assigning ? t('wo.assigningText') : t('wo.confirmAssign') }}</button>
         </div>
       </div>
     </div>
@@ -145,30 +139,30 @@
     <!-- Assign Worker Modal (dept admin) -->
     <div v-if="showAssignWorker" class="modal-overlay" @click.self="showAssignWorker=false">
       <div class="modal-card" style="width:600px">
-        <div class="modal-head"><span>分配维修工 #{{ assignTarget?.workOrderCode || assignTarget?.id }}</span><button class="modal-close" @click="showAssignWorker=false">x</button></div>
+        <div class="modal-head"><span>{{ t('wo.assignWorkerTitle') }}{{ assignTarget?.workOrderCode || assignTarget?.id }}</span><button class="modal-close" @click="showAssignWorker=false">x</button></div>
         <div class="modal-body">
           <div class="assign-preview" v-if="assignTarget">
             <div class="assign-preview-head">
               <span class="assign-preview-title">{{ assignTarget.title }}</span>
-              <span :class="['sev-badge', assignTarget.severityLevel === 'HIGH' ? 'sev-high' : assignTarget.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ {LOW:'轻微',MEDIUM:'中等',HIGH:'严重'}[assignTarget.severityLevel as keyof object] || '--' }}</span>
+              <span :class="['sev-badge', assignTarget.severityLevel === 'HIGH' ? 'sev-high' : assignTarget.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ severityLabel(assignTarget.severityLevel as keyof object) }}</span>
             </div>
             <div class="assign-preview-grid">
-              <div class="assign-preview-item"><span class="ap-label">位置</span><span class="ap-val">{{ assignTarget.location || '--' }}</span></div>
-              <div class="assign-preview-item"><span class="ap-label">病害类型</span><span class="ap-val">{{ damageTypeLabel(assignTarget.damageType || '') }}</span></div>
-              <div class="assign-preview-item"><span class="ap-label">部门</span><span class="ap-val">{{ deptLabel(assignTarget.departmentCode || '') }}</span></div>
-              <div class="assign-preview-item"><span class="ap-label">创建时间</span><span class="ap-val">{{ formatDate(assignTarget.createdAt) || '--' }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.location') }}</span><span class="ap-val">{{ assignTarget.location || '--' }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.damageType') }}</span><span class="ap-val">{{ damageTypeLabel(assignTarget.damageType || '') }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.dept') }}</span><span class="ap-val">{{ deptLabel(assignTarget.departmentCode || '') }}</span></div>
+              <div class="assign-preview-item"><span class="ap-label">{{ t('wo.createdAt') }}</span><span class="ap-val">{{ formatDate(assignTarget.createdAt) || '--' }}</span></div>
             </div>
           </div>
           <div class="form-group" style="margin-top:16px">
-            <label>指派维修工 <span class="required">*</span></label>
+            <label>{{ t('wo.selectWorker') }} <span class="required">*</span></label>
             <select v-model="assignWorkerForm.assignee">
-              <option value="">请选择维修工</option>
+              <option value="">{{ t('wo.pleaseSelectWorker') }}</option>
               <option v-for="w in availableWorkers" :key="w.name" :value="w.name">{{ w.name }}{{ w.phone ? ' (' + w.phone + ')' : '' }}</option>
             </select>
           </div>
           <div class="assign-empty-hint" v-if="availableWorkers.length === 0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>本部门暂无可指派的维修工，请联系管理员添加维修人员</span>
+            <span>{{ t('wo.noWorkerAvailable') }}</span>
           </div>
           <div class="assign-worker-info" v-if="assignWorkerForm.assignee && selectedWorkerInfo">
             <div class="awi-avatar">{{ assignWorkerForm.assignee.charAt(0) }}</div>
@@ -182,13 +176,13 @@
             </div>
             <div class="awi-workload">
               <span class="awi-wl-num">{{ getWorkerWorkload(selectedWorkerInfo.name) }}</span>
-              <span class="awi-wl-lbl">在处理工单</span>
+              <span class="awi-wl-lbl">{{ t('wo.inProcessingOrders') }}</span>
             </div>
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showAssignWorker=false">取消</button>
-          <button class="btn-primary" :disabled="assigning || !assignWorkerForm.assignee" @click="confirmAssignWorker">{{ assigning ? '分配中...' : '确认分配' }}</button>
+          <button class="btn-ghost" @click="showAssignWorker=false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" :disabled="assigning || !assignWorkerForm.assignee" @click="confirmAssignWorker">{{ assigning ? t('wo.assigningWorker') : t('wo.confirmAssignWorker') }}</button>
         </div>
       </div>
     </div>
@@ -196,64 +190,64 @@
     <!-- Review Modal -->
     <div v-if="showReview" class="modal-overlay" @click.self="showReview=false">
       <div class="modal-card" style="width:600px">
-        <div class="modal-head"><span>{{ reviewMode === 'dept' ? '部门审核维修报告' : '最终审核维修报告' }} #{{ reviewTarget?.workOrderCode || reviewTarget?.id }}</span><button class="modal-close" @click="showReview=false">x</button></div>
+        <div class="modal-head"><span>{{ reviewMode === 'dept' ? t('wo.deptReviewReport') : t('wo.finalReviewReport') }} #{{ reviewTarget?.workOrderCode || reviewTarget?.id }}</span><button class="modal-close" @click="showReview=false">x</button></div>
         <div class="modal-body">
-          <div v-if="reviewLoading" style="text-align:center;padding:30px;color:#94a3b8">加载报告中...</div>
+          <div v-if="reviewLoading" style="text-align:center;padding:30px;color:#94a3b8">{{ t('wo.loadingReport') }}</div>
           <template v-else>
             <!-- 工单信息 -->
             <div class="review-order-info" v-if="reviewTarget">
               <div class="review-order-title">{{ reviewTarget.title }}</div>
               <div class="review-order-meta">
-                <span>位置: {{ reviewTarget.location || '--' }}</span>
-                <span>部门: {{ deptLabel(reviewTarget.departmentCode || '') }}</span>
-                <span>维修工: {{ reviewTarget.assignee || '--' }}</span>
+                <span>{{ t('wo.location') }}: {{ reviewTarget.location || '--' }}</span>
+                <span>{{ t('wo.dept') }}: {{ deptLabel(reviewTarget.departmentCode || '') }}</span>
+                <span>{{ t('wo.assignee') }}: {{ reviewTarget.assignee || '--' }}</span>
               </div>
             </div>
             <!-- 报告信息 -->
             <div class="review-report" v-if="reviewReport">
               <div class="review-report-head">
-                <span class="review-report-code">{{ reviewReport.reportCode || ('报告 #' + reviewReport.id) }}</span>
+                <span class="review-report-code">{{ reviewReport.reportCode || (t('wo.reportCodePrefix') + reviewReport.id) }}</span>
                 <span :class="['status-tag', reportStatusCls(reviewReport.status)]">{{ reportStatusLabel(reviewReport.status) }}</span>
               </div>
               <div class="review-report-grid">
-                <div><span class="rr-label">执行人</span><span class="rr-val">{{ reviewReport.executor || '--' }}</span></div>
-                <div><span class="rr-label">完成时间</span><span class="rr-val">{{ formatDate(reviewReport.finishedAt) || '--' }}</span></div>
-                <div><span class="rr-label">使用材料</span><span class="rr-val">{{ reviewReport.materials || '--' }}</span></div>
-                <div><span class="rr-label">提交时间</span><span class="rr-val">{{ formatDate(reviewReport.createdAt) || '--' }}</span></div>
+                <div><span class="rr-label">{{ t('mr.executor') }}</span><span class="rr-val">{{ reviewReport.executor || '--' }}</span></div>
+                <div><span class="rr-label">{{ t('mr.finishedAt') }}</span><span class="rr-val">{{ formatDate(reviewReport.finishedAt) || '--' }}</span></div>
+                <div><span class="rr-label">{{ t('mr.materials') }}</span><span class="rr-val">{{ reviewReport.materials || '--' }}</span></div>
+                <div><span class="rr-label">{{ t('mr.submittedAt') }}</span><span class="rr-val">{{ formatDate(reviewReport.createdAt) || '--' }}</span></div>
               </div>
               <div v-if="reviewReport.description" class="review-report-desc">
-                <span class="rr-label">维修描述</span>
+                <span class="rr-label">{{ t('mr.description') }}</span>
                 <p>{{ reviewReport.description }}</p>
               </div>
               <!-- 上次审核意见（驳回时显示） -->
               <div v-if="reviewReport.reviewRemark" class="review-prev-remark">
-                <span class="rr-label">上次审核意见</span>
+                <span class="rr-label">{{ t('review.opinion') }}</span>
                 <p>{{ reviewReport.reviewRemark }} - {{ reviewReport.reviewer || '--' }}</p>
               </div>
             </div>
             <!-- 审核表单 -->
             <div class="review-form">
-              <div class="review-form-label">审核结果 <span class="required">*</span></div>
+              <div class="review-form-label">{{ t('wo.reviewResult') }} <span class="required">*</span></div>
               <div class="review-actions">
                 <button :class="['review-btn', reviewForm.approved === true ? 'review-btn-pass' : '']" @click="reviewForm.approved = true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                  {{ reviewMode === 'dept' ? '审核通过（转交超管终审）' : '审核通过（关闭工单）' }}
+                  {{ reviewMode === 'dept' ? t('wo.reviewPassDept') : t('wo.reviewPassAdmin') }}
                 </button>
                 <button :class="['review-btn', reviewForm.approved === false ? 'review-btn-reject' : '']" @click="reviewForm.approved = false">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  驳回（退回维修工重新提交）
+                  {{ t('wo.reviewRejectText') }}
                 </button>
               </div>
               <div class="form-group" style="margin-top:14px">
-                <label>审核意见</label>
-                <textarea v-model="reviewForm.remark" rows="3" :placeholder="reviewForm.approved === false ? '请说明驳回原因...' : '审核备注（可选）'"></textarea>
+                <label>{{ t('wo.reviewOpinion') }}</label>
+                <textarea v-model="reviewForm.remark" rows="3" :placeholder="reviewForm.approved === false ? t('wo.rejectReasonPlaceholder') : t('wo.reviewRemarkPlaceholder')"></textarea>
               </div>
             </div>
           </template>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showReview=false">取消</button>
-          <button class="btn-primary" :disabled="reviewing || reviewForm.approved === null" @click="confirmReview">{{ reviewing ? '提交中...' : '提交审核' }}</button>
+          <button class="btn-ghost" @click="showReview=false">{{ t('common.cancel') }}</button>
+          <button class="btn-primary" :disabled="reviewing || reviewForm.approved === null" @click="confirmReview">{{ reviewing ? t('wo.submittingReview') : t('wo.submitReviewBtn') }}</button>
         </div>
       </div>
     </div>
@@ -261,23 +255,23 @@
     <!-- Detail Modal -->
     <div v-if="showDetail" class="modal-overlay" @click.self="showDetail=false">
       <div class="modal-card" style="width:600px">
-        <div class="modal-head"><span>工单详情 #{{ detailTarget?.workOrderCode || detailTarget?.id }}</span><button class="modal-close" @click="showDetail=false">x</button></div>
+        <div class="modal-head"><span>{{ t('wo.detail') }} #{{ detailTarget?.workOrderCode || detailTarget?.id }}</span><button class="modal-close" @click="showDetail=false">x</button></div>
         <div class="modal-body">
-          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">加载中...</div>
+          <div v-if="detailLoading" style="text-align:center;padding:30px;color:#94a3b8">{{ t('wo.detailLoading') }}</div>
           <template v-else>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div><label class="detail-label">标题</label><div class="detail-val">{{ detailTarget?.title }}</div></div>
-              <div><label class="detail-label">负责部门</label><div class="detail-val">{{ deptLabel(detailTarget?.departmentCode || '') }}</div></div>
-              <div><label class="detail-label">状态</label><div class="detail-val"><span :class="['status-tag', statusCls(detailTarget?.status || '')]">{{ statusLabel(detailTarget?.status || '') }}</span></div></div>
-              <div><label class="detail-label">等级</label><div class="detail-val"><span :class="['sev-badge', detailTarget?.severityLevel === 'HIGH' ? 'sev-high' : detailTarget?.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ {LOW:'轻微',MEDIUM:'中等',HIGH:'严重'}[detailTarget?.severityLevel || ''] || '--' }}</span></div></div>
-              <div><label class="detail-label">位置</label><div class="detail-val">{{ detailTarget?.location || '--' }}</div></div>
-              <div><label class="detail-label">指派人</label><div class="detail-val">{{ detailTarget?.assignee || '--' }}</div></div>
-              <div><label class="detail-label">病害类型</label><div class="detail-val">{{ damageTypeLabel(detailTarget?.damageType || '') }}</div></div>
-              <div><label class="detail-label">创建时间</label><div class="detail-val">{{ detailTarget?.createdAt || '--' }}</div></div>
-              <div v-if="detailTarget?.description" style="grid-column:1/-1"><label class="detail-label">描述</label><div class="detail-val">{{ detailTarget.description }}</div></div>
+              <div><label class="detail-label">{{ t('wo.titleLabel') }}</label><div class="detail-val">{{ detailTarget?.title }}</div></div>
+              <div><label class="detail-label">{{ t('wo.formDept') }}</label><div class="detail-val">{{ deptLabel(detailTarget?.departmentCode || '') }}</div></div>
+              <div><label class="detail-label">{{ t('common.status') }}</label><div class="detail-val"><span :class="['status-tag', statusCls(detailTarget?.status || '')]">{{ statusLabel(detailTarget?.status || '') }}</span></div></div>
+              <div><label class="detail-label">{{ t('wo.level') }}</label><div class="detail-val"><span :class="['sev-badge', detailTarget?.severityLevel === 'HIGH' ? 'sev-high' : detailTarget?.severityLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ severityLabel(detailTarget?.severityLevel || '') }}</span></div></div>
+              <div><label class="detail-label">{{ t('wo.location') }}</label><div class="detail-val">{{ detailTarget?.location || '--' }}</div></div>
+              <div><label class="detail-label">{{ t('wo.assignee') }}</label><div class="detail-val">{{ detailTarget?.assignee || '--' }}</div></div>
+              <div><label class="detail-label">{{ t('wo.damageType') }}</label><div class="detail-val">{{ damageTypeLabel(detailTarget?.damageType || '') }}</div></div>
+              <div><label class="detail-label">{{ t('wo.createdAt') }}</label><div class="detail-val">{{ detailTarget?.createdAt || '--' }}</div></div>
+              <div v-if="detailTarget?.description" style="grid-column:1/-1"><label class="detail-label">{{ t('wo.description') }}</label><div class="detail-val">{{ detailTarget.description }}</div></div>
             </div>
             <div v-if="detailTarget?.statusLogs?.length" style="margin-top:20px;border-top:1px solid #f0f2f5;padding-top:16px">
-              <label class="detail-label">状态流转记录</label>
+              <label class="detail-label">{{ t('wo.statusFlow') }}</label>
               <div class="status-timeline" style="margin-top:10px">
                 <div v-for="(log, i) in detailTarget.statusLogs" :key="i" class="timeline-item">
                   <div class="timeline-dot"></div>
@@ -292,7 +286,7 @@
           </template>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showDetail=false">关闭</button>
+          <button class="btn-ghost" @click="showDetail=false">{{ t('common.close') }}</button>
         </div>
       </div>
     </div>
@@ -304,6 +298,7 @@
 import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useAuthStore } from "@/stores/auth"
+import { t } from "@/i18n"
 import { workOrderApi, detectionApi, userApi, reportApi } from "@/api"
 import type { WorkOrderResponse, MaintenanceReportResponse } from "@/types"
 
@@ -362,11 +357,11 @@ interface WorkerInfo {
 // Workers in current dept admin's department
 const deptWorkers = ref<WorkerInfo[]>([])
 const availableWorkers = computed(() => deptWorkers.value)
-const deptOptions = [
-  { value: "ROAD_ADMIN", label: "道路管理部" },
-  { value: "SANITATION", label: "环卫部" },
-  { value: "TRAFFIC_POLICE", label: "交警部" },
-]
+const deptOptions = computed(() => [
+  { value: "ROAD_ADMIN", label: t('wo.deptRoadAdmin') },
+  { value: "SANITATION", label: t('wo.deptSanitation') },
+  { value: "TRAFFIC_POLICE", label: t('wo.deptTrafficPolice') },
+])
 
 const selectedWorkerInfo = computed(() => {
   if (!assignWorkerForm.assignee) return null
@@ -442,25 +437,28 @@ function statusCls(s: string) {
     CLOSED: "stat-closed", CANCELLED: "stat-cancel",
   } as any)[s] || "stat-default"
 }
+function severityLabel(s: string) {
+  return ({ LOW: t('severity.low'), MEDIUM: t('severity.medium'), HIGH: t('severity.high') } as any)[s] || '--'
+}
 function statusLabel(s: string) {
   return ({
-    PENDING_ASSIGNMENT: "待指派", ASSIGNED: "已指派", IN_PROGRESS: "进行中",
-    COMPLETED: "已完成", PENDING_DEPT_REVIEW: "待部门审核",
-    PENDING_ADMIN_REVIEW: "待最终审核", REJECTED: "已驳回",
-    CLOSED: "已关闭", CANCELLED: "已取消",
+    PENDING_ASSIGNMENT: t('wo.statusPendingAssignment'), ASSIGNED: t('wo.statusAssigned'), IN_PROGRESS: t('wo.statusInProgress'),
+    COMPLETED: t('wo.statusCompleted'), PENDING_DEPT_REVIEW: t('wo.statusPendingDeptReview'),
+    PENDING_ADMIN_REVIEW: t('wo.statusPendingAdminReview'), REJECTED: t('wo.statusRejected'),
+    CLOSED: t('wo.statusClosed'), CANCELLED: t('wo.statusCancelled'),
   } as any)[s] || s
 }
 function reportStatusCls(s?: string) {
   return ({ PENDING: "stat-warn", DEPT_APPROVED: "stat-review-admin", APPROVED: "stat-closed", REJECTED: "stat-rejected" } as any)[s || ""] || "stat-default"
 }
 function reportStatusLabel(s?: string) {
-  return ({ PENDING: "待审核", DEPT_APPROVED: "部门已通过", APPROVED: "已通过", REJECTED: "已驳回" } as any)[s || ""] || s || "--"
+  return ({ PENDING: t('mr.statusPending'), DEPT_APPROVED: t('mr.statusDeptApproved'), APPROVED: t('mr.statusApproved'), REJECTED: t('mr.statusRejected') } as any)[s || ""] || s || "--"
 }
 function deptLabel(code: string) {
-  return ({ ROAD_ADMIN: "道路管理部", SANITATION: "环卫部", TRAFFIC_POLICE: "交警部" } as any)[code] || code || "--"
+  return ({ ROAD_ADMIN: t('wo.deptRoadAdmin'), SANITATION: t('wo.deptSanitation'), TRAFFIC_POLICE: t('wo.deptTrafficPolice') } as any)[code] || code || "--"
 }
 function damageTypeLabel(t: string) {
-  return ({ CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知" } as any)[t] || t || "--"
+  return ({ CRACK: t('damage.crack'), TRANSVERSE_CRACK: t('damage.transverseCrack'), LONGITUDINAL_CRACK: t('damage.longitudinalCrack'), NET_CRACK: t('damage.netCrack'), POTHOLE: t('damage.pothole'), MARKING_DAMAGE: t('damage.markingDamage'), ROAD_SPILL: t('damage.roadSpill'), UNKNOWN: t('damage.unknown') } as any)[t] || t || "--"
 }
 
 function calcStats(records: WorkOrderResponse[]) {
@@ -483,20 +481,20 @@ async function loadData() {
     orders.value = r.data.data.records
     total.value = r.data.data.total
     calcStats(r.data.data.records)
-  } catch { ElMessage.error("加载工单列表失败") }
+  } catch { ElMessage.error(t('wo.loadFailed')) }
   loading.value = false
 }
 
 async function handleCreate() {
-  if (!createForm.title) return ElMessage.warning("请输入工单标题")
+  if (!createForm.title) return ElMessage.warning(t('wo.needTitle'))
   creating.value = true
   try {
     await workOrderApi.create(createForm as any)
-    ElMessage.success("工单已创建，等待指派")
+    ElMessage.success(t('wo.createdAndWait'))
     showCreate.value = false
     Object.assign(createForm, { title: "", damageType: "CRACK", severityLevel: "MEDIUM", location: "", departmentCode: "ROAD_ADMIN", description: "", detectionTaskId: undefined })
     await loadData()
-  } catch { ElMessage.error("创建失败") }
+  } catch { ElMessage.error(t('wo.createFailed')) }
   finally { creating.value = false }
 }
 
@@ -514,10 +512,10 @@ async function confirmAssignDept() {
     await workOrderApi.assign(assignTarget.value!.id, {
       departmentCode: assignDeptForm.departmentCode as any,
     } as any)
-    ElMessage.success("已指派给 " + deptLabel(assignDeptForm.departmentCode))
+    ElMessage.success(t('wo.assignedTo', { dept: deptLabel(assignDeptForm.departmentCode) }))
     showAssignDept.value = false
     await loadData()
-  } catch { ElMessage.error("指派失败") }
+  } catch { ElMessage.error(t('wo.assignFailed')) }
   finally { assigning.value = false }
 }
 
@@ -529,14 +527,14 @@ function openAssignWorker(row: WorkOrderResponse) {
 }
 
 async function confirmAssignWorker() {
-  if (!assignWorkerForm.assignee) return ElMessage.warning("请选择维修工")
+  if (!assignWorkerForm.assignee) return ElMessage.warning(t('wo.pleaseSelectWorker'))
   assigning.value = true
   try {
     await workOrderApi.assignWorker(assignTarget.value!.id, assignWorkerForm.assignee)
-    ElMessage.success("已分配给 " + assignWorkerForm.assignee)
+    ElMessage.success(t('wo.assignedToWorker', { name: assignWorkerForm.assignee }))
     showAssignWorker.value = false
     await loadData()
-  } catch { ElMessage.error("分配失败") }
+  } catch { ElMessage.error(t('wo.assignWorkerFailed')) }
   finally { assigning.value = false }
 }
 
@@ -561,9 +559,9 @@ async function openReview(row: WorkOrderResponse, mode: "dept" | "admin") {
 }
 
 async function confirmReview() {
-  if (reviewForm.approved === null) return ElMessage.warning("请选择审核结果")
-  if (reviewForm.approved === false && !reviewForm.remark) return ElMessage.warning("驳回时请填写原因")
-  if (!reviewReport.value) return ElMessage.error("未找到关联报告")
+  if (reviewForm.approved === null) return ElMessage.warning(t('wo.needReviewResult'))
+  if (reviewForm.approved === false && !reviewForm.remark) return ElMessage.warning(t('wo.needRejectReason'))
+  if (!reviewReport.value) return ElMessage.error(t('wo.noRelatedReport'))
   reviewing.value = true
   try {
     const apiCall = reviewMode.value === "dept" ? reportApi.deptReview : reportApi.adminReview
@@ -571,10 +569,10 @@ async function confirmReview() {
       approved: reviewForm.approved,
       remark: reviewForm.remark || undefined,
     })
-    ElMessage.success(reviewForm.approved ? "审核已通过" : "已驳回，维修工需重新提交报告")
+    ElMessage.success(reviewForm.approved ? t('wo.reviewApprovedMsg') : t('wo.reviewRejectedMsg'))
     showReview.value = false
     await loadData()
-  } catch { ElMessage.error("审核操作失败") }
+  } catch { ElMessage.error(t('wo.reviewFailed')) }
   finally { reviewing.value = false }
 }
 
@@ -599,21 +597,21 @@ async function viewDetail(row: WorkOrderResponse) {
 }
 
 async function handleCancel(row: WorkOrderResponse) {
-  ElMessageBox.prompt("取消原因", "取消工单", { inputPlaceholder: "请输入原因" })
+  ElMessageBox.prompt(t('wo.cancelReasonLabel'), t('wo.cancelOrderTitle'), { inputPlaceholder: t('wo.cancelPlaceholder') })
     .then(async ({ value }) => {
       try {
         await workOrderApi.cancel(row.id, { reason: value })
-        ElMessage.success("已取消")
+        ElMessage.success(t('wo.cancelSuccess'))
         await loadData()
-      } catch { ElMessage.error("取消失败") }
+      } catch { ElMessage.error(t('wo.cancelFailed')) }
     }).catch(() => {})
 }
 
 function handleExport() {
-  const headers = ["编号", "标题", "位置", "等级", "状态", "部门", "指派人", "创建时间"]
+  const headers = t('wo.exportHeaders').split(',')
   const rows = orders.value.map(o => [
     o.workOrderCode || "", o.title || "", o.location || "",
-    ({ LOW: "轻微", MEDIUM: "中等", HIGH: "严重" } as any)[o.severityLevel as string] || "",
+    severityLabel(o.severityLevel as string),
     statusLabel(o.status), deptLabel(o.departmentCode || ""),
     o.assignee || "", o.createdAt || "",
   ])
@@ -621,10 +619,10 @@ function handleExport() {
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" })
   const link = document.createElement("a")
   link.href = URL.createObjectURL(blob)
-  link.download = `工单列表_${new Date().toISOString().slice(0, 10)}.csv`
+  link.download = `${t('wo.exportName')}_${new Date().toISOString().slice(0, 10)}.csv`
   link.click()
   URL.revokeObjectURL(link.href)
-  ElMessage.success("已导出 " + rows.length + " 条工单")
+  ElMessage.success(t('wo.exportSuccess', { count: rows.length }))
 }
 
 onMounted(() => {

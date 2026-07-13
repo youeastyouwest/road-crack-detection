@@ -1,8 +1,8 @@
 ﻿<template>
   <div class="crowd-report-page">
     <div class="cr-header">
-      <h2>路面病害上报</h2>
-      <p>拍照记录路面问题，提交后系统将自动处理</p>
+      <h2>{{ t("crowd.reportTitle") }}</h2>
+      <p>{{ t("crowd.reportDesc") }}</p>
     </div>
 
     <div class="cr-card">
@@ -12,39 +12,39 @@
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
-          <span>点击拍照</span>
+          <span>{{ t("crowd.takePhoto") }}</span>
         </div>
         <img v-if="photoPreview" :src="photoPreview" class="photo-preview" />
       </div>
 
       <div class="cr-form">
         <div class="form-row">
-          <label>所在道路</label>
-          <input v-model="form.roadName" placeholder="输入道路名称（如：解放路）" />
+          <label>{{ t("crowd.roadName") }}</label>
+          <input v-model="form.roadName" :placeholder='t("crowd.roadPlaceholder")' />
         </div>
         <div class="form-row">
-          <label>具体位置</label>
-          <input v-model="form.location" placeholder="描述位置（如：XX路口北50米）" />
+          <label>{{ t("crowd.address") }}</label>
+          <input v-model="form.location" :placeholder='t("crowd.addressPlaceholder")' />
         </div>
         <div class="form-row">
-          <label>病害类型</label>
+          <label>{{ t("crowd.damageType") }}</label>
           <select v-model="form.damageType">
-            <option value="">选择类型</option>
-            <option value="TRANSVERSE_CRACK">横向裂缝</option>
-            <option value="LONGITUDINAL_CRACK">纵向裂缝</option>
-            <option value="NET_CRACK">网状裂缝</option>
-            <option value="POTHOLE">坑槽</option>
-            <option value="MARKING_DAMAGE">标志损坏</option>
-            <option value="ROAD_SPILL">路面抛洒</option>
-            <option value="OTHER">其他</option>
+            <option value="">{{ t("crowd.selectType") }}</option>
+            <option value="TRANSVERSE_CRACK">{{ t("crowd.type_transverse") }}</option>
+            <option value="LONGITUDINAL_CRACK">{{ t("crowd.type_longitudinal") }}</option>
+            <option value="NET_CRACK">{{ t("crowd.type_net") }}</option>
+            <option value="POTHOLE">{{ t("crowd.type_pothole") }}</option>
+            <option value="MARKING_DAMAGE">{{ t("crowd.type_marking") }}</option>
+            <option value="ROAD_SPILL">{{ t("crowd.type_spill") }}</option>
+            <option value="OTHER">{{ t("crowd.type_other") }}</option>
           </select>
         </div>
         <div class="form-row">
-          <label>补充描述</label>
-          <textarea v-model="form.description" rows="3" placeholder="补充描述（可选）"></textarea>
+          <label>{{ t("crowd.remark") }}</label>
+          <textarea v-model="form.description" rows="3" :placeholder='t("crowd.remarkPlaceholder")'></textarea>
         </div>
         <button class="submit-btn" :disabled="!canSubmit" @click="handleSubmit">
-          提交上报
+          {{ t("crowd.submit") }}
         </button>
       </div>
     </div>
@@ -54,6 +54,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue"
 import { ElMessage } from "element-plus"
+import { t } from "@/i18n"
 
 const form = reactive({
   roadName: "",
@@ -68,14 +69,14 @@ const canSubmit = computed(() => form.roadName && form.location && form.damageTy
 
 function handleTakePhoto() {
   // In a real app, would use navigator.mediaDevices or file input
-  ElMessage.info("请在浏览器中允许相机权限")
+  ElMessage.info(t("crowd.cameraNotSupported"))
 }
 
 async function handleSubmit() {
   submitting.value = true
   await new Promise(r => setTimeout(r, 800))
   submitting.value = false
-  ElMessage.success("上报成功！系统已收到您的反馈")
+  ElMessage.success(t("crowd.submitSuccess"))
   form.roadName = ""
   form.location = ""
   form.damageType = ""

@@ -3,14 +3,14 @@
     <!-- Page Header -->
     <div class="page-head">
       <div>
-        <h2 class="page-title">分析报告</h2>
-        <p class="page-desc">基于检测数据的智能分析与评估报告</p>
+        <h2 class="page-title">{{ t('report.title') }}</h2>
+        <p class="page-desc">{{ t('report.desc') }}</p>
       </div>
       <div class="head-right">
         <span class="report-date">{{ reportDate }}</span>
         <button class="btn-ghost" @click="loadData" :disabled="loading">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          刷新
+          {{ t('common.refresh') }}
         </button>
       </div>
     </div>
@@ -33,7 +33,7 @@
       <div class="chart-row">
         <div class="chart-card chart-wide">
           <div class="card-head">
-            <span class="card-title">检测趋势（近30天）</span>
+            <span class="card-title">{{ t('report.trend30d') }}</span>
           </div>
           <div class="card-body">
             <div ref="trendRef" class="chart-box"></div>
@@ -41,7 +41,7 @@
         </div>
         <div class="chart-card chart-narrow">
           <div class="card-head">
-            <span class="card-title">病害类型占比</span>
+            <span class="card-title">{{ t('report.crackTypeRatio') }}</span>
           </div>
           <div class="card-body">
             <div ref="typeRef" class="chart-box"></div>
@@ -53,7 +53,7 @@
       <div class="chart-row">
         <div class="chart-card chart-half">
           <div class="card-head">
-            <span class="card-title">严重等级分布</span>
+            <span class="card-title">{{ t('report.severityDist') }}</span>
           </div>
           <div class="card-body">
             <div ref="severityRef" class="chart-box"></div>
@@ -61,7 +61,7 @@
         </div>
         <div class="chart-card chart-half">
           <div class="card-head">
-            <span class="card-title">部门工作负载</span>
+            <span class="card-title">{{ t('report.deptWorkload') }}</span>
           </div>
           <div class="card-body">
             <div ref="deptRef" class="chart-box"></div>
@@ -73,7 +73,7 @@
       <div class="summary-section">
         <div class="summary-head">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>智能分析结论</span>
+          <span>{{ t('report.intelligentAnalysis') }}</span>
         </div>
         <div class="summary-body">
           <div class="summary-item" v-for="(item, idx) in analysisConclusions" :key="idx">
@@ -99,6 +99,7 @@ import { ref, computed, onMounted, nextTick } from "vue"
 import { ElMessage } from "element-plus"
 import * as echarts from "echarts"
 import { statisticsApi } from "@/api"
+import { t } from "@/i18n"
 import type { DashboardStatsResponse, TrendStatsItem, CrackTypeStatItem, SeverityStatItem, DeptWorkloadItem } from "@/types"
 
 const loading = ref(false)
@@ -116,13 +117,13 @@ const severityRef = ref<HTMLElement>()
 const deptRef = ref<HTMLElement>()
 
 const kpiCards = computed(() => [
-  { label: "道路总数", value: dashboard.value.totalRoads ?? "—", color: "#3b82f6", bg: "#eff6ff",
+  { label: t("report.totalRoads"), value: dashboard.value.totalRoads ?? "—", color: "#3b82f6", bg: "#eff6ff",
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>' },
-  { label: "今日检测", value: dashboard.value.detectionToday ?? "—", color: "#8b5cf6", bg: "#f5f3ff",
+  { label: t("report.todayDetection"), value: dashboard.value.detectionToday ?? "—", color: "#8b5cf6", bg: "#f5f3ff",
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
-  { label: "病害检出", value: dashboard.value.totalCracksDetected ?? "—", color: "#f59e0b", bg: "#fffbeb",
+  { label: t("report.cracksFound"), value: dashboard.value.totalCracksDetected ?? "—", color: "#f59e0b", bg: "#fffbeb",
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' },
-  { label: "工单总数", value: dashboard.value.totalWorkOrders ?? "—", color: "#10b981", bg: "#ecfdf5",
+  { label: t("report.totalWorkOrders"), value: dashboard.value.totalWorkOrders ?? "—", color: "#10b981", bg: "#ecfdf5",
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
 ])
 
@@ -137,16 +138,16 @@ const analysisConclusions = computed(() => {
     const pct = (high.percentage || 0).toFixed(1)
     conclusions.push({
       type: "warning",
-      title: `严重损坏占比 ${pct}%`,
-      desc: `当前检出严重等级病害 ${high.count} 处（占比 ${pct}%），建议优先安排维修资源处理 HIGH 级别损坏路段。`
+      title: t("conclusion.highPct", { pct }),
+      desc: t("conclusion.highPctDesc", { count: high.count, pct })
     })
   }
   if (low && low.count > 0 && totalCracks > 0) {
     const pct = (low.percentage || 0).toFixed(1)
     conclusions.push({
       type: "info",
-      title: `轻微损坏 ${low.count} 处`,
-      desc: `一般级别病害占比 ${pct}%，暂不影响通行安全，建议纳入定期巡查计划持续观察。`
+      title: t("conclusion.lowCount", { count: low.count }),
+      desc: t("conclusion.lowCountDesc", { pct })
     })
   }
 
@@ -159,21 +160,21 @@ const analysisConclusions = computed(() => {
     const increase = ((recentTotal - prevTotal) / prevTotal * 100).toFixed(1)
     conclusions.push({
       type: "warning",
-      title: `近7天检测量上升 ${increase}%`,
-      desc: `本周检测任务量较上周增加 ${increase}%，检测频率提升有助于更早发现路面病害。`
+      title: t("conclusion.increase", { pct: increase }),
+      desc: t("conclusion.increaseDesc", { pct: increase })
     })
   } else if (recentTotal < prevTotal && recentTotal > 0) {
     const decrease = ((prevTotal - recentTotal) / prevTotal * 100).toFixed(1)
     conclusions.push({
       type: "success",
-      title: `近7天检测量下降 ${decrease}%`,
-      desc: `本周检测任务量较上周减少 ${decrease}%，建议保持检测频率，确保道路覆盖率。`
+      title: t("conclusion.decrease", { pct: decrease }),
+      desc: t("conclusion.decreaseDesc", { pct: decrease })
     })
   } else if (recentTotal > 0) {
     conclusions.push({
       type: "info",
-      title: "检测量保持稳定",
-      desc: `近7天共完成 ${recentTotal} 次检测，检测频率保持稳定。`
+      title: t("conclusion.stable"),
+      desc: t("conclusion.stableDesc", { count: recentTotal })
     })
   }
 
@@ -182,14 +183,14 @@ const analysisConclusions = computed(() => {
     if (dept.pending > 0) {
       conclusions.push({
         type: dept.pending > 5 ? "warning" : "info",
-        title: `${deptName(dept.deptName)} 待处理 ${dept.pending} 件`,
-        desc: `该部门共有 ${dept.total} 件工单，已完成 ${dept.completed} 件，待处理 ${dept.pending} 件，完成率 ${dept.total > 0 ? (dept.completed / dept.total * 100).toFixed(1) : 0}%。`
+        title: t("conclusion.deptPending", { name: deptName(dept.deptName), count: dept.pending }),
+        desc: t("conclusion.deptPendingDesc", { total: dept.total, completed: dept.completed, pending: dept.pending, pct: dept.total > 0 ? (dept.completed / dept.total * 100).toFixed(1) : 0 })
       })
     } else if (dept.total > 0) {
       conclusions.push({
         type: "success",
-        title: `${deptName(dept.deptName)} 工单全部完成`,
-        desc: `该部门 ${dept.total} 件工单已全部处理完毕，工作效率良好。`
+        title: t("conclusion.deptDone", { name: deptName(dept.deptName) }),
+        desc: t("conclusion.deptDoneDesc", { total: dept.total })
       })
     }
   }
@@ -199,16 +200,16 @@ const analysisConclusions = computed(() => {
     const top = [...crackTypeData.value].sort((a, b) => b.count - a.count)[0]
     conclusions.push({
       type: "info",
-      title: `主要病害类型: ${damageTypeLabel(top.type)}`,
-      desc: `${damageTypeLabel(top.type)}占比最高，共检出 ${top.count} 处（${(top.percentage || 0).toFixed(1)}%），建议针对该类型病害制定专项维修方案。`
+      title: t("conclusion.topType", { type: damageTypeLabel(top.type) }),
+      desc: t("conclusion.topTypeDesc", { type: damageTypeLabel(top.type), count: top.count, pct: (top.percentage || 0).toFixed(1) })
     })
   }
 
   if (conclusions.length === 0) {
     conclusions.push({
       type: "info",
-      title: "暂无足够数据生成分析结论",
-      desc: "请先进行路面检测任务，系统将自动生成分析报告。"
+      title: t("report.noData"),
+      desc: t("report.noDataHint")
     })
   }
 
@@ -216,10 +217,10 @@ const analysisConclusions = computed(() => {
 })
 
 function deptName(code: string) {
-  return ({ ROAD_ADMIN: "公路管理部门", SANIT_ADMIN: "环卫管理部门", TRAFFIC_ADMIN: "交通管理部门" } as any)[code] || code
+  return ({ ROAD_ADMIN: t("report.deptRoadAdmin"), SANIT_ADMIN: t("report.deptSanitAdmin"), TRAFFIC_ADMIN: t("report.deptTrafficAdmin") } as any)[code] || code
 }
 function damageTypeLabel(type: string) {
-  return ({ CRACK: "裂缝", POTHOLE: "坑槽", ALLIGATOR: "龟裂", BLOCK: "块裂", RUTTING: "车辙", REPAIR: "修补" } as any)[type] || type
+  return ({ CRACK: t("damage.crack"), POTHOLE: t("damage.pothole"), ALLIGATOR: t("damage.alligator"), BLOCK: t("damage.block"), RUTTING: t("damage.rutting"), REPAIR: t("damage.repair") } as any)[type] || type
 }
 
 async function loadData() {
@@ -241,7 +242,7 @@ async function loadData() {
     await nextTick()
     renderCharts()
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || "加载分析数据失败")
+    ElMessage.error(e?.response?.data?.message || t("report.loadFailed"))
   } finally {
     loading.value = false
   }
@@ -314,7 +315,7 @@ function renderCharts() {
       grid: { left: 40, right: 20, top: 20, bottom: 30 },
       xAxis: {
         type: "category",
-        data: severityData.value.map(s => ({ HIGH: "严重", MEDIUM: "中等", LOW: "一般" } as any)[s.level] || s.level),
+        data: severityData.value.map(s => ({ HIGH: t("severity.high"), MEDIUM: t("severity.medium"), LOW: t("severity.normal") } as any)[s.level] || s.level),
         axisLine: { lineStyle: { color: "#e2e8f0" } },
         axisLabel: { color: "#94a3b8", fontSize: 11 },
       },
@@ -359,8 +360,8 @@ function renderCharts() {
         axisLabel: { color: "#94a3b8", fontSize: 11 },
       },
       series: [
-        { name: "已完成", type: "bar", data: deptData.value.map(d => d.completed), color: "#10b981", barWidth: "30%" },
-        { name: "待处理", type: "bar", data: deptData.value.map(d => d.pending), color: "#f59e0b", barWidth: "30%" },
+        { name: t("report.completed"), type: "bar", data: deptData.value.map(d => d.completed), color: "#10b981", barWidth: "30%" },
+        { name: t("report.toProcess"), type: "bar", data: deptData.value.map(d => d.pending), color: "#f59e0b", barWidth: "30%" },
       ],
     })
     window.addEventListener("resize", () => chart.resize())

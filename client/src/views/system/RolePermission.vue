@@ -2,33 +2,33 @@
   <div class="sys-page">
     <div class="page-head">
       <div>
-        <h2 class="page-title">角色权限</h2>
-        <p class="page-desc">管理系统角色与对应的功能权限</p>
+        <h2 class="page-title">{{ t("role.title") }}</h2>
+        <p class="page-desc">{{ t("role.desc") }}</p>
       </div>
       <button class="btn-primary" @click="openCreate()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建角色
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{{ t("role.createRole") }}
       </button>
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7h-9M14 17H5M17 17a3 3 0 100-6 3 3 0 000 6zM7 7a3 3 0 100-6 3 3 0 000 6z"/></svg></div><div><span class="stat-val">{{ roles.length }}</span><span class="stat-lbl">角色总数</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ enabledCount }}</span><span class="stat-lbl">已启用</span></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#f1f5f9;color:#64748b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div><span class="stat-val">{{ builtinCount }}</span><span class="stat-lbl">内置角色</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#eef2ff;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7h-9M14 17H5M17 17a3 3 0 100-6 3 3 0 000 6zM7 7a3 3 0 100-6 3 3 0 000 6z"/></svg></div><div><span class="stat-val">{{ roles.length }}</span><span class="stat-lbl">{{ t("role.totalRoles") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg></div><div><span class="stat-val">{{ enabledCount }}</span><span class="stat-lbl">{{ t("common.enabled") }}</span></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#f1f5f9;color:#64748b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div><span class="stat-val">{{ builtinCount }}</span><span class="stat-lbl">{{ t("role.builtin") }}</span></div></div>
     </div>
 
     <div class="content-card">
       <div class="toolbar">
         <div class="toolbar-left">
           <div class="filter-group">
-            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchKey" placeholder="搜索角色名称或编码..." /></div>
+            <div class="search-wrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input v-model="searchKey" :placeholder="t('role.searchPlaceholder')" /></div>
           </div>
         </div>
-        <span class="page-info">{{ filteredRoles.length }} 个角色</span>
+        <span class="page-info">{{ filteredRoles.length }} {{ t("role.totalRoles") }}</span>
       </div>
 
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>角色名称</th><th>角色编码</th><th>描述</th><th>类型</th><th>状态</th><th style="width:160px">操作</th></tr></thead>
+          <thead><tr><th>{{ t("role.name") }}</th><th>{{ t("role.code") }}</th><th>{{ t("role.description") }}</th><th>{{ t("role.type") }}</th><th>{{ t("common.status") }}</th><th style="width:160px">{{ t("common.actions") }}</th></tr></thead>
           <tbody>
             <tr v-for="r in filteredRoles" :key="r.id">
               <td class="td-title">
@@ -39,15 +39,15 @@
               </td>
               <td><span class="code-tag">{{ r.code }}</span></td>
               <td class="td-muted">{{ r.description || '--' }}</td>
-              <td><span :class="['status-tag', isBuiltin(r.code) ? 'stat-primary' : 'stat-info']">{{ isBuiltin(r.code) ? '内置' : '自定义' }}</span></td>
-              <td><span :class="['status-tag', r.status === 1 ? 'stat-success' : 'stat-cancel']">{{ r.status === 1 ? '启用' : '禁用' }}</span></td>
+              <td><span :class="['status-tag', isBuiltin(r.code) ? 'stat-primary' : 'stat-info']">{{ isBuiltin(r.code) ? t("role.builtin2") : t("role.custom") }}</span></td>
+              <td><span :class="['status-tag', r.status === 1 ? 'stat-success' : 'stat-cancel']">{{ r.status === 1 ? t("common.enabled") : t("common.disabled") }}</span></td>
               <td><div class="action-group">
-                <button class="action-btn" @click="editRole(r)">编辑</button>
-                <button class="action-btn" v-if="!isBuiltin(r.code)" @click="toggleStatus(r)">{{ r.status === 1 ? '禁用' : '启用' }}</button>
-                <button class="action-btn action-danger" v-if="!isBuiltin(r.code)" @click="removeRole(r)">删除</button>
+                <button class="action-btn" @click="editRole(r)">{{ t("common.edit") }}</button>
+                <button class="action-btn" v-if="!isBuiltin(r.code)" @click="toggleStatus(r)">{{ r.status === 1 ? t("common.disabled") : t("common.enabled") }}</button>
+                <button class="action-btn action-danger" v-if="!isBuiltin(r.code)" @click="removeRole(r)">{{ t("common.delete") }}</button>
               </div></td>
             </tr>
-            <tr v-if="filteredRoles.length === 0"><td colspan="6" class="empty-row">暂无角色数据</td></tr>
+            <tr v-if="filteredRoles.length === 0"><td colspan="6" class="empty-row">{{ t("role.noRoles") }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -56,11 +56,11 @@
     <!-- Permission Matrix -->
     <div class="content-card" style="margin-top:16px">
       <div class="toolbar">
-        <div class="toolbar-left"><span style="font-size:14px;font-weight:600;color:#0f172a">角色权限矩阵</span></div>
+        <div class="toolbar-left"><span style="font-size:14px;font-weight:600;color:#0f172a">{{ t("role.permMatrix") }}</span></div>
       </div>
       <div class="table-wrap">
         <table class="ds-table">
-          <thead><tr><th>功能模块</th><th v-for="r in roles" :key="r.id" style="text-align:center">{{ r.name }}</th></tr></thead>
+          <thead><tr><th>{{ t("role.module") }}</th><th v-for="r in roles" :key="r.id" style="text-align:center">{{ r.name }}</th></tr></thead>
           <tbody>
             <tr v-for="perm in permissionMatrix" :key="perm.module">
               <td class="td-title">{{ perm.module }}</td>
@@ -77,23 +77,23 @@
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
       <div class="modal-card">
-        <div class="modal-head"><span>{{ editingRole ? '编辑角色' : '新建角色' }}</span><button class="modal-close" @click="showModal=false">✕</button></div>
+        <div class="modal-head"><span>{{ editingRole ? t("role.editRole") : t("role.newRole") }}</span><button class="modal-close" @click="showModal=false">✕</button></div>
         <div class="modal-body">
           <div class="form-grid">
-            <div class="form-group"><label>角色名称</label><input v-model="roleForm.name" placeholder="如：道路巡检员" /></div>
-            <div class="form-group"><label>角色编码</label><input v-model="roleForm.code" placeholder="如：ROAD_INSPECTOR" :disabled="!!editingRole" /></div>
-            <div class="form-group" style="grid-column:1/-1"><label>描述</label><input v-model="roleForm.description" placeholder="角色功能描述（可选）" /></div>
-            <div class="form-group"><label>状态</label>
+            <div class="form-group"><label>{{ t("role.name") }}</label><input v-model="roleForm.name" :placeholder="t('role.namePlaceholder')" /></div>
+            <div class="form-group"><label>{{ t("role.code") }}</label><input v-model="roleForm.code" :placeholder="t('role.codePlaceholder')" :disabled="!!editingRole" /></div>
+            <div class="form-group" style="grid-column:1/-1"><label>{{ t("role.description") }}</label><input v-model="roleForm.description" :placeholder="t('role.descPlaceholder')" /></div>
+            <div class="form-group"><label>{{ t("common.status") }}</label>
               <select v-model="roleForm.status">
-                <option :value="1">启用</option>
-                <option :value="0">禁用</option>
+                <option :value="1">{{ t("common.enabled") }}</option>
+                <option :value="0">{{ t("common.disabled") }}</option>
               </select>
             </div>
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn-ghost" @click="showModal=false">取消</button>
-          <button class="btn-primary" :disabled="saving" @click="handleSave">{{ saving ? '保存中...' : '保存' }}</button>
+          <button class="btn-ghost" @click="showModal=false">{{ t("common.cancel") }}</button>
+          <button class="btn-primary" :disabled="saving" @click="handleSave">{{ saving ? t("common.saving") : t("common.save") }}</button>
         </div>
       </div>
     </div>
@@ -105,6 +105,7 @@ import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { roleApi } from "@/api"
 import type { RoleEntity } from "@/types"
+import { t } from "@/i18n"
 
 const roles = ref<RoleEntity[]>([])
 const showModal = ref(false)
@@ -116,16 +117,16 @@ const roleForm = reactive({ name: "", code: "", description: "", status: 1 })
 const builtinCodes = ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN", "ROLE_MAINTAINER", "ROLE_CROWDSOURCE"]
 
 const permissionMatrix = [
-  { module: "数据大屏", codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN"] },
-  { module: "地图查看", codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN", "ROLE_MAINTAINER", "ROLE_CROWDSOURCE"] },
-  { module: "检测上传", codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_CROWDSOURCE"] },
-  { module: "检测结果", codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN"] },
-  { module: "工单管理", codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN"] },
-  { module: "我的工单", codes: ["ROLE_MAINTAINER"] },
-  { module: "维修报告", codes: ["ROLE_ADMIN", "ROLE_MAINTAINER"] },
-  { module: "众包上报", codes: ["ROLE_CROWDSOURCE"] },
-  { module: "系统管理", codes: ["ROLE_ADMIN"] },
-  { module: "统计分析", codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN"] },
+  { module: t("role.perm_dataScreen"), codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN"] },
+  { module: t("role.perm_map"), codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN", "ROLE_MAINTAINER", "ROLE_CROWDSOURCE"] },
+  { module: t("role.perm_detectionUpload"), codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_CROWDSOURCE"] },
+  { module: t("role.perm_detectionResult"), codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN"] },
+  { module: t("role.perm_workOrder"), codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN", "ROLE_SANIT_ADMIN", "ROLE_TRAFFIC_ADMIN"] },
+  { module: t("role.perm_myWorkOrder"), codes: ["ROLE_MAINTAINER"] },
+  { module: t("role.perm_repairReport"), codes: ["ROLE_ADMIN", "ROLE_MAINTAINER"] },
+  { module: t("role.perm_crowdReport"), codes: ["ROLE_CROWDSOURCE"] },
+  { module: t("role.perm_system"), codes: ["ROLE_ADMIN"] },
+  { module: t("role.perm_statistics"), codes: ["ROLE_ADMIN", "ROLE_ROAD_ADMIN"] },
 ]
 
 const filteredRoles = computed(() => {
@@ -149,7 +150,7 @@ async function loadData() {
   try {
     const r = await roleApi.list()
     roles.value = r.data.data || []
-  } catch { ElMessage.error("加载角色列表失败") }
+  } catch { ElMessage.error(t("role.loadFailed")) }
 }
 
 function openCreate() {
@@ -170,8 +171,8 @@ function editRole(r: RoleEntity) {
 }
 
 async function handleSave() {
-  if (!roleForm.name) return ElMessage.warning("请填写角色名称")
-  if (!roleForm.code) return ElMessage.warning("请填写角色编码")
+  if (!roleForm.name) return ElMessage.warning(t("role.needName"))
+  if (!roleForm.code) return ElMessage.warning(t("role.needCode"))
   saving.value = true
   try {
     const data: any = {
@@ -182,33 +183,33 @@ async function handleSave() {
     }
     if (editingRole.value) {
       await roleApi.update(editingRole.value.id!, data)
-      ElMessage.success("角色已更新")
+      ElMessage.success(t("common.updated"))
     } else {
       await roleApi.create(data)
-      ElMessage.success("角色已创建")
+      ElMessage.success(t("common.created"))
     }
     showModal.value = false
     await loadData()
-  } catch { ElMessage.error("操作失败") }
+  } catch { ElMessage.error(t("common.operationFailed")) }
   finally { saving.value = false }
 }
 
 async function toggleStatus(r: RoleEntity) {
   try {
     await roleApi.update(r.id!, { status: r.status === 1 ? 0 : 1 } as any)
-    ElMessage.success(r.status === 1 ? "已禁用" : "已启用")
+    ElMessage.success(r.status === 1 ? t("common.disabled") : t("common.enabled"))
     await loadData()
-  } catch { ElMessage.error("操作失败") }
+  } catch { ElMessage.error(t("common.operationFailed")) }
 }
 
 async function removeRole(r: RoleEntity) {
-  ElMessageBox.confirm(`确认删除角色「${r.name}」？删除后不可恢复。`, "确认删除", { type: "warning" })
+  ElMessageBox.confirm(t("role.confirmDelete", { name: r.name }), t("common.confirmDelete"), { type: "warning" })
     .then(async () => {
       try {
         await roleApi.remove(r.id!)
-        ElMessage.success("已删除")
+        ElMessage.success(t("common.deleted"))
         await loadData()
-      } catch { ElMessage.error("删除失败，可能存在关联用户") }
+      } catch { ElMessage.error(t("role.deleteWithUsers")) }
     }).catch(() => {})
 }
 

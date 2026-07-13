@@ -2,10 +2,10 @@
   <div class="dr">
     <div class="dr-top">
       <div class="dr-top-left">
-        <h2 class="dr-title">检测结果</h2>
-        <span class="dr-subtitle">查看所有已完成的历史检测记录及病害详情</span>
+        <h2 class="dr-title">{{ t('dr.title') }}</h2>
+        <span class="dr-subtitle">{{ t('dr.subtitle') }}</span>
       </div>
-      <button class="dr-refresh" @click="loadTasks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button>
+      <button class="dr-refresh" @click="loadTasks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> {{ t('dr.refresh') }}</button>
     </div>
 
     <!-- Category Tabs: 图片 / 视频 -->
@@ -35,28 +35,29 @@
     <div v-if="loading" class="dr-loading"><div class="loader"></div></div>
     <div v-else-if="filteredTasks.length === 0" class="dr-empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <div class="dr-empty-text">暂无检测结果</div>
-      <div class="dr-empty-hint">前往「上传检测」提交检测任务，完成后即在此显示</div>
+      <div class="dr-empty-text">{{ t('dr.noResult') }}</div>
+      <div class="dr-empty-hint">{{ t('dr.noResultHint') }}</div>
     </div>
     <div v-else class="dr-list">
-      <div v-for="t in filteredTasks" :key="t.id" class="dr-card" @click="viewResult(t)">
+      <div v-for="task in filteredTasks" :key="task.id" class="dr-card" @click="viewResult(task)">
         <div class="dr-thumb">
-          <img v-if="t.dataSourceType==='MANUAL_IMAGE'" :src="thumbSrc(t)" class="dr-thumb-img" @error="imgLoadError($event)" />
+          <img v-if="task.dataSourceType==='MANUAL_IMAGE'" :src="thumbSrc(task)" class="dr-thumb-img" @error="imgLoadError($event)" />
+          <video v-else-if="task.dataSourceType==='MANUAL_VIDEO' && isVideoUrl(thumbSrc(task))" :src="thumbSrc(task)" class="dr-thumb-img" muted preload="metadata"></video>
           <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         </div>
         <div class="dr-card-content">
         <div class="dr-card-top">
-          <span class="dr-code">{{ t.taskCode }}</span>
-          <span class="dr-type-tag">{{ {MANUAL_IMAGE:'图片检测',MANUAL_VIDEO:'视频检测',DRONE_VIDEO:'无人机',CROWD_SOURCE:'众包'}[t.dataSourceType] || t.dataSourceType }}</span>
+          <span class="dr-code">{{ task.taskCode }}</span>
+          <span class="dr-type-tag">{{ ({MANUAL_IMAGE: t('dr.imageDetection'), MANUAL_VIDEO: t('dr.videoDetection'), DRONE_VIDEO: t('dr.drone'), CROWD_SOURCE: t('dr.crowdsource') })[task.dataSourceType] || task.dataSourceType }}</span>
         </div>
         <div class="dr-card-body">
-          <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ t.location || '未填写' }}</div>
-          <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {{ formatTime(t.createdAt) }}</div>
-          <div v-if="taskDamageCount(t) > 0" class="dr-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 识别病害 <strong>{{ taskDamageCount(t) }}</strong> 处</div>
+          <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ task.location || t('dr.location') }}</div>
+          <div class="dr-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {{ formatTime(task.createdAt) }}</div>
+          <div v-if="taskDamageCount(task) > 0" class="dr-stat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> {{ t('dr.recognizedDamages') }} <strong>{{ taskDamageCount(task) }}</strong> {{ t('dr.damageUnit') }}</div>
         </div>
         </div>
         <div class="dr-card-foot">
-          <span v-if="taskSeverityLevel(t)" :class="['dr-sev', 'sev-'+taskSeverityLevel(t)?.toLowerCase()]">{{ severityLabel(taskSeverityLevel(t)!) }}</span>
+          <span v-if="taskSeverityLevel(task)" :class="['dr-sev', 'sev-'+taskSeverityLevel(task)?.toLowerCase()]">{{ severityLabel(taskSeverityLevel(task)!) }}</span>
           <span class="dr-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
       </div>
@@ -66,7 +67,7 @@
     <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
       <div class="modal-card">
         <div class="modal-head">
-          <span>检测详情 — {{ modalTask?.taskCode || modalTask?.id }}</span>
+          <span>{{ t('dr.detailTitle') }}{{ modalTask?.taskCode || modalTask?.id }}</span>
           <button class="modal-close" @click="showModal=false">✕</button>
         </div>
         <div class="modal-body">
@@ -87,10 +88,20 @@
             </div>
             <!-- File Preview -->
             <div v-if="resultImageUrl || modalTask?.fileUrl" class="res-file-preview">
-              <img v-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" />
+              <video v-if="resultImageUrl && resultIsVideo" :src="resultImageUrl" class="res-preview-video" muted controls></video>
+              <img v-else-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" />
               <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" />
               <video v-else-if="modalTask?.dataSourceType==='MANUAL_VIDEO'" :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
-              <div class="res-file-name">{{ modalTask.fileName || (resultData.items?.length || 0) + ' 项检测' }}</div>
+              <div class="res-file-name">{{ modalTask.fileName || t('dr.detectionItems', { count: resultData.items?.length || 0 }) }}</div>
+            </div>
+            <!-- Keyframe previews for video detection -->
+            <div v-if="keyframeUrls.length > 0" class="res-keyframes">
+              <div class="kf-title">关键帧标注</div>
+              <div class="kf-list">
+                <div v-for="(url, idx) in keyframeUrls" :key="idx" class="kf-item">
+                  <img :src="url" class="kf-img" alt="keyframe" @error="imgLoadError($event)" />
+                </div>
+              </div>
             </div>
             <div class="res-items">
               <div v-for="(item, i) in resultData.items" :key="i" class="res-item">
@@ -103,27 +114,27 @@
                     <span :class="['ri-badge', 'sev-'+item.severityLevel.toLowerCase()]">{{ severityLabel(item.severityLevel) }}</span>
                   </div>
                   <div class="ri-detail-row">
-                    <span class="ri-detail-label">病害判定</span>
+                    <span class="ri-detail-label">{{ t('dr.diseaseJudgement') }}</span>
                     <span class="ri-detail-val">{{ damageTypeDesc(item.damageType) }}</span>
                   </div>
                   <div class="ri-detail-row">
-                    <span class="ri-detail-label">严重程度</span>
+                    <span class="ri-detail-label">{{ t('dr.severityLevel') }}</span>
                     <span class="ri-detail-val">{{ severityDesc(item.severityLevel) }}</span>
                   </div>
                   <div class="ri-detail-row">
-                    <span class="ri-detail-label">置信度</span>
+                    <span class="ri-detail-label">{{ t('dr.confidence') }}</span>
                     <span class="ri-detail-val"><span class="conf-bar-wrap"><span class="conf-bar" :style="{width: (item.confidence*100)+'%'}"></span></span> {{ (item.confidence*100).toFixed(0) }}%</span>
                   </div>
                   <div v-if="item.suggestion" class="ri-suggest">{{ item.suggestion }}</div>
                 </div>
               </div>
             </div>
-            <div class="res-foot">检测完成于 {{ formatTime(resultData.completedAt) }}</div>
+            <div class="res-foot">{{ t('dr.completedAt') }}{{ formatTime(resultData.completedAt) }}</div>
             <div class="res-actions">
-              <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id, resultData)">派单维修</button>
+              <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id, resultData)">{{ t('dr.dispatch') }}</button>
             </div>
           </div>
-          <div v-else class="modal-loading">暂无结果数据</div>
+          <div v-else class="modal-loading">{{ t('dr.noData') }}</div>
         </div>
       </div>
     </div>
@@ -136,6 +147,7 @@ import { detectionApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
 import { ElMessage, ElMessageBox } from "element-plus"
 import type { DetectionTaskResponse, DetectionResultResponse } from "@/types"
+import { t } from "@/i18n"
 
 const defaultRoadImg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNNjAgMTAwIFEyMDAgOTAgMzQwIDEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCAxNDAgUTIyMCAxMzAgMzMwIDE0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNNTAgMTgwIFExODAgMTcwIDM1MCAxODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjkwIiByPSIzIiBmaWxsPSIjZGMyNjI2Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM1IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzNSIgcj0iMiIgZmlsbD0iI2Y1OWUwYiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjE1IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6YGT6Lev6KOC57yd5qOA5rWLPC90ZXh0Pjwvc3ZnPg==';
 function imgLoadError(e: Event) {
@@ -151,16 +163,16 @@ const categories = computed(() => {
   const img = tasks.value.filter(t => t.dataSourceType === "MANUAL_IMAGE").length
   const vid = tasks.value.filter(t => t.dataSourceType === "MANUAL_VIDEO").length
   return [
-    { key: "MANUAL_IMAGE", label: "图片检测", count: img },
-    { key: "MANUAL_VIDEO", label: "视频检测", count: vid },
+    { key: "MANUAL_IMAGE", label: t('dr.imageDetection'), count: img },
+    { key: "MANUAL_VIDEO", label: t('dr.videoDetection'), count: vid },
   ]
 })
 
 const severityTags = [
-  { key: "", label: "全部" },
-  { key: "HIGH", label: "严重" },
-  { key: "MEDIUM", label: "中等" },
-  { key: "LOW", label: "轻微" },
+  { key: "", label: t('dr.all') },
+  { key: "HIGH", label: t('dr.severity') },
+  { key: "MEDIUM", label: t('dr.medium') },
+  { key: "LOW", label: t('dr.low') },
 ]
 
 const filteredTasks = computed(() => {
@@ -188,10 +200,17 @@ function taskDamageCount(t: DetectionTaskResponse) {
   return t.result?.items?.length ?? 0
 }
 
+function isVideoUrl(url: string) {
+  return /\.(mp4|webm|mov|avi|mkv)(\?.*)?$/i.test(url)
+}
+
 function thumbSrc(t: DetectionTaskResponse) {
   const annotated = t.result?.imageBase64
   if (annotated) {
-    // 后端可能返回 base64 字符串，也可能返回 /uploads/result/xxx.png 形式的 URL
+    // Python服务返回的完整URL转换为相对路径，让Vite代理转发
+    if (annotated.startsWith('http://localhost:8000/results/')) {
+      return annotated.replace('http://localhost:8000', '')
+    }
     if (annotated.startsWith('/') || annotated.startsWith('http')) return annotated
     return 'data:image/jpeg;base64,' + annotated
   }
@@ -199,13 +218,27 @@ function thumbSrc(t: DetectionTaskResponse) {
 }
 
 /**
- * 模态框中的检测结果图。兼容 base64 字符串和 /uploads/... 形式的 URL。
+ * 模态框中的检测结果图/视频。兼容 base64 字符串和 URL 路径。
  */
 const resultImageUrl = computed(() => {
   const v = resultData.value?.imageBase64
   if (!v) return ''
+  if (v.startsWith('http://localhost:8000/results/')) {
+    return v.replace('http://localhost:8000', '')
+  }
   if (v.startsWith('/') || v.startsWith('http')) return v
   return 'data:image/jpeg;base64,' + v
+})
+
+const resultIsVideo = computed(() => isVideoUrl(resultImageUrl.value))
+
+const keyframeUrls = computed(() => {
+  return (resultData.value?.keyframeUrls?.filter(u => !!u) ?? []).map(u => {
+    if (u.startsWith('http://localhost:8000/results/')) {
+      return u.replace('http://localhost:8000', '')
+    }
+    return u
+  })
 })
 
 onMounted(() => loadTasks())
@@ -217,7 +250,7 @@ async function loadTasks() {
     const all = r.data.data.records || []
     tasks.value = all.filter(t => t.status === "COMPLETED")
   } catch {
-    ElMessage.error("获取检测记录失败")
+    ElMessage.error(t('dr.fetchFailed'))
   }
   loading.value = false
 }
@@ -247,33 +280,33 @@ async function viewResult(t: DetectionTaskResponse) {
 }
 
 function severityLabel(s: string) {
-  return { HIGH: "严重", MEDIUM: "中等", LOW: "轻微" }[s] || s
+  return ({ HIGH: t('dr.severity'), MEDIUM: t('dr.medium'), LOW: t('dr.low') })[s] || s
 }
 
-function damageTypeDesc(t: string) {
+function damageTypeDesc(tp: string) {
   const m: Record<string,string> = {
-    CRACK:"裂缝 - 路面出现裂缝，需进一步判定裂缝类型",
-    TRANSVERSE_CRACK:"横向裂缝 - 路面出现垂直于行车方向的裂缝，通常由温度变化或路基不均匀沉降引起",
-    LONGITUDINAL_CRACK:"纵向裂缝 - 路面出现平行于行车方向的裂缝，通常由施工接缝或荷载疲劳引起",
-    NET_CRACK:"网状裂缝 - 路面呈龟壳状开裂，通常由路基强度不足或沥青老化引起",
-    POTHOLE:"坑槽 - 路面局部凹陷或坑洞，影响行车安全",
-    MARKING_DAMAGE:"标线损坏 - 交通标线磨损或脱落",
-    ROAD_SPILL:"路面抛洒 - 路面有杂物或油污等抛洒物",
-    UNKNOWN:"未知病害",
-    OTHER:"其他病害"
+    CRACK: t('dr.workOrderDesc'),
+    TRANSVERSE_CRACK: t('dr.transverseCrackDesc'),
+    LONGITUDINAL_CRACK: t('dr.longitudinalCrackDesc'),
+    NET_CRACK: t('dr.netCrackDesc'),
+    POTHOLE: t('dr.potholeDesc'),
+    MARKING_DAMAGE: t('dr.markingDesc'),
+    ROAD_SPILL: t('dr.spillDesc'),
+    UNKNOWN: t('dr.unknownDesc'),
+    OTHER: t('dr.otherDesc')
   };
-  return m[t] || t;
+  return m[tp] || tp;
 }
 function severityDesc(s: string) {
   const m: Record<string,string> = {
-    HIGH:"严重病害 - 需立即维修处理，存在安全隐患",
-    MEDIUM:"中等病害 - 需尽快安排养护，防止病害扩展",
-    LOW:"轻微病害 - 继续观察，纳入日常养护计划"
+    HIGH: t('dr.severityHighDesc'),
+    MEDIUM: t('dr.severityMediumDesc'),
+    LOW: t('dr.severityLowDesc')
   };
   return m[s] || s;
 }
-function damageTypeLabel(t: string) {
-  return { CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知", OTHER: "其他" }[t] || t
+function damageTypeLabel(tp: string) {
+  return ({ CRACK: t('damage.crack'), TRANSVERSE_CRACK: t('damage.transverseCrack'), LONGITUDINAL_CRACK: t('damage.longitudinalCrack'), NET_CRACK: t('damage.netCrack'), POTHOLE: t('damage.pothole'), MARKING_DAMAGE: t('damage.markingDamage'), ROAD_SPILL: t('damage.roadSpill'), UNKNOWN: t('damage.unknown'), OTHER: t('damage.crack') })[tp] || tp
 }
 
 function canDispatch(data: DetectionResultResponse) {
@@ -282,22 +315,22 @@ function canDispatch(data: DetectionResultResponse) {
 }
 
 async function handleDispatch(taskId: number, data: DetectionResultResponse) {
-  ElMessageBox.confirm("此检测结果包含严重病害，确认派发维修工单？", "派单确认", { confirmButtonText: "确认派单", cancelButtonText: "取消", type: "warning" })
+  ElMessageBox.confirm(t('dr.dispatchConfirm'), t('dr.dispatchTitle'), { confirmButtonText: t('dr.dispatchBtn'), cancelButtonText: t('common.cancel'), type: "warning" })
     .then(async () => {
       try {
         await workOrderApi.create({
           detectionTaskId: taskId,
-          title: "病害维修工单",
+          title: t('dr.workOrderTitle'),
           damageType: data.items[0]?.damageType as any,
           severityLevel: data.items[0]?.severityLevel as any,
           departmentCode: "ROAD_ADMIN",
           location: modalTask.value?.location || "",
           description: data.summary || "",
         })
-        ElMessage.success("工单已派发")
+        ElMessage.success(t('dr.dispatchSuccess'))
         window.dispatchEvent(new CustomEvent("data-updated"))
       } catch {
-        ElMessage.error("派单失败")
+        ElMessage.error(t('dr.dispatchFailed'))
       }
     })
     .catch(() => {})
@@ -379,6 +412,12 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
 .res-preview-img { max-width:100%; max-height:200px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto; }
 .res-preview-video { max-width:100%; max-height:200px; width:auto; height:auto; display:block; margin:0 auto; }
 .res-file-name { padding:6px 12px; font-size:11px; color:#64748b; background:#fff; border-top:1px solid #f0f2f5; }
+
+.res-keyframes { margin-bottom:16px; }
+.kf-title { font-size:13px; font-weight:600; color:#334155; margin-bottom:8px; }
+.kf-list { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+.kf-item { flex:0 0 auto; width:140px; height:100px; border-radius:8px; overflow:hidden; border:1px solid #e2e8f0; background:#f8fafc; }
+.kf-img { width:100%; height:100%; object-fit:cover; display:block; }
 
 .res-items { display:flex; flex-direction:column; gap:10px; }
 .res-item { display:flex; gap:14px; padding:14px 16px; border:1px solid #f0f2f5; border-radius:10px; background:#fafbfc; }

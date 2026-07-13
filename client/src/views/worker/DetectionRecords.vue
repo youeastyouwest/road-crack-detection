@@ -1,40 +1,41 @@
 ﻿<template>
   <div class="worker-page">
     <div class="page-header">
-      <h2>检测记录</h2>
-      <p class="page-desc">查看本部门相关的道路检测结果</p>
+      <h2>{{ t("detect.title") }}</h2>
+      <p class="page-desc">{{ t("detect.desc") }}</p>
     </div>
 
     <div class="filter-bar">
-      <el-input v-model="searchQuery" placeholder="搜索道路名称" clearable style="width:240px" />
-      <el-select v-model="statusFilter" placeholder="检测状态" clearable style="width:140px">
-        <el-option label="已完成" value="COMPLETED" />
-        <el-option label="处理中" value="PROCESSING" />
-        <el-option label="失败" value="FAILED" />
+      <el-input v-model="searchQuery" :placeholder="t('detect.searchPlaceholder')" clearable style="width:240px" />
+      <el-select v-model="statusFilter" :placeholder="t('detect.statusFilter')" clearable style="width:140px">
+        <el-option :label="t('status.completed')" value="COMPLETED" />
+        <el-option :label="t('detect.processing')" value="PROCESSING" />
+        <el-option :label="t('status.failed')" value="FAILED" />
       </el-select>
     </div>
 
     <div class="records-list">
       <div v-for="item in records" :key="item.id" class="record-card">
         <div class="record-top">
-          <span class="record-road">{{ item.roadName || "未知道路" }}</span>
+          <span class="record-road">{{ item.roadName || t("detect.unknownRoad") }}</span>
           <el-tag :type="item.status === 'COMPLETED' ? 'success' : item.status === 'PROCESSING' ? 'warning' : 'danger'" size="small">
-            {{ item.status === "COMPLETED" ? "已完成" : item.status === "PROCESSING" ? "检测中" : "失败" }}
+            {{ item.status === "COMPLETED" ? t("status.completed") : item.status === "PROCESSING" ? t("detect.detecting") : t("status.failed") }}
           </el-tag>
         </div>
         <div class="record-meta">
-          <span>位置: {{ item.location || "—" }}</span>
-          <span>裂缝数: {{ item.crackCount || 0 }}</span>
+          <span>{{ t("detect.location", { loc: item.location || "—" }) }}</span>
+          <span>{{ t("detect.crackCount", { count: item.crackCount || 0 }) }}</span>
           <span>{{ item.createdAt }}</span>
         </div>
       </div>
-      <el-empty v-if="records.length === 0" description="暂无检测记录" />
+      <el-empty v-if="records.length === 0" :description="t('detect.noRecords')" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { t } from "@/i18n"
 
 const searchQuery = ref("")
 const statusFilter = ref("")

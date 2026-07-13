@@ -130,15 +130,15 @@ public class InMemoryRoadService implements RoadService {
     }
 
             private void seedRoads() {
-        // Beijing area seeded roads for demonstration
-        addRoad("ChangAn Street", 39.909, 116.397, new double[][]{{116.38,39.908},{116.42,39.910}});
-        addRoad("2nd Ring Road", 39.91, 116.39, new double[][]{{116.37,39.90},{116.37,39.92},{116.41,39.92},{116.41,39.90}});
-        addRoad("3rd Ring Road", 39.91, 116.40, new double[][]{{116.38,39.89},{116.38,39.93},{116.42,39.93},{116.42,39.89}});
-        addRoad("4th Ring Road", 39.95, 116.43, new double[][]{{116.42,39.91},{116.44,39.98}});
-        addRoad("5th Ring Road", 39.95, 116.35, new double[][]{{116.35,39.88},{116.35,39.98}});
-        addRoad("Airport Expressway", 39.905, 116.42, new double[][]{{116.40,39.906},{116.44,39.904}});
-        addRoad("Jingzang Expwy", 39.96, 116.35, new double[][]{{116.35,39.94},{116.35,39.98}});
-        addRoad("Xizhimen Outer St", 39.94, 116.35, new double[][]{{116.33,39.94},{116.37,39.94}});
+        // 北京城区示例道路（中文名展示）
+        addRoad("长安街", 39.909, 116.397, new double[][]{{116.38,39.908},{116.42,39.910}});
+        addRoad("二环路", 39.91, 116.39, new double[][]{{116.37,39.90},{116.37,39.92},{116.41,39.92},{116.41,39.90}});
+        addRoad("三环路", 39.91, 116.40, new double[][]{{116.38,39.89},{116.38,39.93},{116.42,39.93},{116.42,39.89}});
+        addRoad("四环路", 39.95, 116.43, new double[][]{{116.42,39.91},{116.44,39.98}});
+        addRoad("五环路", 39.95, 116.35, new double[][]{{116.35,39.88},{116.35,39.98}});
+        addRoad("机场高速", 39.905, 116.42, new double[][]{{116.40,39.906},{116.44,39.904}});
+        addRoad("京藏高速", 39.96, 116.35, new double[][]{{116.35,39.94},{116.35,39.98}});
+        addRoad("西直门外大街", 39.94, 116.35, new double[][]{{116.33,39.94},{116.37,39.94}});
     }
 
     private void addRoad(String name, double centerLat, double centerLng, double[][] pathPoints) {
@@ -235,18 +235,18 @@ public class InMemoryRoadService implements RoadService {
         }
 
         RoadResponse toResponse() {
-            RoadResponse r = new RoadResponse();
-            r.setId(id);
-            r.setRoadCode("RD-" + String.format("%04d", id));
-            r.setRoadName(name);
-            r.setRoadGrade("Arterial Road");
-            r.setDistrict("Beijing");
-            r.setStartPoint(centerLat + "," + centerLng);
-            r.setEndPoint(centerLat + "," + centerLng);
-            r.setLengthKm(new BigDecimal("2.5"));
-            r.setLaneCount(6);
-            r.setSurfaceType("Asphalt");
-            r.setBuiltYear(2010);
+        RoadResponse r = new RoadResponse();
+        r.setId(id);
+        r.setRoadCode("RD-" + String.format("%04d", id));
+        r.setRoadName(name);
+        r.setRoadGrade("城市主干路");
+        r.setDistrict("北京市");
+        r.setStartPoint(centerLat + "," + centerLng);
+        r.setEndPoint(centerLat + "," + centerLng);
+        r.setLengthKm(new BigDecimal("2.5"));
+        r.setLaneCount(6);
+        r.setSurfaceType("沥青混凝土");
+        r.setBuiltYear(2010);
             r.setLastMaintained(LocalDateTime.now().minusMonths(3));
             r.setHealthScore(new BigDecimal("85.0"));
             r.setDamageLevel("Good");

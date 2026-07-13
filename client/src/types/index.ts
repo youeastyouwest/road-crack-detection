@@ -49,7 +49,7 @@ export interface UserEntity { id?: number; username: string; password?: string; 
 export interface UserDetailResponse { user: UserEntity; roles: string[]; roleIds?: number[] }
 export interface UserPageQuery { page?: number; size?: number; username?: string; realName?: string; status?: number; deptId?: number }
 export interface DetectionTaskResponse { id: number; taskCode?: string; dataSourceType: DataSourceType; fileName?: string; fileUrl?: string; location?: string; remark?: string; submittedBy?: string; status: DetectionTaskStatus; failureReason?: string; createdAt: string; updatedAt?: string; result?: DetectionResultResponse }
-export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string }
+export interface DetectionResultResponse { taskId: number; summary?: string; items: DetectionItemResponse[]; generatedWorkOrderId?: number; completedAt: string; imageBase64?: string; keyframeUrls?: string[] }
 export interface DetectionItemResponse { damageType: string; severityLevel: string; confidence: number; boundingBox?: BoundingBoxResponse; suggestion?: string }
 export interface BoundingBoxResponse { x: number; y: number; width: number; height: number }
 export interface DetectionProgressMessage { type: string; taskId: number; status: DetectionTaskStatus; progress: number; message: string; timestamp: string }
