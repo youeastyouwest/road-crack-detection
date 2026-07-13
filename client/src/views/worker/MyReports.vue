@@ -96,13 +96,17 @@
                 <label>审核意见</label>
                 <span style="line-height:1.6;color:#dc2626">{{ detailTarget.reviewRemark }}</span>
               </div>
-              <div class="detail-item" v-if="detailTarget.beforeImageUrl" style="grid-column:1/-1">
-                <label>维修前图片</label>
-                <img :src="detailTarget.beforeImageUrl" class="report-img" alt="维修前" />
+              <div class="detail-item" v-if="getImageUrls(detailTarget.beforeImageUrl).length > 0" style="grid-column:1/-1">
+                <label>维修前图片 ({{ getImageUrls(detailTarget.beforeImageUrl).length }}张)</label>
+                <div class="report-img-grid">
+                  <img v-for="(url, i) in getImageUrls(detailTarget.beforeImageUrl)" :key="'before-'+i" :src="url" class="report-img" alt="维修前" @click="previewImage(url)" />
+                </div>
               </div>
-              <div class="detail-item" v-if="detailTarget.afterImageUrl" style="grid-column:1/-1">
-                <label>维修后图片</label>
-                <img :src="detailTarget.afterImageUrl" class="report-img" alt="维修后" />
+              <div class="detail-item" v-if="getImageUrls(detailTarget.afterImageUrl).length > 0" style="grid-column:1/-1">
+                <label>维修后图片 ({{ getImageUrls(detailTarget.afterImageUrl).length }}张)</label>
+                <div class="report-img-grid">
+                  <img v-for="(url, i) in getImageUrls(detailTarget.afterImageUrl)" :key="'after-'+i" :src="url" class="report-img" alt="维修后" @click="previewImage(url)" />
+                </div>
               </div>
             </div>
           </template>
@@ -172,6 +176,25 @@ function reportStatusColor(s?: string) {
     APPROVED: "#16a34a",
     REJECTED: "#dc2626",
   } as any)[s || ""] || "#64748b"
+}
+
+function getImageUrls(urlStr?: string): string[] {
+  if (!urlStr) return []
+  return urlStr.split(",").map(u => {
+    const trimmed = u.trim()
+    if (!trimmed) return ""
+    if (trimmed.startsWith("/api/file/download/")) {
+      return "/uploads/" + trimmed.replace("/api/file/download/", "")
+    }
+    if (trimmed.startsWith("/api/")) {
+      return window.location.origin + trimmed
+    }
+    return trimmed
+  }).filter(Boolean)
+}
+
+function previewImage(url: string) {
+  window.open(url, "_blank")
 }
 
 function formatDate(dt?: string): string {
@@ -307,7 +330,9 @@ onMounted(() => {
 .detail-item { display:flex; flex-direction:column; gap:4px; }
 .detail-item label { font-size:11px; font-weight:600; color:#64748b; }
 .detail-item span { font-size:13px; color:#0f172a; }
-.report-img { max-width:100%; border-radius:8px; border:1px solid #f0f2f5; margin-top:4px; }
+.report-img { max-width:100%; border-radius:8px; border:1px solid #f0f2f5; margin-top:4px; cursor:pointer; }
+.report-img-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+.report-img-grid .report-img { max-width:240px; max-height:180px; object-fit:cover; margin-top:0; }
 .modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #f0f2f5; }
 .btn-ghost { padding:7px 16px; border:1px solid #e2e8f0; border-radius:6px; background:#fff; font-size:12px; color:#475569; cursor:pointer; font-family:inherit; }
 .btn-ghost:hover { border-color:#2563eb; color:#2563eb; }

@@ -34,12 +34,34 @@
           <el-input v-model="form.materials" placeholder="如：沥青混凝土 5吨, 灌缝胶 20kg" />
         </el-form-item>
 
-        <el-form-item label="维修前照片URL">
-          <el-input v-model="form.beforeImageUrl" placeholder="输入照片URL（可选）" />
+        <el-form-item label="维修前照片">
+          <el-upload
+            ref="beforeUploadRef"
+            :auto-upload="false"
+            list-type="picture-card"
+            :limit="3"
+            :file-list="beforeFileList"
+            :on-change="(file: any) => handleFileChange(file, 'before')"
+            :on-remove="(file: any) => handleFileRemove(file, 'before')"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
         </el-form-item>
 
-        <el-form-item label="维修后照片URL">
-          <el-input v-model="form.afterImageUrl" placeholder="输入照片URL（可选）" />
+        <el-form-item label="维修后照片">
+          <el-upload
+            ref="afterUploadRef"
+            :auto-upload="false"
+            list-type="picture-card"
+            :limit="3"
+            :file-list="afterFileList"
+            :on-change="(file: any) => handleFileChange(file, 'after')"
+            :on-remove="(file: any) => handleFileRemove(file, 'after')"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
         </el-form-item>
 
         <el-form-item label="维修描述">
@@ -63,21 +85,28 @@
 import { reactive, ref, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
-import { workOrderApi, reportApi } from "@/api"
+import { workOrderApi, reportApi, fileApi } from "@/api"
 import type { WorkOrderResponse } from "@/types"
 import { ElMessage } from "element-plus"
+import { Plus } from "@element-plus/icons-vue"
+import type { UploadFile, UploadUserFile } from "element-plus"
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const submitting = ref(false)
 
+const beforeUploadRef = ref()
+const afterUploadRef = ref()
+const beforeFileList = ref<UploadUserFile[]>([])
+const afterFileList = ref<UploadUserFile[]>([])
+
 const form = reactive({
   workOrderId: null as number | null,
   executor: authStore.realName || "",
   materials: "",
-  beforeImageUrl: "",
-  afterImageUrl: "",
+  beforeImageUrls: [] as string[],
+  afterImageUrls: [] as string[],
   description: "",
   finishedAt: null as string | null,
 })
@@ -125,10 +154,42 @@ onMounted(async () => {
 function onOrderChange() {
   // Reset fields when order changes but keep executor
   form.materials = ""
-  form.beforeImageUrl = ""
-  form.afterImageUrl = ""
+  form.beforeImageUrls = []
+  form.afterImageUrls = []
+  beforeFileList.value = []
+  afterFileList.value = []
   form.description = ""
   form.finishedAt = null
+}
+
+function handleFileChange(file: UploadFile, type: "before" | "after") {
+  if (type === "before") {
+    beforeFileList.value.push(file)
+  } else {
+    afterFileList.value.push(file)
+  }
+}
+
+function handleFileRemove(file: UploadFile, type: "before" | "after") {
+  const list = type === "before" ? beforeFileList.value : afterFileList.value
+  const idx = list.findIndex(f => f.uid === file.uid)
+  if (idx > -1) list.splice(idx, 1)
+}
+
+// 上传图片到服务器，返回 URL 列表
+async function uploadImages(files: UploadUserFile[]): Promise<string[]> {
+  const urls: string[] = []
+  for (const f of files) {
+    if (f.raw) {
+      try {
+        const res = await fileApi.upload(f.raw)
+        urls.push(res.data.data.url)
+      } catch {
+        ElMessage.warning(`图片 ${f.name} 上传失败`)
+      }
+    }
+  }
+  return urls
 }
 
 function deptLabel(code?: string) {
@@ -151,18 +212,25 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    // 先上传图片
+    const beforeUrls = beforeFileList.value.length > 0
+      ? await uploadImages(beforeFileList.value)
+      : []
+    const afterUrls = afterFileList.value.length > 0
+      ? await uploadImages(afterFileList.value)
+      : []
+
     await reportApi.create({
       workOrderId: form.workOrderId,
       executor: form.executor,
-      beforeImageUrl: form.beforeImageUrl || undefined,
-      afterImageUrl: form.afterImageUrl || undefined,
+      beforeImageUrl: beforeUrls.join(",") || undefined,
+      afterImageUrl: afterUrls.join(",") || undefined,
       materials: form.materials || undefined,
       description: form.description,
       finishedAt: form.finishedAt,
     })
     ElMessage.success("维修报告已提交，等待部门管理员审核")
     handleReset()
-    // Navigate back to my work orders
     router.push("/my-work-orders")
   } catch (err: any) {
     const msg = err?.response?.data?.message || "提交失败"
@@ -174,8 +242,10 @@ async function handleSubmit() {
 function handleReset() {
   form.workOrderId = null
   form.materials = ""
-  form.beforeImageUrl = ""
-  form.afterImageUrl = ""
+  form.beforeImageUrls = []
+  form.afterImageUrls = []
+  beforeFileList.value = []
+  afterFileList.value = []
   form.description = ""
   form.finishedAt = null
 }

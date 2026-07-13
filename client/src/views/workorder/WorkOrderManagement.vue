@@ -225,6 +225,20 @@
                 <span class="rr-label">维修描述</span>
                 <p>{{ reviewReport.description }}</p>
               </div>
+              <!-- 维修前图片 -->
+              <div v-if="getImageUrls(reviewReport.beforeImageUrl).length > 0" class="review-report-images">
+                <span class="rr-label">维修前图片 ({{ getImageUrls(reviewReport.beforeImageUrl).length }}张)</span>
+                <div class="review-img-grid">
+                  <img v-for="(url, i) in getImageUrls(reviewReport.beforeImageUrl)" :key="'rb-'+i" :src="url" class="review-img" alt="维修前" @click="previewImage(url)" />
+                </div>
+              </div>
+              <!-- 维修后图片 -->
+              <div v-if="getImageUrls(reviewReport.afterImageUrl).length > 0" class="review-report-images">
+                <span class="rr-label">维修后图片 ({{ getImageUrls(reviewReport.afterImageUrl).length }}张)</span>
+                <div class="review-img-grid">
+                  <img v-for="(url, i) in getImageUrls(reviewReport.afterImageUrl)" :key="'ra-'+i" :src="url" class="review-img" alt="维修后" @click="previewImage(url)" />
+                </div>
+              </div>
               <!-- 上次审核意见（驳回时显示） -->
               <div v-if="reviewReport.reviewRemark" class="review-prev-remark">
                 <span class="rr-label">上次审核意见</span>
@@ -455,6 +469,23 @@ function reportStatusCls(s?: string) {
 }
 function reportStatusLabel(s?: string) {
   return ({ PENDING: "待审核", DEPT_APPROVED: "部门已通过", APPROVED: "已通过", REJECTED: "已驳回" } as any)[s || ""] || s || "--"
+}
+function getImageUrls(urlStr?: string): string[] {
+  if (!urlStr) return []
+  return urlStr.split(",").map(u => {
+    const trimmed = u.trim()
+    if (!trimmed) return ""
+    if (trimmed.startsWith("/api/file/download/")) {
+      return "/uploads/" + trimmed.replace("/api/file/download/", "")
+    }
+    if (trimmed.startsWith("/api/")) {
+      return window.location.origin + trimmed
+    }
+    return trimmed
+  }).filter(Boolean)
+}
+function previewImage(url: string) {
+  window.open(url, "_blank")
 }
 function deptLabel(code: string) {
   return ({ ROAD_ADMIN: "道路管理部", SANITATION: "环卫部", TRAFFIC_POLICE: "交警部" } as any)[code] || code || "--"
@@ -763,6 +794,10 @@ onMounted(() => {
 .review-report-desc p { font-size:12px; color:#475569; margin:4px 0 0; line-height:1.5; }
 .review-prev-remark { margin-top:10px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; }
 .review-prev-remark p { font-size:12px; color:#dc2626; margin:4px 0 0; }
+.review-report-images { padding-top:10px; border-top:1px dashed #e2e8f0; margin-top:10px; }
+.review-img-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+.review-img { max-width:200px; max-height:150px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0; cursor:pointer; transition:transform .15s; }
+.review-img:hover { transform:scale(1.05); }
 .review-form { padding-top:16px; border-top:1px solid #f0f2f5; }
 .review-form-label { font-size:12px; font-weight:600; color:#64748b; margin-bottom:10px; }
 .review-actions { display:flex; gap:10px; }
