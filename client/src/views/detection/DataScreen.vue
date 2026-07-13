@@ -26,7 +26,7 @@
       </div>
       <div ref="mapContainer" class="ds-map"></div>
       <!-- 病害点分布图例 -->
-      <div class="ds-heatmap-legend">
+      <div class="ds-disease-legend">
         <div class="ds-legend-title">病害点分布</div>
         <div class="ds-legend-items">
           <div class="ds-legend-item"><span class="ds-legend-bar" style="background:#ef4444"></span><span>严重</span></div>
@@ -51,11 +51,13 @@
           <div class="ds-popup-info">
             <div class="ds-popup-row"><span class="ds-popup-label">病害类型</span><strong>{{ damageTypeLabel(selectedDisease.type) }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">严重等级</span><strong><span class="ds-sev-dot" :style="{background: severityColor(selectedDisease.severity)}"></span>{{ selectedDisease.severity }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">检测编号</span><strong class="ds-link" :class="{ 'ds-link-disabled': !selectedDisease.taskCode || selectedDisease.taskCode === '--' }" @click="goToDetection(selectedDisease.taskCode)">{{ selectedDisease.taskCode || '--' }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">工单编号</span><strong class="ds-link" :class="{ 'ds-link-disabled': !selectedDisease.workOrderCode || selectedDisease.workOrderCode === '未生成' }" @click="goToWorkOrder(selectedDisease.workOrderCode)">{{ selectedDisease.workOrderCode || '未生成' }}</strong></div>
+            <div class="ds-popup-row"><span class="ds-popup-label">工单状态</span><strong :class="'ds-wo-status-' + (selectedDisease.workOrderStatus || 'pending')">{{ workOrderStatusLabel(selectedDisease.workOrderStatus) }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">检测时间</span><strong>{{ selectedDisease.time }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">道路</span><strong>{{ selectedDisease.location }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">置信度</span><strong class="ds-conf">{{ selectedDisease.confidence }}</strong></div>
             <div class="ds-popup-row"><span class="ds-popup-label">病害尺寸</span><strong class="ds-order">{{ selectedDisease.size || '--' }}</strong></div>
-            <div class="ds-popup-row"><span class="ds-popup-label">工单编号</span><strong>{{ selectedDisease.orderId || '未生成' }}</strong></div>
             <div class="ds-popup-row"><span>养护建议</span><strong style="font-size:11px;color:#64748b;text-align:right">{{ (selectedDisease as any)?._suggestion || "建议尽快安排修复处理" }}</strong></div>
           </div>
         </div>
@@ -271,7 +273,11 @@ import { ref, computed, nextTick, watch, onMounted, onUnmounted } from "vue"
 import { detectionApi, statisticsApi, mapApi, agentApi } from "@/api"
 import * as echarts from "echarts"
 import DiseaseMarkerLayer from "@/components/DiseaseMarkerLayer.vue"
+import { useRouter } from "vue-router"
+
 import { getBatchGeocoder, disposeBatchGeocoder, type BatchGeocoderOptions } from "@/utils/batchGeocoder"
+
+const router = useRouter()
 
 declare global {
   interface Window { AMap: any }
@@ -523,22 +529,61 @@ const diseaseMarkers = ref<any[]>([])
 const diseaseList = ref<any[]>([])
 const roadDiseaseData = ref<any[]>([])
 
-const totalDiseaseCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.totalCount || 0), 0))
-const highCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.highCount || 0), 0))
-const mediumCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.mediumCount || 0), 0))
-const lowCount = computed(() => (roadDiseaseData.value || []).reduce((s: number, r: any) => s + (r.lowCount || 0), 0))
+const totalDiseaseCount = computed(() => {
+  let count = 0
+  for (const road of (roadDiseaseData.value || [])) {
+    for (const dp of (road.diseasePoints || [])) {
+      const woStatus = normalizeWoStatus(dp.workOrderNo)
+      if (woStatus !== "completed") count++
+    }
+  }
+  return count
+})
+const highCount = computed(() => {
+  let count = 0
+  for (const road of (roadDiseaseData.value || [])) {
+    for (const dp of (road.diseasePoints || [])) {
+      const woStatus = normalizeWoStatus(dp.workOrderNo)
+      if (woStatus !== "completed" && dp.severity === "HIGH") count++
+    }
+  }
+  return count
+})
+const mediumCount = computed(() => {
+  let count = 0
+  for (const road of (roadDiseaseData.value || [])) {
+    for (const dp of (road.diseasePoints || [])) {
+      const woStatus = normalizeWoStatus(dp.workOrderNo)
+      if (woStatus !== "completed" && dp.severity === "MEDIUM") count++
+    }
+  }
+  return count
+})
+const lowCount = computed(() => {
+  let count = 0
+  for (const road of (roadDiseaseData.value || [])) {
+    for (const dp of (road.diseasePoints || [])) {
+      const woStatus = normalizeWoStatus(dp.workOrderNo)
+      if (woStatus !== "completed" && dp.severity === "LOW") count++
+    }
+  }
+  return count
+})
 const roadRanking = computed(() => [...(roadDiseaseData.value || [])].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0)).slice(0, 5))
 
 /**
- * 地图上实际绘制的病害标注点数量（按坐标去重后的数量）
- * 和 loadRoadDiseaseData 里的聚合逻辑一致
+ * 地图上实际绘制的病害标注点数量（按坐标去重后的数量，只统计未修复的点）
  */
 const diseasePointTotal = computed(() => {
   const coordSet = new Set<string>()
   for (const road of (roadDiseaseData.value || [])) {
     for (const dp of (road.diseasePoints || [])) {
       if (dp.lng && dp.lat) {
-        coordSet.add(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`)
+        const woStatus = normalizeWoStatus(dp.workOrderNo)
+        // 只统计未修复的点
+        if (woStatus !== "completed") {
+          coordSet.add(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`)
+        }
       }
     }
   }
@@ -623,6 +668,46 @@ const severityOption = computed(() => ({
   tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.95)", borderColor: "#eef0f4", textStyle: { fontSize: 11 } },
 }))
 
+function workOrderStatusLabel(status?: string) {
+  const map: Record<string, string> = {
+    pending: "待修复", assigned: "已派单", completed: "已修复"
+  }
+  return map[status || "pending"] || "待修复"
+}
+
+function goToDetection(taskCode?: string) {
+  if (!taskCode || taskCode === '--') return
+  console.log("Navigating to detection result:", taskCode)
+  router.push({ path: "/detection-results", query: { highlight: taskCode } })
+}
+
+function goToWorkOrder(workOrderCode?: string) {
+  if (!workOrderCode || workOrderCode === '未生成') return
+  console.log("Navigating to work order:", workOrderCode)
+  router.push({ path: "/work-orders", query: { highlight: workOrderCode } })
+}
+
+// --- 地图状态保持 ---
+let savedMapState: { center: [number, number]; zoom: number; pitch: number; rotation: number } | null = null
+
+function saveMapState() {
+  if (!map) return
+  savedMapState = {
+    center: map.getCenter().toArray() as [number, number],
+    zoom: map.getZoom(),
+    pitch: map.getPitch(),
+    rotation: map.getRotation()
+  }
+}
+
+function restoreMapState() {
+  if (!map || !savedMapState) return
+  map.setZoomAndCenter(savedMapState.zoom, savedMapState.center)
+  map.setPitch(savedMapState.pitch)
+  map.setRotation(savedMapState.rotation)
+}
+
+// --- 原有函数 ---
 function severityColor(sev: string) { const m: Record<string, string> = { "严重": "#ef4444", "中等": "#f59e0b", "轻微": "#10b981" }; return m[sev] || "#94a3b8" }
 function zoomIn() { zoomLevel.value = Math.min(zoomLevel.value + 1, 20); if (map) map.setZoom(zoomLevel.value) }
 function zoomOut() { zoomLevel.value = Math.max(zoomLevel.value - 1, 3); if (map) map.setZoom(zoomLevel.value) }
@@ -650,15 +735,25 @@ function locateMe() {
 }
 function initMap() {
   if (!mapContainer.value || !window.AMap) return
+  // 如果有保存的状态，恢复它
+  const center = savedMapState ? savedMapState.center : [116.397428, 39.90923]
+  const zoom = savedMapState ? savedMapState.zoom : zoomLevel.value
   map = new window.AMap.Map(mapContainer.value, {
-    zoom: zoomLevel.value,
-    center: [116.397428, 39.90923],
+    zoom: zoom,
+    center: center,
     features: ["bg", "road", "building", "point"],
     resizeEnable: true,
     viewMode: "3D",
-    pitch: 0,
+    pitch: savedMapState ? savedMapState.pitch : 0,
   })
-  map.on("zoomchange", () => { zoomLevel.value = map.getZoom() })
+
+  // 加载高德地图热力图插件
+  map.plugin(["AMap.Heatmap"], () => {
+    console.log("AMap.Heatmap plugin loaded")
+  })
+
+  map.on("zoomchange", () => { zoomLevel.value = map.getZoom(); saveMapState() })
+  map.on("moveend", () => { saveMapState() })
   // 点击地图空白处清除道路高亮
   map.on("click", () => {
     if (focusedRoadId.value !== null) {
@@ -1163,10 +1258,9 @@ async function loadRoadDiseaseData() {
       // 1. 严重程度：filterSeverity 值为 HIGH / MEDIUM / LOW（空=全部）
       // 2. 检测日期：filterDate 格式 yyyy-mm-dd，匹配 detectionTime 的日期部分
       // 3. 修复状态：filterStatus 值为 PENDING / ASSIGNED / COMPLETED
-      //    PENDING = workOrderNo 为空 或 PENDING_ASSIGNMENT（待分配/待修复）
-      //    ASSIGNED = workOrderNo 为 ASSIGNED/IN_PROGRESS/PENDING_DEPT_REVIEW/PENDING_ADMIN_REVIEW/REJECTED
-      //    COMPLETED = workOrderNo 为 COMPLETED/CLOSED/CANCELLED
+      // 4. 默认不显示已修复的病害点（可通过工单状态筛选显示）
       const filteredDps = dedupedDps.filter((dp: any) => {
+        const woStatus = normalizeWoStatus(dp.workOrderNo)
         // 严重程度筛选
         if (filterSeverity.value) {
           const dpSev = dp.severity || "MEDIUM"
@@ -1175,24 +1269,25 @@ async function loadRoadDiseaseData() {
         // 检测日期筛选
         if (filterDate.value) {
           const dpTime = dp.detectionTime || ""
-          // detectionTime 格式 "yyyy-MM-dd HH:mm:ss"，取前10位日期部分
           const dpDate = dpTime.substring(0, 10)
           if (dpDate !== filterDate.value) return false
         }
-        // 修复状态筛选
+        // 修复状态筛选：默认显示全部（包括已修复），只有选择特定状态时才过滤
         if (filterStatus.value) {
-          const dpStatus = normalizeWoStatus(dp.workOrderNo)
-          if (filterStatus.value === "PENDING" && dpStatus !== "pending") return false
-          if (filterStatus.value === "ASSIGNED" && dpStatus !== "assigned") return false
-          if (filterStatus.value === "COMPLETED" && dpStatus !== "completed") return false
+          if (filterStatus.value === "PENDING" && woStatus !== "pending") return false
+          if (filterStatus.value === "ASSIGNED" && woStatus !== "assigned") return false
+          if (filterStatus.value === "COMPLETED" && woStatus !== "completed") return false
         }
         return true
       })
       console.log("loadRoadDiseaseData: filtered to", filteredDps.length, "points (from", dedupedDps.length, ")")
 
-      // 按严重等级统计数量（基于筛选后数据），更新侧边栏图层数字
+      // 按严重等级统计数量（基于筛选后数据，且只统计未修复的点）
       const sevCounts: Record<string, number> = { HIGH: 0, MEDIUM: 0, LOW: 0 }
       for (const dp of filteredDps) {
+        const woStatus = normalizeWoStatus(dp.workOrderNo)
+        // 病害标注点只统计未修复的点
+        if (woStatus === "completed") continue
         const sev = dp.severity || "MEDIUM"
         if (sevCounts[sev] !== undefined) sevCounts[sev]++
       }
@@ -1205,7 +1300,7 @@ async function loadRoadDiseaseData() {
 
       // 按修复状态统计当前地图可见点（用于侧边栏工单状态）
       const woCounts = { pending: 0, assigned: 0, completed: 0 }
-      for (const dp of filteredDps) {
+      for (const dp of dedupedDps) {
         const status = normalizeWoStatus(dp.workOrderNo)
         woCounts[status]++
       }
@@ -1231,7 +1326,7 @@ async function loadRoadDiseaseData() {
           strokeOpacity: 0.55,
           strokeStyle: "dashed",
           zIndex: 48,
-          extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus, _ringType: "outer" },
+          extData: { dp, colorInfo, _sevLevel: isRepaired ? "REPAIRED" : sev, _woStatus: woStatus, _ringType: "outer" },
         })
         map?.add(outerRing)
         roadPolylines.push(outerRing)
@@ -1245,7 +1340,7 @@ async function loadRoadDiseaseData() {
           strokeWeight: 1,
           strokeOpacity: 0.45,
           zIndex: 50,
-          extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus, _ringType: "inner" },
+          extData: { dp, colorInfo, _sevLevel: isRepaired ? "REPAIRED" : sev, _woStatus: woStatus, _ringType: "inner" },
         })
         map?.add(innerFill)
         roadPolylines.push(innerFill)
@@ -1265,7 +1360,7 @@ async function loadRoadDiseaseData() {
           offset: new window.AMap.Pixel(0, 0),
           anchor: "center",
           zIndex: 100,
-          extData: { dp, colorInfo, _sevLevel: sev, _woStatus: woStatus },
+          extData: { dp, colorInfo, _sevLevel: isRepaired ? "REPAIRED" : sev, _woStatus: woStatus },
         })
 
         // 文字标签：用 AMap.Marker + DOM content 实现药丸标签，
@@ -1279,7 +1374,7 @@ async function loadRoadDiseaseData() {
           offset: new window.AMap.Pixel(20, -11),
           anchor: "middle-left",
           zIndex: 110,
-          extData: { _sevLevel: sev, _woStatus: woStatus },
+          extData: { _sevLevel: isRepaired ? "REPAIRED" : sev, _woStatus: woStatus },
         })
 
         // 异步获取真实道路名
@@ -1294,9 +1389,13 @@ async function loadRoadDiseaseData() {
           // 优先使用 AI 识别结果图（imageBase64），其次使用原始上传图（fileUrl）
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
           const isRepaired = isRepairedStatus(dp.workOrderNo)
+          const woStatus = normalizeWoStatus(dp.workOrderNo)
           selectedDisease.value = {
             type: dp.damageType || '道路病害',
             severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            taskCode: dp.taskCode || '',
+            workOrderCode: dp.workOrderCode || '',
+            workOrderStatus: woStatus,
             time: dp.detectionTime || '--',
             location: roadName,
             confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
@@ -1313,9 +1412,13 @@ async function loadRoadDiseaseData() {
           const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
           let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
           const isRepaired = isRepairedStatus(dp.workOrderNo)
+          const woStatus = normalizeWoStatus(dp.workOrderNo)
           selectedDisease.value = {
             type: dp.damageType || '道路病害',
             severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            taskCode: dp.taskCode || '',
+            workOrderCode: dp.workOrderCode || '',
+            workOrderStatus: woStatus,
             time: dp.detectionTime || '--',
             location: roadName,
             confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
@@ -1335,8 +1438,8 @@ async function loadRoadDiseaseData() {
         allMarkers.push(marker)
       }
 
-      // 自适应视野到所有标记
-      if (allMarkers.length > 0) {
+      // 自适应视野到所有标记（只在首次加载时执行，后续保持用户缩放状态）
+      if (allMarkers.length > 0 && !savedMapState) {
         try { map?.setFitView(allMarkers, false, [80, 80, 80, 80]) } catch(e) {}
       }
 
@@ -1415,18 +1518,20 @@ watch([filterSeverity, filterDate, filterStatus], () => {
 
     // 应用筛选
     const filteredDps = dedupedDps.filter((dp: any) => {
-      if (filterSeverity.value && (dp.severity || "MEDIUM") !== filterSeverity.value) return false
-      if (filterDate.value && (dp.detectionTime || "").substring(0, 10) !== filterDate.value) return false
-      if (filterStatus.value) {
-        const dpStatus = normalizeWoStatus(dp.workOrderNo)
-        if (filterStatus.value === "PENDING" && dpStatus !== "pending") return false
-        if (filterStatus.value === "ASSIGNED" && dpStatus !== "assigned") return false
-        if (filterStatus.value === "COMPLETED" && dpStatus !== "completed") return false
-      }
-      return true
-    })
+        const woStatus = normalizeWoStatus(dp.workOrderNo)
+        // 默认过滤掉已修复的点
+        if (woStatus === "completed" && !filterStatus.value) return false
+        if (filterSeverity.value && (dp.severity || "MEDIUM") !== filterSeverity.value) return false
+        if (filterDate.value && (dp.detectionTime || "").substring(0, 10) !== filterDate.value) return false
+        if (filterStatus.value) {
+          if (filterStatus.value === "PENDING" && woStatus !== "pending") return false
+          if (filterStatus.value === "ASSIGNED" && woStatus !== "assigned") return false
+          if (filterStatus.value === "COMPLETED" && woStatus !== "completed") return false
+        }
+        return true
+      })
 
-    // 更新图层数字
+    // 更新图层数字（只统计未修复的点）
     const sevCounts: Record<string, number> = { HIGH: 0, MEDIUM: 0, LOW: 0 }
     for (const dp of filteredDps) {
       const sev = dp.severity || "MEDIUM"
@@ -1436,9 +1541,9 @@ watch([filterSeverity, filterDate, filterStatus], () => {
     const ml = layers.value.find(l => l.id === "sev_medium"); if (ml) ml.count = sevCounts.MEDIUM
     const ll = layers.value.find(l => l.id === "sev_low"); if (ll) ll.count = sevCounts.LOW
 
-    // 更新工单状态统计
+    // 更新工单状态统计（基于所有点，不只是筛选后的）
     const woCounts = { pending: 0, assigned: 0, completed: 0 }
-    for (const dp of filteredDps) {
+    for (const dp of dedupedDps) {
       const status = normalizeWoStatus(dp.workOrderNo)
       woCounts[status]++
     }
@@ -1516,32 +1621,40 @@ watch([filterSeverity, filterDate, filterStatus], () => {
         labelEl.innerHTML = createRoadLabel(roadName, colorInfo.fill, colorInfo.stroke)
       })
 
-      marker.on('click', () => {
-        const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
-        let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
-        const isRepaired = isRepairedStatus(dp.workOrderNo)
-        selectedDisease.value = {
-          type: dp.damageType || '道路病害',
-          severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
-          time: dp.detectionTime || '--',
-          location: roadName,
-          confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
-          size: dp.bbox || '--',
-          orderId: dp.workOrderNo || '未生成',
-          _roadName: roadName,
-          _isRoad: false,
-          _loading: false,
-          _imageSrc: imageSrc,
-        }
-      })
+        marker.on('click', () => {
+          const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
+          let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
+          const woStatus = normalizeWoStatus(dp.workOrderNo)
+          const isRepaired = woStatus === "completed"
+          selectedDisease.value = {
+            type: dp.damageType || '道路病害',
+            severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+            taskCode: dp.taskCode || '',
+            workOrderCode: dp.workOrderCode || '',
+            workOrderStatus: woStatus,
+            time: dp.detectionTime || '--',
+            location: roadName,
+            confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
+            size: dp.bbox || '--',
+            orderId: dp.workOrderNo || '未生成',
+            _roadName: roadName,
+            _isRoad: false,
+            _loading: false,
+            _imageSrc: imageSrc,
+          }
+        })
 
       innerFill.on('click', () => {
         const roadName = geocodeCache.get(`${dp.lng.toFixed(6)},${dp.lat.toFixed(6)}`) || "未知道路"
         let imageSrc = resolveImgSrc(dp.imageBase64, dp.fileUrl)
-        const isRepaired = isRepairedStatus(dp.workOrderNo)
+        const woStatus = normalizeWoStatus(dp.workOrderNo)
+        const isRepaired = woStatus === "completed"
         selectedDisease.value = {
           type: dp.damageType || '道路病害',
           severity: isRepaired ? '已维修' : (sev === 'HIGH' ? '严重' : sev === 'MEDIUM' ? '中等' : '轻微'),
+          taskCode: dp.taskCode || '',
+          workOrderCode: dp.workOrderCode || '',
+          workOrderStatus: woStatus,
           time: dp.detectionTime || '--',
           location: roadName,
           confidence: dp.confidence ? (dp.confidence * 100).toFixed(1) + '%' : '--',
@@ -1571,7 +1684,7 @@ watch([filterSeverity, filterDate, filterStatus], () => {
       }
     }
 
-    if (allMarkers.length > 0) {
+    if (allMarkers.length > 0 && !savedMapState) {
       try { map?.setFitView(allMarkers, false, [80, 80, 80, 80]) } catch(e) {}
     }
   })
@@ -1763,6 +1876,11 @@ onUnmounted(() => {
 .ds-vc-btn:hover { background:#f1f5f9; color:#2563eb; }
 .ds-vc-level { text-align:center; font-size:10px; font-weight:700; color:#94a3b8; padding:2px 0; }
 .ds-vc-locate { margin-top:2px; border-top:1px solid #eef0f4; padding-top:6px; }
+.ds-link { color: #4361ee; cursor: pointer; text-decoration: underline; }
+.ds-link:hover { color: #1d4ed8; }
+.ds-wo-status-pending { color: #ef4444; }
+.ds-wo-status-assigned { color: #f59e0b; }
+.ds-wo-status-completed { color: #22c55e; }
 .ds-sidebar { width:340px; flex-shrink:0; background:#fff; border-left:1px solid #f0f2f5; display:flex; flex-direction:column; transition:width .25s ease,margin .25s ease; overflow:hidden; }
 .ds-sidebar.collapsed { width:0; margin-right:-340px; border-left:none; }
 .ds-sidebar-inner { width:340px; height:100%; display:flex; flex-direction:column; overflow-y:auto; }
@@ -1900,7 +2018,12 @@ onUnmounted(() => {
 .ds-an-mini-val { font-size:18px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
 .ds-an-mini-lbl { font-size:10px; color:#94a3b8; margin-top:3px; }
 
-/* Road Health Dot */
+.ds-link { color: #4361ee; cursor: pointer; text-decoration: underline; }
+.ds-link:hover { color: #1d4ed8; }
+.ds-link-disabled { color: #94a3b8 !important; cursor: not-allowed; text-decoration: none !important; }
+.ds-wo-status-pending { color: #ef4444; }
+.ds-wo-status-assigned { color: #f59e0b; }
+.ds-wo-status-completed { color: #22c55e; }
 .ds-health-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 .ds-health-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:600; }
 
@@ -1908,8 +2031,8 @@ onUnmounted(() => {
 .ds-alert-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
 .ds-alert-type { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:600; flex-shrink:0; }
 
-/* Heatmap Legend */
-.ds-heatmap-legend {
+/* Disease Legend */
+.ds-disease-legend {
   position:absolute; left:14px; bottom:30px; z-index:15;
   background:rgba(255,255,255,0.95); border:1px solid #e2e8f0;
   border-radius:10px; padding:10px 14px;

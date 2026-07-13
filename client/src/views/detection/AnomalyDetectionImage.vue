@@ -79,7 +79,7 @@
       <div class="dr-empty-hint">前往「上传检测」提交检测任务，完成后即在此显示</div>
     </div>
     <div v-else class="dr-list">
-      <div v-for="t in filteredTasks" :key="t.id" :class="['dr-card', taskSeverityLevel(t) ? 'card-sev-' + taskSeverityLevel(t)!.toLowerCase() : '', { 'card-selected': isBatchMode && selectedIds.has(t.id) }]" @click="onCardClick(t)">
+      <div v-for="t in filteredTasks" :key="t.id" :class="['dr-card', taskSeverityLevel(t) ? 'card-sev-' + taskSeverityLevel(t)!.toLowerCase() : '', { 'card-selected': isBatchMode && selectedIds.has(t.id), 'card-highlighted': t.taskCode === highlightedTaskCode }]" @click="onCardClick(t)">
         <!-- 批量模式下的卡片复选框 -->
         <div v-if="isBatchMode" class="dr-card-check" @click.stop>
           <input type="checkbox" :checked="selectedIds.has(t.id)" @change="toggleSelect(t.id)" />
@@ -205,6 +205,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue"
+import { useRoute } from "vue-router"
 import { detectionApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
 import { ElMessage, ElMessageBox } from "element-plus"
@@ -215,10 +216,14 @@ function imgLoadError(e: Event) {
   (e.target as HTMLImageElement).src = defaultRoadImg;
 }
 const authStore = useAuthStore()
+const route = useRoute()
 const tasks = ref<DetectionTaskResponse[]>([])
 const loading = ref(false)
 const activeCat = ref("MANUAL_IMAGE")
 const activeSev = ref("")
+
+// 高亮状态
+const highlightedTaskCode = ref<string>("")
 
 // 批量选择状态
 const selectedIds = ref<Set<number>>(new Set())
@@ -357,7 +362,14 @@ const resultImageUrl = computed(() => {
   return 'data:image/jpeg;base64,' + v
 })
 
-onMounted(() => loadTasks())
+onMounted(() => {
+  loadTasks()
+  // 检查是否有高亮参数
+  const highlight = route.query.highlight as string
+  if (highlight) {
+    highlightedTaskCode.value = highlight
+  }
+})
 
 async function loadTasks() {
   loading.value = true
@@ -619,6 +631,18 @@ function onWheel(e: WheelEvent) {
 .dr-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:14px; }
 .dr-card { background:#fff; border:1px solid #f3f4f6; border-radius:10px; padding:0; cursor:pointer; transition:all .15s; display:flex; overflow:hidden; position:relative; }
 .dr-card:hover { border-color:#4338ca; box-shadow:0 2px 8px rgba(67,56,202,0.06); }
+
+/* 高亮样式 */
+.dr-card.card-highlighted {
+  border: 2px solid #4338ca;
+  box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.15), 0 4px 12px rgba(67, 56, 202, 0.2);
+  animation: highlightPulse 2s ease-in-out infinite;
+}
+
+@keyframes highlightPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.15), 0 4px 12px rgba(67, 56, 202, 0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(67, 56, 202, 0.08), 0 4px 12px rgba(67, 56, 202, 0.2); }
+}
 
 /* ── 严重程度卡片左侧色条 ── */
 .dr-card.card-sev-high { border-left:4px solid #dc2626; }

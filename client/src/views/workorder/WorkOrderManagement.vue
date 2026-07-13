@@ -46,7 +46,7 @@
         <table class="ds-table">
           <thead><tr><th>编号</th><th>标题</th><th>位置</th><th>等级</th><th>状态</th><th>部门</th><th>指派人</th><th style="width:240px">操作</th></tr></thead>
           <tbody>
-            <tr v-for="row in orders" :key="row.id">
+            <tr v-for="row in orders" :key="row.id" :class="{ 'row-highlighted': row.workOrderCode === highlightedWorkOrderCode }">
               <td><span class="code-tag">{{ row.workOrderCode }}</span></td>
               <td class="td-title">{{ row.title }}</td>
               <td class="td-muted">{{ row.location || '--' }}</td>
@@ -316,12 +316,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useAuthStore } from "@/stores/auth"
 import { workOrderApi, detectionApi, userApi, reportApi } from "@/api"
 import type { WorkOrderResponse, MaintenanceReportResponse } from "@/types"
 
 const authStore = useAuthStore()
+const route = useRoute()
 const isAdmin = computed(() => authStore.isAdmin)
 const isDeptAdmin = computed(() => authStore.isDeptAdmin)
 
@@ -336,6 +338,9 @@ const detailTarget = ref<WorkOrderResponse | null>(null)
 const creating = ref(false)
 const assigning = ref(false)
 const detectionInfo = ref<any>(null)
+
+// 高亮状态
+const highlightedWorkOrderCode = ref<string>("")
 
 // Assign dept modal (admin)
 const showAssignDept = ref(false)
@@ -674,6 +679,13 @@ function handleExport() {
 }
 
 onMounted(() => {
+  // 检查是否有高亮参数
+  const highlight = route.query.highlight as string
+  if (highlight) {
+    highlightedWorkOrderCode.value = highlight
+    // 自动搜索该工单编号
+    filter.keyword = highlight
+  }
   loadData()
   if (isDeptAdmin.value) loadDeptWorkers()
 })
@@ -738,6 +750,23 @@ onMounted(() => {
 .action-review { border-color:#fbbf24; color:#92400e; }
 .action-review:hover { border-color:#d97706; color:#d97706; background:#fffbeb; }
 .empty-row { text-align:center; color:#94a3b8; padding:40px 0 !important; font-size:13px; }
+
+/* 高亮样式 */
+.row-highlighted {
+  background: #eef2ff !important;
+  border-left: 4px solid #4338ca;
+  animation: rowHighlightPulse 2s ease-in-out infinite;
+}
+
+@keyframes rowHighlightPulse {
+  0%, 100% { background: #eef2ff; }
+  50% { background: #e0e7ff; }
+}
+
+/* 确保高亮行的悬停效果 */
+.row-highlighted:hover {
+  background: #e0e7ff !important;
+}
 
 .pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-top:1px solid #f0f2f5; }
 .page-info { font-size:12px; color:#94a3b8; }

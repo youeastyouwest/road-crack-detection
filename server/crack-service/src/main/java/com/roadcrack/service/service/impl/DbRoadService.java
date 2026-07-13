@@ -138,12 +138,15 @@ public class DbRoadService implements RoadService {
                 if (!medias.isEmpty()) {
                     fileUrl = medias.get(0).getFileUrl();
                 }
-                // 查该检测任务关联的工单状态
+                // 查该检测任务关联的工单状态和编号
                 String workOrderStatus = null;
+                String workOrderCode = null;
                 List<WorkOrderEntity> wos = workOrderMapper.selectList(
                     new LambdaQueryWrapper<WorkOrderEntity>().eq(WorkOrderEntity::getDetectionTaskId, task.getId()));
                 if (!wos.isEmpty()) {
-                    workOrderStatus = wos.get(wos.size() - 1).getStatus();
+                    WorkOrderEntity wo = wos.get(wos.size() - 1);
+                    workOrderStatus = wo.getStatus();
+                    workOrderCode = wo.getWorkOrderCode();
                 }
 
                 for (DetectionResultItemEntity item : items) {
@@ -167,6 +170,8 @@ public class DbRoadService implements RoadService {
                     dp.setAddress(task.getLocation());
                     dp.setImageBase64(annotatedImageUrl);
                     dp.setFileUrl(fileUrl);
+                    dp.setTaskCode(task.getTaskCode());
+                    dp.setWorkOrderCode(workOrderCode);
                     dp.setWorkOrderNo(workOrderStatus);
                     pts.add(dp);
                 }

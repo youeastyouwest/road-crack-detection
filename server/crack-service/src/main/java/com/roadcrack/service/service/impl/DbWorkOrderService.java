@@ -122,7 +122,9 @@ public class DbWorkOrderService implements WorkOrderService {
             wrapper.like(WorkOrderEntity::getAssignee, assignee);
         }
         if (keyword != null && !keyword.isBlank()) {
-            wrapper.and(item -> item.like(WorkOrderEntity::getTitle, keyword)
+            wrapper.and(item -> item.like(WorkOrderEntity::getWorkOrderCode, keyword)
+                    .or()
+                    .like(WorkOrderEntity::getTitle, keyword)
                     .or()
                     .like(WorkOrderEntity::getLocation, keyword));
         }
