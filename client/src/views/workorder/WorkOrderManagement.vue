@@ -295,7 +295,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue"
+import { ref, reactive, computed, onMounted, watch, nextTick } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useAuthStore } from "@/stores/auth"
@@ -473,6 +473,13 @@ function calcStats(records: WorkOrderResponse[]) {
   stats.completed = records.filter(r => r.status === "CLOSED").length
 }
 
+function scrollHighlightedRowIntoView() {
+  nextTick(() => {
+    const el = document.querySelector(".row-highlighted") as HTMLElement | null
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+  })
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -486,6 +493,7 @@ async function loadData() {
     orders.value = r.data.data.records
     total.value = r.data.data.total
     calcStats(r.data.data.records)
+    if (highlightedWorkOrderCode.value) scrollHighlightedRowIntoView()
   } catch { ElMessage.error(t('wo.loadFailed')) }
   loading.value = false
 }
@@ -629,6 +637,18 @@ function handleExport() {
   URL.revokeObjectURL(link.href)
   ElMessage.success(t('wo.exportSuccess', { count: rows.length }))
 }
+
+watch(
+  () => route.query.highlight,
+  (highlight) => {
+    highlightedWorkOrderCode.value = typeof highlight === "string" ? highlight : ""
+    if (highlightedWorkOrderCode.value) {
+      filter.keyword = highlightedWorkOrderCode.value
+      page.value = 1
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   // 检查是否有高亮参数

@@ -481,6 +481,9 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
         if (topItem == null) {
             return null;
         }
+        if (topItem.severityLevel() != SeverityLevel.HIGH) {
+            return null;
+        }
 
         log.info("Creating work order from detection task in memory: taskId={}, taskCode={}, damageType={}, severity={}",
                 taskId,

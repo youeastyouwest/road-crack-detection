@@ -192,7 +192,7 @@
             </div>
             <div class="res-foot">检测完成于 {{ formatTime(resultData.completedAt) }}</div>
             <div class="res-actions">
-              <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id ?? 0, resultData)">派单维修</button>
+          <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id ?? 0, resultData)">生成工单</button>
               <button v-if="authStore.isAdmin" class="btn-delete" @click.stop="handleDelete(modalTask?.id)">删除该检测结果</button>
             </div>
           </div>
@@ -221,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue"
+import { ref, computed, onMounted, watch, nextTick } from "vue"
 import { useRoute } from "vue-router"
 import { detectionApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
@@ -303,9 +303,15 @@ watch([activeCat, activeSev], () => {
   clearSelection()
 })
 
+function categoryOfTask(t: DetectionTaskResponse) {
+  return t.dataSourceType === "MANUAL_VIDEO" || t.dataSourceType === "DRONE_VIDEO"
+    ? "MANUAL_VIDEO"
+    : "MANUAL_IMAGE"
+}
+
 const categories = computed(() => {
-  const img = tasks.value.filter(t => t.dataSourceType === "MANUAL_IMAGE").length
-  const vid = tasks.value.filter(t => t.dataSourceType === "MANUAL_VIDEO").length
+  const img = tasks.value.filter(t => categoryOfTask(t) === "MANUAL_IMAGE").length
+  const vid = tasks.value.filter(t => categoryOfTask(t) === "MANUAL_VIDEO").length
   return [
     { key: "MANUAL_IMAGE", label: "图片检测", count: img },
     { key: "MANUAL_VIDEO", label: "视频检测", count: vid },
@@ -313,7 +319,7 @@ const categories = computed(() => {
 })
 
 const severityTags = computed(() => {
-  const list = tasks.value.filter(t => t.dataSourceType === activeCat.value)
+  const list = tasks.value.filter(t => categoryOfTask(t) === activeCat.value)
   return [
     { key: "", label: "全部", count: list.length, color: "#4338ca" },
     { key: "HIGH", label: "严重", count: list.filter(t => taskSeverityLevel(t) === "HIGH").length, color: "#dc2626" },
@@ -324,12 +330,28 @@ const severityTags = computed(() => {
 })
 
 const filteredTasks = computed(() => {
-  let list = tasks.value.filter(t => t.dataSourceType === activeCat.value)
+  let list = tasks.value.filter(t => categoryOfTask(t) === activeCat.value)
   if (activeSev.value) {
     list = list.filter(t => taskSeverityLevel(t) === activeSev.value)
   }
   return list
 })
+
+function scrollHighlightedCardIntoView() {
+  nextTick(() => {
+    const el = document.querySelector(".dr-card.card-highlighted") as HTMLElement | null
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+  })
+}
+
+function syncHighlightTask() {
+  if (!highlightedTaskCode.value) return
+  const target = tasks.value.find(t => t.taskCode === highlightedTaskCode.value)
+  if (!target) return
+  activeCat.value = categoryOfTask(target)
+  activeSev.value = ""
+  scrollHighlightedCardIntoView()
+}
 
 function taskSeverityLevel(t: DetectionTaskResponse) {
   // 优先使用后端列表接口返回的 highestSeverity 字段
@@ -401,9 +423,14 @@ watch(
   () => route.query.highlight,
   (highlight) => {
     highlightedTaskCode.value = typeof highlight === "string" ? highlight : ""
+    syncHighlightTask()
   },
   { immediate: true }
 )
+
+watch(tasks, () => {
+  syncHighlightTask()
+})
 
 onMounted(() => loadTasks())
 
@@ -475,11 +502,21 @@ function damageTypeLabel(t: string) {
 
 function canDispatch(data: DetectionResultResponse) {
   if (!authStore.isAdmin) return false
-  return data.items?.some(i => i.severityLevel === "HIGH")
+  return !!data.items?.length
+}
+
+function hasHighSeverity(data: DetectionResultResponse) {
+  return !!data.items?.some(i => i.severityLevel === "HIGH")
 }
 
 async function handleDispatch(taskId: number, data: DetectionResultResponse) {
   if (!taskId) return
+  if (data?.generatedWorkOrderId) {
+    ElMessage.info(hasHighSeverity(data)
+      ? "由于检测出严重病害，系统已自动生成工单，请前往工单管理查看"
+      : "该检测结果已生成工单，请前往工单管理查看")
+    return
+  }
   if (data?.generatedWorkOrderId) {
     ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
     return
@@ -504,6 +541,12 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
         window.dispatchEvent(new CustomEvent("data-updated"))
       } catch (e: any) {
         const message = e?.response?.data?.message || ""
+        if (message.includes("自动") || message.includes("已生成") || message.includes("已存在")) {
+          ElMessage.info(hasHighSeverity(data)
+            ? "由于检测出严重病害，系统已自动生成工单，请前往工单管理查看"
+            : "该检测结果已生成工单，请前往工单管理查看")
+          return
+        }
         if (message.includes("自动") || message.includes("已生成") || message.includes("已存在")) {
           ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
           return

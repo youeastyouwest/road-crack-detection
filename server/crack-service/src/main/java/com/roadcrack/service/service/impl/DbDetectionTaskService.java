@@ -825,6 +825,9 @@ public class DbDetectionTaskService implements DetectionTaskService {
         if (topItem == null) {
             return null;
         }
+        if (topItem.severityLevel() != SeverityLevel.HIGH) {
+            return null;
+        }
         log.info("Creating work order from detection task in db: taskId={}, taskCode={}, damageType={}, severity={}",
                 taskEntity.getId(),
                 taskEntity.getTaskCode(),

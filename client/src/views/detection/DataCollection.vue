@@ -457,12 +457,18 @@ function severityDesc(s: string) {
 }
 
 function canDispatch(data: any) {
-  return data?.items?.some((i: any) => i.severityLevel === "HIGH")
+  return !!data?.items?.length
+}
+
+function hasHighSeverity(data: any) {
+  return !!data?.items?.some((i: any) => i.severityLevel === "HIGH")
 }
 
 async function handleDispatch(taskId: number, data: any) {
   if (data?.generatedWorkOrderId) {
-    ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
+    ElMessage.info(hasHighSeverity(data)
+      ? "由于检测出严重病害，系统已自动生成工单，请前往工单管理查看"
+      : "该检测结果已生成工单，请前往工单管理查看")
     return
   }
 
@@ -498,7 +504,9 @@ async function handleDispatch(taskId: number, data: any) {
       } catch (e: any) {
         const message = e?.response?.data?.message || ""
         if (message.includes("自动") || message.includes("已生成") || message.includes("已存在")) {
-          ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
+          ElMessage.info(hasHighSeverity(data)
+            ? "由于检测出严重病害，系统已自动生成工单，请前往工单管理查看"
+            : "该检测结果已生成工单，请前往工单管理查看")
           return
         }
         ElMessage.error("生成失败")
