@@ -1,6 +1,7 @@
-﻿import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from "axios"
+import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from "axios"
 import { ElMessage } from "element-plus"
 import router from "@/router"
+import { clearAuthStorage, getAuthItem } from "@/utils/authStorage"
 
 const http: AxiosInstance = axios.create({
   baseURL: "/api",
@@ -9,15 +10,15 @@ const http: AxiosInstance = axios.create({
 })
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem("accessToken")
+  const token = getAuthItem("accessToken")
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`
   }
-  const userId = localStorage.getItem("userId")
+  const userId = getAuthItem("userId")
   if (userId && config.headers) {
     config.headers["X-User-Id"] = userId
   }
-  const userName = localStorage.getItem("realName") || localStorage.getItem("username")
+  const userName = getAuthItem("realName") || getAuthItem("username")
   if (userName && config.headers) {
     config.headers["X-User-Name"] = userName
   }
@@ -32,7 +33,7 @@ http.interceptors.response.use(
     if (error.response?.status === 401) {
       // 登录/注册接口的 401 由业务代码自行处理，不做全局拦截
       if (!isAuthEndpoint) {
-        localStorage.clear()
+        clearAuthStorage()
         router.push("/login")
         ElMessage.error("登录已过期，请重新登录")
       }

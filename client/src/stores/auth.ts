@@ -4,14 +4,15 @@ import { authApi, userApi } from "@/api"
 import type { LoginRequest } from "@/types"
 import { RoleCode, MAINTENANCE_ROLES, DEPT_ADMIN_ROLES } from "@/types"
 import router from "@/router"
+import { clearAuthStorage, getAuthItem, setAuthItem } from "@/utils/authStorage"
 
 export const useAuthStore = defineStore("auth", () => {
-  const token = ref(localStorage.getItem("accessToken") || "")
-  const refreshToken = ref(localStorage.getItem("refreshToken") || "")
-  const userId = ref(Number(localStorage.getItem("userId")) || 0)
-  const username = ref(localStorage.getItem("username") || "")
-  const realName = ref(localStorage.getItem("realName") || "")
-  const roles = ref<string[]>(JSON.parse(localStorage.getItem("roles") || "[]"))
+  const token = ref(getAuthItem("accessToken") || "")
+  const refreshToken = ref(getAuthItem("refreshToken") || "")
+  const userId = ref(Number(getAuthItem("userId")) || 0)
+  const username = ref(getAuthItem("username") || "")
+  const realName = ref(getAuthItem("realName") || "")
+  const roles = ref<string[]>(JSON.parse(getAuthItem("roles") || "[]"))
   const userDetail = ref<any>(null)
 
   const isLoggedIn = computed(() => !!token.value)
@@ -78,12 +79,12 @@ export const useAuthStore = defineStore("auth", () => {
     username.value = d.username
     realName.value = d.realName
     roles.value = d.roles
-    localStorage.setItem("accessToken", d.accessToken)
-    localStorage.setItem("refreshToken", d.refreshToken)
-    localStorage.setItem("userId", String(d.userId))
-    localStorage.setItem("username", d.username)
-    localStorage.setItem("realName", d.realName)
-    localStorage.setItem("roles", JSON.stringify(d.roles))
+    setAuthItem("accessToken", d.accessToken)
+    setAuthItem("refreshToken", d.refreshToken)
+    setAuthItem("userId", String(d.userId))
+    setAuthItem("username", d.username)
+    setAuthItem("realName", d.realName)
+    setAuthItem("roles", JSON.stringify(d.roles))
     await fetchUserDetail()
     if (isAdmin.value) router.push("/dashboard")
     else if (isDeptAdmin.value) router.push("/dept-orders")
@@ -107,7 +108,7 @@ export const useAuthStore = defineStore("auth", () => {
     realName.value = ""
     roles.value = []
     userDetail.value = null
-    localStorage.clear()
+    clearAuthStorage()
     router.push("/login")
   }
 

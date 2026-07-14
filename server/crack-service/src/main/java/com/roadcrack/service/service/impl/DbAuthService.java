@@ -42,6 +42,7 @@ public class DbAuthService implements AuthService {
 
     private static final int REGISTER_CODE_TYPE = 1;
     private static final int RESET_PASSWORD_CODE_TYPE = 2;
+    private static final String DEFAULT_REGISTER_ROLE_CODE = "ROLE_CROWDSOURCE";
 
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
@@ -181,16 +182,12 @@ public class DbAuthService implements AuthService {
         user.setLoginFailCount(0);
         userMapper.insert(user);
 
-        RoleEntity defaultRole = roleMapper.selectOne(new LambdaQueryWrapper<RoleEntity>()
-                .eq(RoleEntity::getCode, "ROLE_CROWDSOURCE")
-                .last("limit 1"));
-        if (defaultRole != null) {
-            UserRoleEntity relation = new UserRoleEntity();
-            relation.setUserId(user.getId());
-            relation.setRoleId(defaultRole.getId());
-            relation.setCreateTime(LocalDateTime.now());
-            userRoleMapper.insert(relation);
-        }
+        RoleEntity registerRole = resolveRegisterRole(request.roleId());
+        UserRoleEntity relation = new UserRoleEntity();
+        relation.setUserId(user.getId());
+        relation.setRoleId(registerRole.getId());
+        relation.setCreateTime(LocalDateTime.now());
+        userRoleMapper.insert(relation);
     }
 
     @Override
@@ -301,5 +298,27 @@ public class DbAuthService implements AuthService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private RoleEntity resolveRegisterRole(Long roleId) {
+        RoleEntity role;
+        if (roleId != null) {
+            role = roleMapper.selectById(roleId);
+            if (role == null) {
+                throw new BusinessException(ResultCode.BAD_REQUEST, "selected role does not exist");
+            }
+        } else {
+            role = roleMapper.selectOne(new LambdaQueryWrapper<RoleEntity>()
+                    .eq(RoleEntity::getCode, DEFAULT_REGISTER_ROLE_CODE)
+                    .last("limit 1"));
+        }
+
+        if (role == null) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "default register role is not configured");
+        }
+        if (!Integer.valueOf(1).equals(role.getStatus())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "selected role is disabled");
+        }
+        return role;
     }
 }

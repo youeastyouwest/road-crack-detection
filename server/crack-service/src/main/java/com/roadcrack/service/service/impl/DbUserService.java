@@ -160,6 +160,14 @@ public class DbUserService implements UserService {
         UserEntity user = requireUser(id);
         String username = user.getUsername();
         String realName = user.getRealName();
+        String email = user.getEmail();
+
+        // Release unique fields before logical deletion so the same account can be recreated later.
+        user.setUsername(buildDeletedValue(username, id, 64));
+        if (hasText(email)) {
+            user.setEmail(buildDeletedValue(email, id, 128));
+        }
+        userMapper.updateById(user);
 
         userRoleMapper.delete(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getUserId, id));
         userMapper.deleteById(id);
@@ -295,5 +303,15 @@ public class DbUserService implements UserService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String buildDeletedValue(String originalValue, Long id, int maxLength) {
+        String suffix = "_deleted_" + id + "_" + System.currentTimeMillis();
+        if (!hasText(originalValue)) {
+            return suffix.length() <= maxLength ? suffix : suffix.substring(0, maxLength);
+        }
+        int prefixLength = Math.max(0, maxLength - suffix.length());
+        String prefix = originalValue.length() > prefixLength ? originalValue.substring(0, prefixLength) : originalValue;
+        return prefix + suffix;
     }
 }

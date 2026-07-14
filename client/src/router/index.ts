@@ -1,7 +1,8 @@
-﻿import { createRouter, createWebHistory } from "vue-router"
+import { createRouter, createWebHistory } from "vue-router"
 import type { RouteRecordRaw } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { RoleCode, MAINTENANCE_ROLES, DEPT_ADMIN_ROLES } from "@/types"
+import { getAuthItem } from "@/utils/authStorage"
 
 const routes: RouteRecordRaw[] = [
   {
@@ -208,11 +209,11 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   document.title = `${to.meta.title || "途安智巡"} - 途安智巡`
   if (to.meta.requiresAuth === false || to.name === "Login") return next()
-  const token = localStorage.getItem("accessToken")
+  const token = getAuthItem("accessToken")
   if (!token) return next("/login")
   try {
     const authStore = useAuthStore()
-    const userRoles = authStore.roles.length > 0 ? authStore.roles : JSON.parse(localStorage.getItem("roles") || "[]")
+    const userRoles = authStore.roles.length > 0 ? authStore.roles : JSON.parse(getAuthItem("roles") || "[]")
     const allRoles = to.matched.map(r => r.meta?.roles).filter(Boolean).flat() as string[]
     if (allRoles.length > 0) {
       const hasAccess = userRoles.some((r: string) => allRoles.includes(r))
