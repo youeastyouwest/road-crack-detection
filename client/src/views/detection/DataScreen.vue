@@ -566,7 +566,7 @@ async function loadStats() {
 
 async function loadDiseaseData() {
   try {
-    const res = await detectionApi.list({ status: "COMPLETED", size: 100 })
+    const res = await detectionApi.list({ status: "COMPLETED" as any, size: 100 })
     const tasks = res.data.data?.records || []
     diseaseList.value = tasks
     console.log("loadDiseaseData: got", tasks.length, "completed tasks")

@@ -54,7 +54,7 @@
             <div class="tl-head">
               <span class="tl-title">{{ t.title }}</span>
               <span :class="['tl-badge', badgeClass(t)]">{{ statusText(t.status) }}</span>
-              <span v-if="isOverdue(t)" class="tl-badge badge-overdue">{{ t('maint.overdue') }}</span>
+              <span v-if="isOverdue(t)" class="tl-badge badge-overdue">{{ translate('maint.overdue') }}</span>
             </div>
             <div class="tl-meta">
               <span class="tl-meta-item" v-if="t.location">
@@ -77,11 +77,11 @@
               <div class="tl-report" v-if="getReport(t.id)" :key="'rpt-' + t.id">
                 <div class="tl-report-head">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span class="tl-report-code">{{ getReport(t.id)!.reportCode || t('maint.reportCode') + getReport(t.id)!.id }}</span>
-                  <span class="tl-report-executor">{{ t('maint.executor') }}: {{ getReport(t.id)!.executor }}</span>
+                  <span class="tl-report-code">{{ getReport(t.id)!.reportCode || translate('maint.reportCode') + getReport(t.id)!.id }}</span>
+                  <span class="tl-report-executor">{{ translate('maint.executor') }}: {{ getReport(t.id)!.executor }}</span>
                   <span class="tl-report-date">{{ formatDate(getReport(t.id)!.finishedAt) }}</span>
                 </div>
-                <div v-if="getReport(t.id)!.materials" class="tl-report-materials">{{ t('maint.materials') }}: {{ getReport(t.id)!.materials }}</div>
+                <div v-if="getReport(t.id)!.materials" class="tl-report-materials">{{ translate('maint.materials') }}: {{ getReport(t.id)!.materials }}</div>
                 <div v-if="getReport(t.id)!.description" class="tl-report-desc">{{ getReport(t.id)!.description }}</div>
               </div>
             </template>
@@ -104,6 +104,7 @@ import { t } from "@/i18n"
 import type { WorkOrderResponse, MaintenanceReportResponse, WorkOrderStatus } from "@/types"
 
 const loading = ref(false)
+const translate = t
 const workOrders = ref<WorkOrderResponse[]>([])
 const reportMap = ref<Map<number, MaintenanceReportResponse>>(new Map())
 const filterStatus = ref("")

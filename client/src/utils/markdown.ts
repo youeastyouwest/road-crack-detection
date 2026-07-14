@@ -1,40 +1,35 @@
 /**
- * 轻量 Markdown → HTML 转换器（无需额外依赖）
- * 支持：**粗体**、*斜体*、`代码`、> 引用、列表、链接、换行
+ * Lightweight Markdown to HTML converter for agent replies.
+ * Supports headings, emphasis, code, quotes, lists, links, and line breaks.
  */
 export function renderMarkdown(text: string): string {
   if (!text) return ""
 
-  // 把输入里已有的 HTML 换行标签先转成普通换行，避免转义后暴露 <br> 文本
   text = text.replace(/<br\s*\/?>/gi, "\n")
 
   let html = escapeHtml(text)
 
-  // 代码块 ```...```
   html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
-
-  // 行内代码 `...`
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
-
-  // 粗体 **...**
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-
-  // 斜体 *...*（排除已处理的 strong 标签）
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>")
 
-  // 引用 > ...
+  html = html.replace(/^######\s+(.+)$/gm, "<h6>$1</h6>")
+  html = html.replace(/^#####\s+(.+)$/gm, "<h5>$1</h5>")
+  html = html.replace(/^####\s+(.+)$/gm, "<h4>$1</h4>")
+  html = html.replace(/^###\s+(.+)$/gm, "<h3>$1</h3>")
+  html = html.replace(/^##\s+(.+)$/gm, "<h2>$1</h2>")
+  html = html.replace(/^#\s+(.+)$/gm, "<h1>$1</h1>")
+
   html = html.replace(/^&gt;\s?(.+)$/gm, "<blockquote>$1</blockquote>")
+  html = html.replace(/^(\s*)[-*]\s+(.+)$/gm, '<li data-list="ul">$2</li>')
+  html = html.replace(/^(\s*)\d+\.\s+(.+)$/gm, '<li data-list="ol">$2</li>')
 
-  // 无序列表 - ... 或 * ...
-  html = html.replace(/^(\s*)[-\*]\s+(.+)$/gm, "<li>$2</li>")
+  html = wrapListBlocks(html, "ul")
+  html = wrapListBlocks(html, "ol")
 
-  // 包裹相邻的 <li> 为 <ul>
-  html = html.replace(/(<li>.*<\/li>)(\s*(?!<li>))/g, "<ul>$1</ul>$2")
-
-  // 链接 [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
 
-  // 换行 → <br>（排除已包裹在块级元素内的）
   html = html
     .split("\n")
     .map((line) => {
@@ -44,8 +39,16 @@ export function renderMarkdown(text: string): string {
         trimmed.startsWith("</pre>") ||
         trimmed.startsWith("<blockquote>") ||
         trimmed.startsWith("</blockquote>") ||
+        trimmed.startsWith("<h1>") ||
+        trimmed.startsWith("<h2>") ||
+        trimmed.startsWith("<h3>") ||
+        trimmed.startsWith("<h4>") ||
+        trimmed.startsWith("<h5>") ||
+        trimmed.startsWith("<h6>") ||
         trimmed.startsWith("<ul>") ||
         trimmed.startsWith("</ul>") ||
+        trimmed.startsWith("<ol>") ||
+        trimmed.startsWith("</ol>") ||
         trimmed.startsWith("<li>") ||
         trimmed === ""
       ) {
@@ -63,4 +66,10 @@ function escapeHtml(str: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+}
+
+function wrapListBlocks(html: string, listType: "ul" | "ol"): string {
+  const itemPattern = new RegExp(`((?:<li data-list="${listType}">.*?<\\/li>\\n?)+)`, "g")
+  const attrPattern = new RegExp(` data-list="${listType}"`, "g")
+  return html.replace(itemPattern, (block) => `<${listType}>${block.replace(attrPattern, "")}</${listType}>`)
 }

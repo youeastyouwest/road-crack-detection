@@ -77,7 +77,7 @@
             <div class="detail-item"><label>{{ t("road.laneCount") }}</label><span>{{ detailTarget?.laneCount != null ? detailTarget?.laneCount : '--' }}</span></div>
             <div class="detail-item"><label>{{ t("road.surfaceType") }}</label><span>{{ detailTarget?.surfaceType || '--' }}</span></div>
             <div class="detail-item"><label>{{ t("road.builtYear") }}</label><span>{{ detailTarget?.builtYear || '--' }}</span></div>
-            <div class="detail-item"><label>{{ t("road.healthScore") }}</label><span :style="{color: detailTarget?.healthScore >= 80 ? '#16a34a' : detailTarget?.healthScore >= 60 ? '#d97706' : '#dc2626', fontWeight: 700}">{{ detailTarget?.healthScore != null ? detailTarget?.healthScore + ' (' + healthLabel(detailTarget?.healthScore) + ')' : '--' }}</span></div>
+            <div class="detail-item"><label>{{ t("road.healthScore") }}</label><span :style="{color: healthColor(detailTarget?.healthScore), fontWeight: 700}">{{ detailTarget?.healthScore != null ? detailTarget?.healthScore + ' (' + healthLabel(detailTarget?.healthScore) + ')' : '--' }}</span></div>
             <div class="detail-item"><label>{{ t("road.damageLevel") }}</label><span>{{ damageLevelLabel(detailTarget?.damageLevel) }}</span></div>
             <div class="detail-item"><label>{{ t("common.status") }}</label><span>{{ statusLabel(detailTarget?.status) }}</span></div>
             <div class="detail-item"><label>{{ t("road.responsibleDept") }}</label><span>{{ detailTarget?.departmentCode || '--' }}</span></div>
@@ -138,6 +138,12 @@ function healthLabel(score?: number) {
   if (score >= 80) return t("severity.good")
   if (score >= 60) return t("severity.normal")
   return t("severity.low")
+}
+function healthColor(score?: number) {
+  if (score == null) return "#64748b"
+  if (score >= 80) return "#16a34a"
+  if (score >= 60) return "#d97706"
+  return "#dc2626"
 }
 function statusCls(s?: string) {
   if (s === 'ACTIVE') return 'sta-active'

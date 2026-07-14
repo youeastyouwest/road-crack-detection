@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed } from "vue"
+import { ref, nextTick } from "vue"
 import { agentApi } from "@/api/agent"
 import { ElMessage } from "element-plus"
 import { t } from "@/i18n"
@@ -70,12 +70,20 @@ const typing = ref(false)
 const showReport = ref(false)
 const reportContent = ref("")
 
+type ChatMessage = {
+  role: "user" | "ai"
+  content: string
+  time: string
+  showGenerate?: boolean
+  dataSource?: string
+}
+
 function getTime() {
   const n = new Date()
   return String(n.getHours()).padStart(2,"0") + ":" + String(n.getMinutes()).padStart(2,"0")
 }
 
-const messages = ref([
+const messages = ref<ChatMessage[]>([
   { role: "ai", content: t('agent.welcome'), time: getTime(), showGenerate: false }
 ])
 
@@ -93,7 +101,7 @@ const replies: Record<string, string> = {
 async function send() {
   const text = input.value.trim()
   if (!text || typing.value) return
-  messages.value.push({ role: "user", content: text, time: getTime() })
+  messages.value.push({ role: "user", content: text, time: getTime(), showGenerate: false })
   input.value = ""
   scrollBottom()
   typing.value = true
@@ -108,7 +116,7 @@ async function send() {
   scrollBottom()
 }
 
-function generateReport(msg: any) {
+function generateReport(msg: ChatMessage) {
   // Optional: generate analysis report from the AI response
   const now = new Date()
   const dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0")
@@ -117,7 +125,7 @@ function generateReport(msg: any) {
     <p style="color:#64748b;font-size:13px">${t('agent.reportDateLabel')}：${dateStr} | ${t('agent.reportDataSource')}</p>
     <hr style="border:none;border-top:1px solid #eef0f4;margin:12px 0">
     <div style="font-size:13px;line-height:1.8">
-      ${msg.content}
+      ${renderMarkdown(msg.content)}
       <br><br>
       <strong>${t('agent.reportConclusion')}</strong><br>
       ${t('agent.reportAdvice')}
@@ -156,6 +164,14 @@ function downloadReport() {
 .msg-bubble { padding:10px 14px; border-radius:10px; font-size:13px; line-height:1.6; word-break:break-word; }
 .msg-row.ai .msg-bubble { background:#f1f5f9; color:#1a202c; border-bottom-left-radius:4px; }
 .msg-row.user .msg-bubble { background:#2563eb; color:#fff; border-bottom-right-radius:4px; }
+.msg-bubble ::v-deep h1, .msg-bubble ::v-deep h2, .msg-bubble ::v-deep h3, .msg-bubble ::v-deep h4, .msg-bubble ::v-deep h5, .msg-bubble ::v-deep h6, .report-preview ::v-deep h1, .report-preview ::v-deep h2, .report-preview ::v-deep h3, .report-preview ::v-deep h4, .report-preview ::v-deep h5, .report-preview ::v-deep h6 { margin:10px 0 6px; line-height:1.4; color:#0f172a; }
+.msg-bubble ::v-deep h1, .report-preview ::v-deep h1 { font-size:18px; }
+.msg-bubble ::v-deep h2, .report-preview ::v-deep h2 { font-size:16px; }
+.msg-bubble ::v-deep h3, .report-preview ::v-deep h3 { font-size:14px; }
+.msg-bubble ::v-deep h4, .report-preview ::v-deep h4 { font-size:13px; }
+.msg-bubble ::v-deep h5, .report-preview ::v-deep h5 { font-size:12px; }
+.msg-bubble ::v-deep h6, .report-preview ::v-deep h6 { font-size:12px; }
+.msg-row.user .msg-bubble ::v-deep h1, .msg-row.user .msg-bubble ::v-deep h2, .msg-row.user .msg-bubble ::v-deep h3, .msg-row.user .msg-bubble ::v-deep h4, .msg-row.user .msg-bubble ::v-deep h5, .msg-row.user .msg-bubble ::v-deep h6 { color:#fff; }
 .msg-bubble ::v-deep strong { font-weight:600; color:#0f172a; }
 .msg-row.user .msg-bubble ::v-deep strong { color:#fff; }
 .msg-bubble ::v-deep em { font-style:italic; color:#475569; }
@@ -193,6 +209,8 @@ function downloadReport() {
 .modal-close { width:26px; height:26px; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border:none; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:12px; }
 .modal-body { padding:20px; }
 .report-preview { font-size:13px; line-height:1.8; color:#334155; }
+.report-preview ::v-deep ul, .report-preview ::v-deep ol { margin:8px 0; padding-left:18px; }
+.report-preview ::v-deep li { margin-bottom:4px; }
 .modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #f0f2f5; }
 .btn-ghost { padding:7px 16px; border:1px solid #e2e8f0; border-radius:6px; background:#fff; font-size:12px; color:#475569; cursor:pointer; font-family:inherit; }
 .btn-ghost:hover { border-color:#2563eb; color:#2563eb; }

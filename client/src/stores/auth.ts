@@ -27,8 +27,8 @@ export const useAuthStore = defineStore("auth", () => {
   const isViewer = computed(() => primaryRole.value === RoleCode.VIEWER)
 
   // ─── Group helpers ───
-  const isDeptAdmin = computed(() => DEPT_ADMIN_ROLES.includes(primaryRole.value))
-  const isMaintenance = computed(() => MAINTENANCE_ROLES.includes(primaryRole.value))
+  const isDeptAdmin = computed(() => DEPT_ADMIN_ROLES.includes(primaryRole.value as typeof DEPT_ADMIN_ROLES[number]))
+  const isMaintenance = computed(() => MAINTENANCE_ROLES.includes(primaryRole.value as typeof MAINTENANCE_ROLES[number]))
 
   const deptCode = computed(() => {
     const map: Record<string, string> = {

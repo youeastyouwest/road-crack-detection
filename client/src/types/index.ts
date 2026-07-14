@@ -136,6 +136,7 @@ export interface DiseasePoint {
   detectionTime: string
   address: string
   workOrderNo: string
+  area?: number
   imageBase64?: string
   fileUrl?: string
   bbox?: string

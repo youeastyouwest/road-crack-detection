@@ -45,6 +45,22 @@ CREATE TABLE IF NOT EXISTS detection_result (
     CONSTRAINT fk_detection_result_task FOREIGN KEY (task_id) REFERENCES detection_task(id) ON DELETE CASCADE
 );
 
+SET @keyframe_urls_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'detection_result'
+      AND COLUMN_NAME = 'keyframe_urls'
+);
+SET @keyframe_urls_ddl = IF(
+    @keyframe_urls_exists = 0,
+    'ALTER TABLE detection_result ADD COLUMN keyframe_urls TEXT NULL AFTER annotated_image_url',
+    'SELECT 1'
+);
+PREPARE stmt FROM @keyframe_urls_ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS detection_result_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     result_id BIGINT NOT NULL,

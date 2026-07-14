@@ -116,7 +116,7 @@ const allRoads = ref<RoadDiseaseSummaryResponse[]>([])
 const filterRoad = ref<number | undefined>(undefined)
 const filterSeverity = ref<string | undefined>(undefined)
 
-const stats = ref([
+const stats = ref<Array<{ label: string; value: number | string; color: string }>>([
   { label: '总道路数', value: 0, color: '#4361ee' },
   { label: '病害总数', value: 0, color: '#dc2626' },
   { label: '高危路段', value: 0, color: '#7F1D1D' },

@@ -327,7 +327,7 @@ public class HttpAlgorithmClient implements AlgorithmClient {
                             }
                             String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
                             rawItems.add(new DetectionItemResponse(
-                                parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
+                                null, parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
                         }
                     }
                 }

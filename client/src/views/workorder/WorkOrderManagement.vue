@@ -457,8 +457,8 @@ function reportStatusLabel(s?: string) {
 function deptLabel(code: string) {
   return ({ ROAD_ADMIN: t('wo.deptRoadAdmin'), SANITATION: t('wo.deptSanitation'), TRAFFIC_POLICE: t('wo.deptTrafficPolice') } as any)[code] || code || "--"
 }
-function damageTypeLabel(t: string) {
-  return ({ CRACK: t('damage.crack'), TRANSVERSE_CRACK: t('damage.transverseCrack'), LONGITUDINAL_CRACK: t('damage.longitudinalCrack'), NET_CRACK: t('damage.netCrack'), POTHOLE: t('damage.pothole'), MARKING_DAMAGE: t('damage.markingDamage'), ROAD_SPILL: t('damage.roadSpill'), UNKNOWN: t('damage.unknown') } as any)[t] || t || "--"
+function damageTypeLabel(typeCode: string) {
+  return ({ CRACK: t('damage.crack'), TRANSVERSE_CRACK: t('damage.transverseCrack'), LONGITUDINAL_CRACK: t('damage.longitudinalCrack'), NET_CRACK: t('damage.netCrack'), POTHOLE: t('damage.pothole'), MARKING_DAMAGE: t('damage.markingDamage'), ROAD_SPILL: t('damage.roadSpill'), UNKNOWN: t('damage.unknown') } as any)[typeCode] || typeCode || "--"
 }
 
 function calcStats(records: WorkOrderResponse[]) {

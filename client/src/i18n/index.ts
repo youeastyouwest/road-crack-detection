@@ -1,4 +1,4 @@
-import { ref, computed } from "vue"
+﻿import { ref, computed } from "vue"
 
 export type Locale = "zh-CN" | "en"
 
@@ -238,7 +238,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "ds.locate": "定位",
     "ds.chatPlaceholder": "输入您的问题，例如：今日病害统计",
     "ds.chatDefault": "您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。",
-    "ds.chatNoService": "AI 服务暂时不可用，以下是基于当前地图数据的回复：",
     "ds.notGenerated": "未生成",
     "ds.suggestRepair": "建议尽快安排修复处理",
     "ds.repaired_status": "已维修",
@@ -751,11 +750,9 @@ const messages: Record<Locale, Record<string, string>> = {
     "status.failed": "失败",
     "status.new": "新增",
     "status.repaired": "已修复",
-    "status.pendingAssignment": "待指派",
     "status.pendingDeptReview": "待部门审核",
     "status.pendingAdminReview": "待终审",
     "status.rejected": "已驳回",
-    "status.repaired": "已修复",
 
     // ======== 补充：工单详情/操作 ========
     "wo.detail": "工单详情",
@@ -1009,7 +1006,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "dc.detecting": "正在检测中",
     "dc.detectingTip": "视频文件较大，AI 正在逐帧分析中，请耐心等待...",
     "dc.detectingVideo": "视频检测需要较长时间，AI 正在逐帧分析中...",
-    "dc.submitting": "提交中...",
     "dc.uploadTimeout": "上传超时，可能是文件过大或网络较慢，请重试",
     "dc.dispatchConfirm": "确定要为该检测结果创建维修工单吗？",
     "dc.dispatchTitle": "生成工单",
@@ -1434,7 +1430,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "ds.locate": "Locate",
     "ds.chatPlaceholder": "Enter your question, e.g.: Today's damage statistics",
     "ds.chatDefault": "Hello! I'm the road damage AI assistant. I can analyze detection data, query damage details, or generate reports.",
-    "ds.chatNoService": "AI service is temporarily unavailable. Here's a response based on current map data:",
     "ds.notGenerated": "Not generated",
     "ds.suggestRepair": "Schedule repair as soon as possible",
     "ds.repaired_status": "Repaired",
@@ -1930,7 +1925,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "status.failed": "Failed",
     "status.new": "New",
     "status.repaired": "Repaired",
-    "status.pendingAssignment": "Pending Assignment",
     "status.pendingDeptReview": "Department Review",
     "status.pendingAdminReview": "Final Review",
     "status.rejected": "Rejected",
@@ -2010,7 +2004,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "ds.chatNoData": "No road damage data available",
     "ds.chatHelpText": "I'm the road damage AI assistant. You can ask me:<br>- Roads with most damage<br>- Severe damage distribution<br>- Damage statistics<br>- Road damage ranking",
     "ds.chatStats": "Current damage statistics:<br>- Total: {total}<br>- Severe: {high}<br>- Medium: {medium}<br>- Minor: {low}",
-    "ds.chatNoService": "AI service temporarily unavailable. Here's a response based on current map data:<br>- Total: {total}<br>- Severe: {high}<br>- Medium: {medium}<br>- Minor: {low}<br><br>You can ask me: roads with most damage, severe damage distribution, statistics, etc.",
 
     "detect.title": "Detection Records",
     "detect.desc": "View road detection results for your department",
@@ -2021,6 +2014,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "detect.unknownRoad": "Unknown Road",
     "detect.location": "Location: {loc}",
     "detect.crackCount": "Crack Count: {count}",
+    "ds.chatNoService": "AI service temporarily unavailable. Here's a response based on current map data:<br>- Total: {total}<br>- Severe: {high}<br>- Medium: {medium}<br>- Minor: {low}<br><br>You can ask me: roads with most damage, severe damage distribution, statistics, etc.",
     "detect.noRecords": "No detection records",
 
     "reportData.title": "Report Data",
@@ -2118,7 +2112,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "dc.remark": "Remark",
     "dc.remarkPlaceholder": "Enter remarks...",
     "dc.submit": "Submit Detection",
-    "dc.submitting": "Submitting...",
     "dc.searchPlaceholder": "Click on map to select location",
     "dc.searchBtn": "Search",
     "dc.taskCode": "Code",
@@ -2129,6 +2122,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "dc.statusPending": "Pending",
     "dc.statusProcessing": "Processing",
     "dc.completed": "Completed",
+    "dc.submitting": "Submitting...",
     "dc.viewResult": "View Result",
     "dc.noRecords": "No detection records",
     "dc.lngLat": "Lng {lng}, {lat}",
@@ -2173,7 +2167,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "dc.detecting": "Detecting",
     "dc.detectingTip": "Video is large, AI is analyzing frame by frame, please wait...",
     "dc.detectingVideo": "Video detection may take a while, AI is analyzing frame by frame...",
-    "dc.submitting": "Submitting...",
     "dc.uploadTimeout": "Upload timeout, file may be too large or network slow, please retry",
     "dc.dispatchConfirm": "Create a repair work order for this detection result?",
     "dc.dispatchTitle": "Create Work Order",
@@ -2388,3 +2381,4 @@ export function t(key: string, params?: Record<string, string | number>): string
 }
 
 export const currentLocale = computed(() => locale.value)
+

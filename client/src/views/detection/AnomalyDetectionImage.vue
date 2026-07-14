@@ -140,12 +140,29 @@
               </div>
             </div>
             <!-- File Preview -->
-            <div v-if="resultImageUrl || modalTask?.fileUrl" class="res-file-preview">
-              <img v-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" @click="openImagePreview(resultImageUrl)" />
-              <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" @click="openImagePreview(modalTask.fileUrl)" />
-              <video v-else-if="modalTask?.dataSourceType==='MANUAL_VIDEO'" :src="modalTask.fileUrl" class="res-preview-video" muted controls></video>
-              <div class="res-file-name">{{ modalTask.fileName || (resultData.items?.length || 0) + ' 项检测' }}</div>
-              <div v-if="resultImageUrl || (modalTask?.dataSourceType==='MANUAL_IMAGE' && modalTask?.fileUrl)" class="res-zoom-hint">🔍 点击图片查看大图</div>
+            <div v-if="(hasVideoArtifacts && preferredVideoUrl) || (!hasVideoArtifacts && (resultImageUrl || modalTask?.fileUrl))" class="res-file-preview">
+              <template v-if="hasVideoArtifacts">
+                <video :src="preferredVideoUrl" class="res-preview-video" controls></video>
+                <div v-if="resultVideoUrl && resultVideoUrl !== preferredVideoUrl" class="res-video-hint">浏览器优先预览原始 MP4，标注结果请看下方关键帧</div>
+              </template>
+              <img v-else-if="resultImageUrl" :src="resultImageUrl" class="res-preview-img" alt="Detection Result" @error="imgLoadError($event)" @click="openImagePreview(resultImageUrl || '')" />
+              <img v-else-if="modalTask?.dataSourceType==='MANUAL_IMAGE'" :src="modalTask.fileUrl" class="res-preview-img" @error="imgLoadError($event)" @click="openImagePreview(modalTask.fileUrl || '')" />
+              <div class="res-file-name">{{ modalTask?.fileName || (resultData.items?.length || 0) + ' 项检测' }}</div>
+              <div v-if="!hasVideoArtifacts && (resultImageUrl || (modalTask?.dataSourceType==='MANUAL_IMAGE' && modalTask?.fileUrl))" class="res-zoom-hint">🔍 点击图片查看大图</div>
+            </div>
+            <div v-if="resultKeyframeUrls.length" class="res-keyframes">
+              <div class="res-keyframes-title">视频关键帧</div>
+              <div class="res-keyframes-grid">
+                <img
+                  v-for="(url, index) in resultKeyframeUrls"
+                  :key="url"
+                  :src="url"
+                  :alt="`关键帧 ${index + 1}`"
+                  class="res-keyframe-thumb"
+                  @error="imgLoadError($event)"
+                  @click="openImagePreview(url)"
+                />
+              </div>
             </div>
             <div class="res-items">
               <div v-for="(item, i) in resultData.items" :key="i" class="res-item">
@@ -175,7 +192,7 @@
             </div>
             <div class="res-foot">检测完成于 {{ formatTime(resultData.completedAt) }}</div>
             <div class="res-actions">
-              <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id, resultData)">派单维修</button>
+              <button v-if="canDispatch(resultData)" class="btn-dispatch" @click.stop="handleDispatch(modalTask?.id ?? 0, resultData)">派单维修</button>
               <button v-if="authStore.isAdmin" class="btn-delete" @click.stop="handleDelete(modalTask?.id)">删除该检测结果</button>
             </div>
           </div>
@@ -357,6 +374,25 @@ const resultImageUrl = computed(() => {
   return 'data:image/jpeg;base64,' + v
 })
 
+const resultVideoUrl = computed(() => {
+  const v = resultData.value?.imageBase64
+  if (!v) return ''
+  if (!(v.startsWith('/') || v.startsWith('http'))) return ''
+  return /\.(mp4|webm|ogg|avi)$/i.test(v) ? v : ''
+})
+
+const resultKeyframeUrls = computed(() => (resultData.value?.keyframeUrls || []).filter(Boolean))
+
+const hasVideoArtifacts = computed(() =>
+  resultKeyframeUrls.value.length > 0 || !!resultVideoUrl.value || modalTask.value?.dataSourceType === "MANUAL_VIDEO"
+)
+
+const preferredVideoUrl = computed(() => {
+  if (!hasVideoArtifacts.value) return ''
+  if (resultVideoUrl.value && !/\.avi$/i.test(resultVideoUrl.value)) return resultVideoUrl.value
+  return modalTask.value?.fileUrl || resultVideoUrl.value || ''
+})
+
 onMounted(() => loadTasks())
 
 async function loadTasks() {
@@ -431,6 +467,7 @@ function canDispatch(data: DetectionResultResponse) {
 }
 
 async function handleDispatch(taskId: number, data: DetectionResultResponse) {
+  if (!taskId) return
   if (data?.generatedWorkOrderId) {
     ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
     return
@@ -443,7 +480,7 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
           title: "病害维修工单",
           damageType: data.items[0]?.damageType as any,
           severityLevel: data.items[0]?.severityLevel as any,
-          departmentCode: "ROAD_ADMIN",
+          departmentCode: "ROAD_ADMIN" as any,
           location: modalTask.value?.location || "",
           description: data.summary || "",
         })
@@ -685,8 +722,13 @@ function onWheel(e: WheelEvent) {
 .res-file-preview { margin-bottom:16px; border:1px solid #f0f2f5; border-radius:8px; overflow:hidden; background:#fafbfc; }
 .res-preview-img { max-width:100%; max-height:200px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto; }
 .res-preview-video { max-width:100%; max-height:200px; width:auto; height:auto; display:block; margin:0 auto; }
+.res-video-hint { padding:8px 12px 0; font-size:11px; color:#64748b; text-align:center; }
 .res-file-name { padding:6px 12px; font-size:11px; color:#64748b; background:#fff; border-top:1px solid #f0f2f5; }
-
+.res-keyframes { margin-bottom:16px; }
+.res-keyframes-title { margin-bottom:8px; font-size:12px; font-weight:600; color:#334155; }
+.res-keyframes-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; }
+.res-keyframe-thumb { width:100%; height:88px; object-fit:cover; border:1px solid #e5e7eb; border-radius:8px; background:#f8fafc; cursor:zoom-in; transition:border-color .15s, box-shadow .15s; }
+.res-keyframe-thumb:hover { border-color:#6366f1; box-shadow:0 4px 12px rgba(99,102,241,0.12); }
 .res-items { display:flex; flex-direction:column; gap:10px; }
 .res-item { display:flex; gap:14px; padding:14px 16px; border:1px solid #f0f2f5; border-radius:10px; background:#fafbfc; }
 .ri-sev-icon { flex-shrink:0; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; }
