@@ -675,6 +675,12 @@ const roadNameResolved = ref(false)
 
 const avatarSrc = computed(() => "/avatar-agent.png")
 
+function isAgentConfigFallback(reply?: string) {
+  if (!reply) return false
+  const normalized = reply.toLowerCase()
+  return normalized.includes("siliconflow") || normalized.includes("api key") || reply.includes("请配置")
+}
+
 /**
  * 解析后端返回的检测结果图字段。
  * 后端可能返回 base64 字符串，也可能返回 /uploads/result/xxx.jpg 形式的 URL。
@@ -1927,7 +1933,7 @@ async function sendChat() {
     let reply = data?.answer || ""
 
     // 如果后端没有返回有效回复，基于当前地图数据生成本地回复
-    if (!reply || reply.trim() === "") {
+    if (!reply || reply.trim() === "" || isAgentConfigFallback(reply)) {
       const rd = activeRoadSummaries.value || []
       const total = rd.reduce((s: number, r: any) => s + (r.totalCount || 0), 0)
       const high = rd.reduce((s: number, r: any) => s + (r.highCount || 0), 0)
