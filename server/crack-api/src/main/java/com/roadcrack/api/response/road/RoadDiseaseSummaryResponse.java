@@ -69,6 +69,8 @@ public class RoadDiseaseSummaryResponse {
         private String workOrderNo;
         private String imageBase64;
         private String fileUrl;
+        private String taskCode;
+        private String workOrderCode;
         private String bbox;
 
         public DiseasePoint() {}
@@ -113,6 +115,10 @@ public class RoadDiseaseSummaryResponse {
         public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
         public String getFileUrl() { return fileUrl; }
         public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+        public String getTaskCode() { return taskCode; }
+        public void setTaskCode(String taskCode) { this.taskCode = taskCode; }
+        public String getWorkOrderCode() { return workOrderCode; }
+        public void setWorkOrderCode(String workOrderCode) { this.workOrderCode = workOrderCode; }
         public String getBbox() { return bbox; }
         public void setBbox(String bbox) { this.bbox = bbox; }
     }
