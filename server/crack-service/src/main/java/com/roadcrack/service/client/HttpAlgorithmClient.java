@@ -251,18 +251,7 @@ public class HttpAlgorithmClient implements AlgorithmClient {
                     String typeStr = d.path("class_name").asText("CRACK");
                     double confidence = d.path("confidence").asDouble(0.0);
                     String severityStr = resolveSeverityFromConfidence(confidence);
-                    JsonNode bboxRaw = d.path("bbox");
-                    BoundingBoxResponse bbox;
-                    if (bboxRaw.isArray() && bboxRaw.size() >= 4) {
-                        bbox = new BoundingBoxResponse(
-                            bboxRaw.get(0).asInt(),
-                            bboxRaw.get(1).asInt(),
-                            bboxRaw.get(2).asInt(),
-                            bboxRaw.get(3).asInt()
-                        );
-                    } else {
-                        bbox = new BoundingBoxResponse(0, 0, 0, 0);
-                    }
+                    BoundingBoxResponse bbox = parseBoundingBox(d.path("bbox"));
                     String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
                     items.add(new DetectionItemResponse(null, parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
                 }
@@ -313,18 +302,7 @@ public class HttpAlgorithmClient implements AlgorithmClient {
                             String typeStr = d.path("class_name").asText("CRACK");
                             double confidence = d.path("confidence").asDouble(0.0);
                             String severityStr = resolveSeverityFromConfidence(confidence);
-                            JsonNode bboxRaw = d.path("bbox");
-                            BoundingBoxResponse bbox;
-                            if (bboxRaw.isArray() && bboxRaw.size() >= 4) {
-                                bbox = new BoundingBoxResponse(
-                                    bboxRaw.get(0).asInt(),
-                                    bboxRaw.get(1).asInt(),
-                                    bboxRaw.get(2).asInt(),
-                                    bboxRaw.get(3).asInt()
-                                );
-                            } else {
-                                bbox = new BoundingBoxResponse(0, 0, 0, 0);
-                            }
+                            BoundingBoxResponse bbox = parseBoundingBox(d.path("bbox"));
                             String suggestion = generateSuggestion(parseDamageType(typeStr), parseSeverity(severityStr));
                             rawItems.add(new DetectionItemResponse(
                                 null, parseDamageType(typeStr), parseSeverity(severityStr), confidence, bbox, suggestion));
@@ -440,6 +418,22 @@ public class HttpAlgorithmClient implements AlgorithmClient {
         return "LOW";
     }
 
+    private BoundingBoxResponse parseBoundingBox(JsonNode bboxRaw) {
+        if (!bboxRaw.isArray() || bboxRaw.size() < 4) {
+            return new BoundingBoxResponse(0, 0, 0, 0);
+        }
+        int x1 = bboxRaw.get(0).asInt();
+        int y1 = bboxRaw.get(1).asInt();
+        int x2 = bboxRaw.get(2).asInt();
+        int y2 = bboxRaw.get(3).asInt();
+        return new BoundingBoxResponse(
+                x1,
+                y1,
+                Math.max(0, x2 - x1),
+                Math.max(0, y2 - y1)
+        );
+    }
+
     private DetectionAnalysisResult fallbackResult(DetectionTaskAggregate task) {
         return new DetectionAnalysisResult("AI service unavailable", Collections.emptyList());
     }
@@ -468,6 +462,21 @@ public class HttpAlgorithmClient implements AlgorithmClient {
         if (s == null) return DamageType.CRACK;
         switch (s.toUpperCase()) {
             case "CRACK": return DamageType.CRACK;
+            case "TRANSVERSE_CRACK":
+            case "HORIZONTAL_CRACK":
+            case "TRANSVERSE":
+            case "HORIZONTAL":
+                return DamageType.TRANSVERSE_CRACK;
+            case "LONGITUDINAL_CRACK":
+            case "VERTICAL_CRACK":
+            case "LONGITUDINAL":
+            case "VERTICAL":
+                return DamageType.LONGITUDINAL_CRACK;
+            case "NET_CRACK":
+            case "ALLIGATOR_CRACK":
+            case "ALLIGATOR":
+            case "NET":
+                return DamageType.NET_CRACK;
             case "POTHOLE": return DamageType.POTHOLE;
             case "MARKING_DAMAGE": case "MARKING": return DamageType.MARKING_DAMAGE;
             case "ROAD_SPILL": case "SPILL": case "SPILLAGE": return DamageType.ROAD_SPILL;

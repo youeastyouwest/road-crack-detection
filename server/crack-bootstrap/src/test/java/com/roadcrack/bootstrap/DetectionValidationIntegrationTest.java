@@ -50,6 +50,7 @@ class DetectionValidationIntegrationTest {
                 "",
                 "Changsha test road",
                 "test task",
+                null,
                 null
         );
 
@@ -119,6 +120,7 @@ class DetectionValidationIntegrationTest {
                 "http://example.com/road-crack-02.jpg",
                 "Changsha validation road",
                 "validation task",
+                null,
                 null
         );
 

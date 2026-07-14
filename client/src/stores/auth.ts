@@ -88,7 +88,7 @@ export const useAuthStore = defineStore("auth", () => {
     if (isAdmin.value) router.push("/dashboard")
     else if (isDeptAdmin.value) router.push("/dept-orders")
     else if (isMaintainer.value) router.push("/my-work-orders")
-    else if (isCrowdsource.value) router.push("/crowd-report")
+    else if (isCrowdsource.value) router.push("/upload-data")
     else router.push("/dashboard")
   }
 

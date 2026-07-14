@@ -3,7 +3,20 @@ import vue from "@vitejs/plugin-vue"
 import { resolve } from "path"
 import fs from "fs"
 
-const uploadsDir = resolve(__dirname, "..", "uploads")
+const uploadDirs = [
+  resolve(__dirname, "..", "server", "uploads"),
+  resolve(__dirname, "..", "uploads"),
+]
+
+function tryResolveUploadFile(filename: string) {
+  for (const dir of uploadDirs) {
+    const filePath = resolve(dir, filename)
+    if (filePath.startsWith(dir) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      return filePath
+    }
+  }
+  return null
+}
 
 export default defineConfig({
   plugins: [
@@ -14,8 +27,8 @@ export default defineConfig({
         server.middlewares.use("/uploads/", (req, res, next) => {
           const rawUrl = req.url || ""
           const filename = decodeURIComponent(rawUrl.replace(/^\//, "").split("?")[0]) || ""
-          const filePath = resolve(uploadsDir, filename)
-          if (filePath.startsWith(uploadsDir) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          const filePath = tryResolveUploadFile(filename)
+          if (filePath) {
             const ext = filename.split(".").pop()?.toLowerCase() || ""
             const mime = {jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",bmp:"image/bmp"}
             res.setHeader("Content-Type", mime[ext] || "application/octet-stream")

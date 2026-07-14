@@ -22,6 +22,9 @@ final class MapDataSupport {
         }
         return switch (damageType) {
             case CRACK -> "crack";
+            case TRANSVERSE_CRACK -> "transverse_crack";
+            case LONGITUDINAL_CRACK -> "longitudinal_crack";
+            case NET_CRACK -> "net_crack";
             case MARKING_DAMAGE -> "marking_damage";
             case ROAD_SPILL -> "road_spill";
             case POTHOLE -> "pothole";

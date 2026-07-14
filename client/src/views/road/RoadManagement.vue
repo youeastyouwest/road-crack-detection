@@ -154,7 +154,11 @@ function statusLabel(s?: string) {
   return ({ ACTIVE: t("road.active"), MAINTAINING: t("road.maintaining"), CLOSED: t("road.closed") } as any)[s || ''] || s || '--'
 }
 function damageLevelLabel(level?: string) {
-  return ({ LOW: t("severity.low"), MEDIUM: t("severity.medium"), HIGH: t("severity.high") } as any)[level || ''] || '--'
+  return ({
+    HEALTHY: t("road.healthStatus"),
+    SUB_HEALTHY: t("road.needAttentionStatus"),
+    UNHEALTHY: t("road.damageStatus"),
+  } as Record<string, string>)[level || ""] || "--"
 }
 
 function calcStats() {

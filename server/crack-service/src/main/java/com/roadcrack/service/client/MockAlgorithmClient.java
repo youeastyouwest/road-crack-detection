@@ -35,7 +35,7 @@ public class MockAlgorithmClient implements AlgorithmClient {
         if (seed % 3 == 0) {
             items.add(new DetectionItemResponse(
                     null,
-                    DamageType.CRACK,
+                    DamageType.TRANSVERSE_CRACK,
                     SeverityLevel.LOW,
                     0.72,
                     new BoundingBoxResponse(180, 120, 96, 20),
@@ -55,11 +55,25 @@ public class MockAlgorithmClient implements AlgorithmClient {
         if (lowered.contains("line")) {
             return DamageType.MARKING_DAMAGE;
         }
+        if (lowered.contains("transverse") || lowered.contains("horizontal")) {
+            return DamageType.TRANSVERSE_CRACK;
+        }
+        if (lowered.contains("longitudinal") || lowered.contains("vertical")) {
+            return DamageType.LONGITUDINAL_CRACK;
+        }
+        if (lowered.contains("alligator") || lowered.contains("net")) {
+            return DamageType.NET_CRACK;
+        }
         if (lowered.contains("pothole")) {
             return DamageType.POTHOLE;
         }
 
-        DamageType[] candidates = {DamageType.CRACK, DamageType.MARKING_DAMAGE, DamageType.ROAD_SPILL, DamageType.POTHOLE};
+        DamageType[] candidates = {
+                DamageType.TRANSVERSE_CRACK,
+                DamageType.LONGITUDINAL_CRACK,
+                DamageType.NET_CRACK,
+                DamageType.POTHOLE
+        };
         return candidates[seed % candidates.length];
     }
 
@@ -73,6 +87,7 @@ public class MockAlgorithmClient implements AlgorithmClient {
             return "建议立即派单，优先安排现场核查与处置。";
         }
         return switch (damageType) {
+            case TRANSVERSE_CRACK, LONGITUDINAL_CRACK, NET_CRACK -> "Review crack width and propagation trend.";
             case ROAD_SPILL -> "建议通知环卫部门尽快清理，避免二次交通风险。";
             case MARKING_DAMAGE -> "建议路政部门补画或修复标志线。";
             case POTHOLE -> "建议安排坑槽修补，必要时同步交通管制。";

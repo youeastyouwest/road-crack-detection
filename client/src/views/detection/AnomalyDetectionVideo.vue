@@ -94,7 +94,7 @@
           <div class="res-summary">{{ resultData.summary || '检测完成' }}</div>
           <div class="result-list">
             <div v-for="item in resultData.items" :key="item.damageType" class="res-item">
-              <span class="res-name">{{ {CRACK:'裂缝',MARKING_DAMAGE:'标线损坏',ROAD_SPILL:'路面抛洒',POTHOLE:'坑槽'}[item.damageType]||item.damageType }}</span>
+              <span class="res-name">{{ {CRACK:'裂缝',TRANSVERSE_CRACK:'横向裂缝',LONGITUDINAL_CRACK:'纵向裂缝',NET_CRACK:'网状裂缝',MARKING_DAMAGE:'标线损坏',ROAD_SPILL:'路面抛洒',POTHOLE:'坑槽'}[item.damageType]||item.damageType }}</span>
               <span class="res-meta">
                 <span :class="['res-badge', sevCls(item.severityLevel)]">{{ {LOW:'轻微',MEDIUM:'中等',HIGH:'严重'}[item.severityLevel] }}</span>
                 <span class="res-conf">{{ (item.confidence*100).toFixed(0) }}%</span>

@@ -39,12 +39,12 @@ public class FileController {
         if (originalName != null && originalName.contains(".")) {
             ext = originalName.substring(originalName.lastIndexOf("."));
         }
-        String storedName = UUID.randomUUID().toString().substring(0, 8) + "_" + originalName;
+        String storedName = UUID.randomUUID().toString().replace("-", "").substring(0, 16) + ext;
         Path targetPath = uploadPath.resolve(storedName);
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
         FileUploadResponse response = new FileUploadResponse(
-                "/api/file/download/" + storedName,
+                "/uploads/" + storedName,
                 originalName != null ? originalName : "unknown",
                 file.getSize(),
                 file.getContentType()

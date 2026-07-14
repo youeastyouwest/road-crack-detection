@@ -22,7 +22,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         路段健康档案
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <select v-model="filterLevel" class="filter-select"><option value="">{{ t("road.allLevels") }}</option><option value="LOW">{{ t("severity.low") }}</option><option value="MEDIUM">{{ t("severity.medium") }}</option><option value="HIGH">{{ t("severity.high") }}</option></select>
+          <select v-model="filterLevel" class="filter-select"><option value="">{{ t("road.allLevels") }}</option><option value="HEALTHY">{{ t("road.healthStatus") }}</option><option value="SUB_HEALTHY">{{ t("road.needAttentionStatus") }}</option><option value="UNHEALTHY">{{ t("road.damageStatus") }}</option></select>
         </div>
       </div>
       <div class="table-wrap">
@@ -38,7 +38,7 @@
                   <div class="score-bar"><div class="score-fill" :style="{width:(a.healthScore||0)+'%',background:scoreColor(a.healthScore)}"></div></div>
                 </div>
               </td>
-              <td><span :class="['sev-badge', a.damageLevel === 'HIGH' ? 'sev-high' : a.damageLevel === 'MEDIUM' ? 'sev-med' : 'sev-low']">{{ damageLevelLabel(a.damageLevel) }}</span></td>
+              <td><span :class="['sev-badge', damageLevelClass(a.damageLevel)]">{{ damageLevelLabel(a.damageLevel) }}</span></td>
               <td>{{ a.totalDetectionCount ?? 0 }}</td>
               <td>{{ a.totalDamageCount ?? 0 }}</td>
               <td><span :class="{'td-danger': (a.severityHighCount ?? 0) > 0}">{{ a.severityHighCount ?? 0 }}</span></td>
@@ -158,8 +158,19 @@ const filteredArchives = computed(() => {
 
 function scoreCls(s?: number) { return s == null ? 'sc-low' : s >= 80 ? 'sc-high' : s >= 60 ? 'sc-mid' : 'sc-low' }
 function scoreColor(s?: number) { return s == null ? '#ef4444' : s >= 80 ? '#22c55e' : s >= 60 ? '#f59e0b' : '#ef4444' }
+function damageLevelClass(level?: string) {
+  return ({
+    HEALTHY: "sev-low",
+    SUB_HEALTHY: "sev-med",
+    UNHEALTHY: "sev-high",
+  } as Record<string, string>)[level || ""] || "sev-low"
+}
 function damageLevelLabel(level?: string) {
-  return ({ LOW: t("severity.low"), MEDIUM: t("severity.medium"), HIGH: t("severity.high") } as any)[level || ''] || '--'
+  return ({
+    HEALTHY: t("road.healthStatus"),
+    SUB_HEALTHY: t("road.needAttentionStatus"),
+    UNHEALTHY: t("road.damageStatus"),
+  } as Record<string, string>)[level || ""] || "--"
 }
 
 async function loadData() {

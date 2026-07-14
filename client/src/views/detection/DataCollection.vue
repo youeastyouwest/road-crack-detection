@@ -63,6 +63,9 @@
             <span v-if="submitting" class="btn-loader"></span>
             <span v-else>提交检测</span>
           </button>
+          <div v-if="pollingTaskLabel" class="task-progress-tip">
+            当前任务 {{ pollingTaskLabel }}，AI 正在检测中，请稍候...
+          </div>
         </div>
       </div>
 
@@ -184,6 +187,7 @@ import { ref, reactive, onMounted, onUnmounted, computed } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { detectionApi, workOrderApi } from "@/api"
 import type { DetectionTaskResponse } from "@/types"
+import { useAuthStore } from "@/stores/auth"
 
 declare global { interface Window { AMap: any; _AMapSecurityConfig: any } }
 
@@ -200,6 +204,8 @@ const showResultModal = ref(false)
 const resultLoading = ref(false)
 const resultTask = ref<any>(null)
 const resultData = ref<any>(null)
+const authStore = useAuthStore()
+const pollingTaskId = ref<number | null>(null)
 
 /**
  * 妫€娴嬬粨鏋滄爣娉ㄥ浘銆傚悗绔彲鑳借繑鍥?base64 瀛楃涓叉垨 /uploads/... 褰㈠紡鐨?URL銆?
@@ -209,6 +215,12 @@ const resultImageUrl = computed(() => {
   if (!v) return ''
   if (v.startsWith('/') || v.startsWith('http')) return v
   return 'data:image/jpeg;base64,' + v
+})
+
+const pollingTaskLabel = computed(() => {
+  if (!pollingTaskId.value) return ""
+  const task = tasks.value.find(item => item.id === pollingTaskId.value)
+  return task?.taskCode || `#${pollingTaskId.value}`
 })
 
 // AMap state
@@ -396,7 +408,11 @@ async function submitTask() {
     fd.append("remark", form.remark)
     if (form.roadName) fd.append("roadName", form.roadName)
     const res = await detectionApi.createWithFile(fd)
-    const taskId = res.data.data?.id
+    const task = res.data.data
+    const taskId = task?.id
+    if (task) {
+      upsertTask(task)
+    }
     ElMessage.success("任务提交成功，AI 检测中...")
     if (taskId) { startPolling(taskId) }
     form.fileName = ""; form.fileUrl = ""; form.remark = ""; form.roadName = ""; uploadedFile.value = null
@@ -405,28 +421,71 @@ async function submitTask() {
 }
 
 function startPolling(taskId: number) {
-  polling.value = true; let attempts = 0
+  stopPolling()
+  polling.value = true
+  pollingTaskId.value = taskId
+  let attempts = 0
   pollTimer = setInterval(async () => {
     attempts++
     try {
-      await loadTasks()
-      const updated = tasks.value.find(t => t.id === taskId)
-      if (updated?.status === "COMPLETED") { stopPolling(); ElMessage.success("AI 检测完成"); viewResult(taskId) }
-      else if (attempts >= 30) { stopPolling(); ElMessage.info("检测时间较长，请稍后刷新查看结果") }
-    } catch { if (attempts >= 30) stopPolling() }
+      const res = await detectionApi.get(taskId)
+      const updated = res.data.data
+      if (updated) {
+        upsertTask(updated)
+      }
+      if (updated?.status === "COMPLETED") {
+        stopPolling()
+        ElMessage.success("AI 检测完成")
+        viewResult(taskId)
+      } else if (updated?.status === "FAILED") {
+        stopPolling()
+        ElMessage.error(updated.failureReason || "AI 检测失败")
+      } else if (attempts >= 30) {
+        stopPolling()
+        loadTasks()
+        ElMessage.info("检测时间较长，请稍后在上传记录或上报记录里查看结果")
+      }
+    } catch {
+      if (attempts >= 30) {
+        stopPolling()
+      }
+    }
   }, 2000)
 }
 
-function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null }; polling.value = false }
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+  polling.value = false
+  pollingTaskId.value = null
+}
 
 async function loadTasks() {
   loading.value = true
-  try { const r = await detectionApi.list({ page: 1, size: 5 }); tasks.value = r.data.data.records } catch {}
+  try {
+    const submittedBy = authStore.isCrowdsource ? (authStore.username || authStore.realName) : undefined
+    const r = await detectionApi.list({ page: 1, size: 5, submittedBy })
+    tasks.value = r.data.data.records
+  } catch {}
   loading.value = false
 }
 
 function stCls(s: string) { return ({ PENDING: "st-wait", PROCESSING: "st-run", COMPLETED: "st-ok", FAILED: "st-fail" })[s] || "" }
 function stLbl(s: string) { return ({ PENDING: "待处理", PROCESSING: "检测中", COMPLETED: "已完成", FAILED: "失败" })[s] || s }
+
+function upsertTask(task: DetectionTaskResponse) {
+  const index = tasks.value.findIndex(item => item.id === task.id)
+  if (index >= 0) {
+    tasks.value[index] = task
+  } else {
+    tasks.value.unshift(task)
+    if (tasks.value.length > 5) {
+      tasks.value = tasks.value.slice(0, 5)
+    }
+  }
+}
 
 async function viewResult(taskId: number) {
   showResultModal.value = true; resultLoading.value = true
@@ -436,12 +495,23 @@ async function viewResult(taskId: number) {
 }
 
 function damageTypeLabel(t: string) {
-  return ({ CRACK: "裂缝", POTHOLE: "坑洞", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒" })[t] || t || "未知"
+  return ({
+    CRACK: "裂缝",
+    TRANSVERSE_CRACK: "横向裂缝",
+    LONGITUDINAL_CRACK: "纵向裂缝",
+    NET_CRACK: "网状裂缝",
+    POTHOLE: "坑洞",
+    MARKING_DAMAGE: "标线损坏",
+    ROAD_SPILL: "路面抛洒",
+  })[t] || t || "未知"
 }
 
 function damageTypeDesc(t: string) {
   return ({
     CRACK: "道路表面出现裂缝",
+    TRANSVERSE_CRACK: "道路表面出现横向裂缝",
+    LONGITUDINAL_CRACK: "道路表面出现纵向裂缝",
+    NET_CRACK: "道路表面出现网状裂缝",
     POTHOLE: "路面出现坑洞",
     MARKING_DAMAGE: "标线磨损或缺失",
     ROAD_SPILL: "路面污染或有杂物",
@@ -555,6 +625,7 @@ onUnmounted(() => {
 .form-btn { padding: 10px; background: #2563eb; border: none; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .form-btn:hover { background: #1d4ed8; }
 .form-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.task-progress-tip { font-size: 12px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px 10px; border-radius: 8px; }
 .btn-loader { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg) } }
 

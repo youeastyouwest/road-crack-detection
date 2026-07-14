@@ -10,6 +10,7 @@ public record CreateDetectionTaskRequest(
         @NotBlank String fileUrl,
         @NotBlank String location,
         String remark,
-        String roadName
+        String roadName,
+        String submittedBy
 ) {
 }

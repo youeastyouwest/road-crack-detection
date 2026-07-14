@@ -7,7 +7,6 @@
       </div>
       <div v-if="isAdmin" style="display:flex;gap:8px">
         <button class="btn-ghost" @click="handleExport"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ t('wo.export') }}</button>
-        <button class="btn-primary" @click="showCreate=true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{{ t('wo.create') }}</button>
       </div>
     </div>
 
@@ -224,6 +223,32 @@
                 <span class="rr-label">{{ t('review.opinion') }}</span>
                 <p>{{ reviewReport.reviewRemark }} - {{ reviewReport.reviewer || '--' }}</p>
               </div>
+              <div v-if="reviewBeforeImageUrls.length > 0" class="review-report-images">
+                <span class="rr-label">{{ t('mr.beforeImg') }}</span>
+                <div class="report-img-grid">
+                  <img
+                    v-for="(url, index) in reviewBeforeImageUrls"
+                    :key="'review-before-' + index"
+                    :src="url"
+                    class="report-img"
+                    :alt="t('mr.beforeImg')"
+                    @click="previewImage(url)"
+                  />
+                </div>
+              </div>
+              <div v-if="reviewAfterImageUrls.length > 0" class="review-report-images">
+                <span class="rr-label">{{ t('mr.afterImg') }}</span>
+                <div class="report-img-grid">
+                  <img
+                    v-for="(url, index) in reviewAfterImageUrls"
+                    :key="'review-after-' + index"
+                    :src="url"
+                    class="report-img"
+                    :alt="t('mr.afterImg')"
+                    @click="previewImage(url)"
+                  />
+                </div>
+              </div>
             </div>
             <!-- 审核表单 -->
             <div class="review-form">
@@ -302,6 +327,7 @@ import { useAuthStore } from "@/stores/auth"
 import { t } from "@/i18n"
 import { workOrderApi, detectionApi, userApi, reportApi } from "@/api"
 import type { WorkOrderResponse, MaintenanceReportResponse } from "@/types"
+import { splitReportImageUrls } from "@/utils/reportImages"
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -339,6 +365,8 @@ const reviewReport = ref<MaintenanceReportResponse | null>(null)
 const reviewLoading = ref(false)
 const reviewing = ref(false)
 const reviewForm = reactive({ approved: null as boolean | null, remark: "" })
+const reviewBeforeImageUrls = computed(() => splitReportImageUrls(reviewReport.value?.beforeImageUrl))
+const reviewAfterImageUrls = computed(() => splitReportImageUrls(reviewReport.value?.afterImageUrl))
 
 const assignTarget = ref<WorkOrderResponse | null>(null)
 const filter = reactive({ status: "", severityLevel: "", keyword: "", departmentCode: "" })
@@ -466,6 +494,10 @@ function damageTypeLabel(typeCode: string) {
   return ({ CRACK: t('damage.crack'), TRANSVERSE_CRACK: t('damage.transverseCrack'), LONGITUDINAL_CRACK: t('damage.longitudinalCrack'), NET_CRACK: t('damage.netCrack'), POTHOLE: t('damage.pothole'), MARKING_DAMAGE: t('damage.markingDamage'), ROAD_SPILL: t('damage.roadSpill'), UNKNOWN: t('damage.unknown') } as any)[typeCode] || typeCode || "--"
 }
 
+function previewImage(url: string) {
+  window.open(url, "_blank")
+}
+
 function calcStats(records: WorkOrderResponse[]) {
   stats.pending = records.filter(r => r.status === "PENDING_ASSIGNMENT").length
   stats.inProgress = records.filter(r => r.status === "ASSIGNED" || r.status === "IN_PROGRESS").length
@@ -565,7 +597,13 @@ async function openReview(row: WorkOrderResponse, mode: "dept" | "admin") {
     const res = await reportApi.list({ workOrderId: row.id })
     const reports = res.data.data.records || res.data.data || []
     if (reports.length > 0) {
-      reviewReport.value = reports[0]
+      const latestReport = reports[0]
+      try {
+        const detailRes = await reportApi.get(latestReport.id)
+        reviewReport.value = detailRes.data.data
+      } catch {
+        reviewReport.value = latestReport
+      }
     }
   } catch { /* ignore */ }
   reviewLoading.value = false
@@ -810,6 +848,9 @@ onMounted(() => {
 .review-report-desc p { font-size:12px; color:#475569; margin:4px 0 0; line-height:1.5; }
 .review-prev-remark { margin-top:10px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; }
 .review-prev-remark p { font-size:12px; color:#dc2626; margin:4px 0 0; }
+.review-report-images { margin-top:10px; padding-top:10px; border-top:1px dashed #e2e8f0; }
+.report-img-grid { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+.report-img { width:180px; max-width:100%; max-height:140px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer; background:#f8fafc; }
 .review-form { padding-top:16px; border-top:1px solid #f0f2f5; }
 .review-form-label { font-size:12px; font-weight:600; color:#64748b; margin-bottom:10px; }
 .review-actions { display:flex; gap:10px; }

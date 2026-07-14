@@ -131,7 +131,7 @@ public class DbDetectionTaskService implements DetectionTaskService {
         entity.setTaskCode(buildCode(now.toLocalDate()));
         entity.setSourceType(request.dataSourceType().name());
         entity.setLocation(request.location());
-        entity.setSubmittedBy(DEFAULT_SUBMITTED_BY);
+        entity.setSubmittedBy(resolveSubmittedBy(request.submittedBy()));
         entity.setStatus(DetectionTaskStatus.PENDING.name());
         entity.setRemark(request.remark());
         entity.setCreatedAt(now);
@@ -1103,6 +1103,10 @@ public class DbDetectionTaskService implements DetectionTaskService {
 
     private String safeValue(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String resolveSubmittedBy(String submittedBy) {
+        return submittedBy == null || submittedBy.isBlank() ? DEFAULT_SUBMITTED_BY : submittedBy;
     }
 
     private String buildCode(LocalDate date) {

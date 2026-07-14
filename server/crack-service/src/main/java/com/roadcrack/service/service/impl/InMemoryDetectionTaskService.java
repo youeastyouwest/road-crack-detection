@@ -135,7 +135,7 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
                 request.location(),
                 roadId,
                 request.remark(),
-                DEFAULT_SUBMITTED_BY,
+                resolveSubmittedBy(request.submittedBy()),
                 now
         );
         store.put(id, aggregate);
@@ -563,5 +563,9 @@ public class InMemoryDetectionTaskService implements DetectionTaskService {
 
     private String safeValue(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String resolveSubmittedBy(String submittedBy) {
+        return submittedBy == null || submittedBy.isBlank() ? DEFAULT_SUBMITTED_BY : submittedBy;
     }
 }

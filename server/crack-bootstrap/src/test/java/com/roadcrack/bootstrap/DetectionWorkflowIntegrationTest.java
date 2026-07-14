@@ -128,6 +128,7 @@ class DetectionWorkflowIntegrationTest {
                 "http://example.com/road-crack-01.jpg",
                 "Changsha test road",
                 "test task",
+                null,
                 null
         );
 

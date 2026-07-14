@@ -128,6 +128,7 @@ class WorkflowQueryIntegrationTest {
                                 "http://example.com/" + fileName,
                                 location,
                                 "workflow query test",
+                                null,
                                 null
                         ))))
                 .andExpect(status().isOk())

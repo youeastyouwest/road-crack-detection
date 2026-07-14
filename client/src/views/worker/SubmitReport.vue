@@ -35,11 +35,49 @@
         </el-form-item>
 
         <el-form-item :label="t('submit.beforePhoto')">
-          <el-input v-model="form.beforeImageUrl" :placeholder="t('submit.beforePhotoPlaceholder')" />
+          <div class="photo-upload-field">
+            <el-input v-model="form.beforeImageUrl" clearable :placeholder="t('submit.beforePhotoPlaceholder')" />
+            <div class="photo-upload-actions">
+              <el-upload
+                :show-file-list="false"
+                :auto-upload="true"
+                :multiple="false"
+                accept="image/*"
+                :before-upload="beforeImageUpload"
+                :http-request="uploadBeforeImage"
+                :disabled="uploading.before"
+              >
+                <el-button :loading="uploading.before">{{ t("submit.uploadPhoto") }}</el-button>
+              </el-upload>
+              <el-button v-if="normalizedBeforeImageUrl" @click="previewImage(normalizedBeforeImageUrl)">{{ t("submit.previewPhoto") }}</el-button>
+              <el-button v-if="form.beforeImageUrl" @click="clearImage('before')">{{ t("submit.clearPhoto") }}</el-button>
+            </div>
+            <div class="photo-upload-tip">{{ t("submit.photoUploadTip") }}</div>
+            <img v-if="normalizedBeforeImageUrl" :src="normalizedBeforeImageUrl" class="report-preview-image" :alt="t('submit.beforePhoto')" />
+          </div>
         </el-form-item>
 
         <el-form-item :label="t('submit.afterPhoto')">
-          <el-input v-model="form.afterImageUrl" :placeholder="t('submit.afterPhotoPlaceholder')" />
+          <div class="photo-upload-field">
+            <el-input v-model="form.afterImageUrl" clearable :placeholder="t('submit.afterPhotoPlaceholder')" />
+            <div class="photo-upload-actions">
+              <el-upload
+                :show-file-list="false"
+                :auto-upload="true"
+                :multiple="false"
+                accept="image/*"
+                :before-upload="beforeImageUpload"
+                :http-request="uploadAfterImage"
+                :disabled="uploading.after"
+              >
+                <el-button :loading="uploading.after">{{ t("submit.uploadPhoto") }}</el-button>
+              </el-upload>
+              <el-button v-if="normalizedAfterImageUrl" @click="previewImage(normalizedAfterImageUrl)">{{ t("submit.previewPhoto") }}</el-button>
+              <el-button v-if="form.afterImageUrl" @click="clearImage('after')">{{ t("submit.clearPhoto") }}</el-button>
+            </div>
+            <div class="photo-upload-tip">{{ t("submit.photoUploadTip") }}</div>
+            <img v-if="normalizedAfterImageUrl" :src="normalizedAfterImageUrl" class="report-preview-image" :alt="t('submit.afterPhoto')" />
+          </div>
         </el-form-item>
 
         <el-form-item :label="t('submit.desc2')">
@@ -63,15 +101,21 @@
 import { reactive, ref, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
-import { workOrderApi, reportApi } from "@/api"
+import { workOrderApi, reportApi, fileApi } from "@/api"
 import type { WorkOrderResponse } from "@/types"
 import { ElMessage } from "element-plus"
+import type { UploadProps, UploadRequestOptions } from "element-plus"
 import { t } from "@/i18n"
+import { resolveReportImageUrl } from "@/utils/reportImages"
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const submitting = ref(false)
+const uploading = reactive({
+  before: false,
+  after: false,
+})
 
 const form = reactive({
   workOrderId: null as number | null,
@@ -89,6 +133,8 @@ const selectedOrder = computed(() => {
   if (!form.workOrderId) return null
   return availableOrders.value.find(o => o.id === form.workOrderId) || null
 })
+const normalizedBeforeImageUrl = computed(() => resolveReportImageUrl(form.beforeImageUrl))
+const normalizedAfterImageUrl = computed(() => resolveReportImageUrl(form.afterImageUrl))
 
 onMounted(async () => {
   // Load work orders assigned to this user that are COMPLETED or REJECTED
@@ -144,6 +190,60 @@ function statusLabel(s: string) {
   return ({ COMPLETED: t("status.completed"), REJECTED: t("wo.cancel") } as any)[s] || s
 }
 
+const beforeImageUpload: UploadProps["beforeUpload"] = (rawFile) => {
+  if (!rawFile.type.startsWith("image/")) {
+    ElMessage.warning(t("submit.uploadImageTypeError"))
+    return false
+  }
+  if (rawFile.size / 1024 / 1024 > 10) {
+    ElMessage.warning(t("submit.uploadImageSizeError"))
+    return false
+  }
+  return true
+}
+
+async function uploadReportImage(options: UploadRequestOptions, field: "before" | "after") {
+  uploading[field] = true
+  try {
+    const res = await fileApi.upload(options.file as File)
+    const imageUrl = resolveReportImageUrl(res.data.data.url)
+    if (field === "before") {
+      form.beforeImageUrl = imageUrl
+    } else {
+      form.afterImageUrl = imageUrl
+    }
+    options.onSuccess?.(res.data.data)
+    ElMessage.success(t("submit.uploadImageSuccess"))
+  } catch (err: any) {
+    options.onError?.(err)
+    ElMessage.error(err?.response?.data?.message || t("submit.uploadImageFailed"))
+  } finally {
+    uploading[field] = false
+  }
+}
+
+function uploadBeforeImage(options: UploadRequestOptions) {
+  return uploadReportImage(options, "before")
+}
+
+function uploadAfterImage(options: UploadRequestOptions) {
+  return uploadReportImage(options, "after")
+}
+
+function clearImage(field: "before" | "after") {
+  if (field === "before") {
+    form.beforeImageUrl = ""
+  } else {
+    form.afterImageUrl = ""
+  }
+}
+
+function previewImage(url?: string) {
+  const resolvedUrl = resolveReportImageUrl(url)
+  if (!resolvedUrl) return
+  window.open(resolvedUrl, "_blank")
+}
+
 async function handleSubmit() {
   if (!form.workOrderId) return ElMessage.warning(t("submit.selectOrder"))
   if (!form.executor) return ElMessage.warning(t("submit.executor"))
@@ -193,4 +293,8 @@ function handleReset() {
 .order-info-row:last-child { margin-bottom: 0; }
 .oi-label { font-size: 11px; color: #94a3b8; font-weight: 600; min-width: 40px; }
 .oi-val { font-size: 13px; color: #475569; }
+.photo-upload-field { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.photo-upload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-upload-tip { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+.report-preview-image { width: 100%; max-width: 320px; border-radius: 10px; border: 1px solid #e2e8f0; object-fit: cover; }
 </style>

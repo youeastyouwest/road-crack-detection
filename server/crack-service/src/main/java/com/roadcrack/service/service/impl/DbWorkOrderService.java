@@ -622,7 +622,8 @@ public class DbWorkOrderService implements WorkOrderService {
     private DepartmentCode mapDepartment(DamageType damageType) {
         return switch (damageType) {
             case ROAD_SPILL -> DepartmentCode.SANITATION;
-            case MARKING_DAMAGE, CRACK, POTHOLE, UNKNOWN -> DepartmentCode.ROAD_ADMIN;
+            case MARKING_DAMAGE, CRACK, TRANSVERSE_CRACK, LONGITUDINAL_CRACK, NET_CRACK, POTHOLE, UNKNOWN ->
+                    DepartmentCode.ROAD_ADMIN;
         };
     }
 

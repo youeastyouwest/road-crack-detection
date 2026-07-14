@@ -111,6 +111,8 @@ const crackTypeData = ref<CrackTypeStatItem[]>([])
 const severityData = ref<SeverityStatItem[]>([])
 const deptData = ref<DeptWorkloadItem[]>([])
 
+const DISPLAY_DAMAGE_TYPES = ["NET_CRACK", "LONGITUDINAL_CRACK", "TRANSVERSE_CRACK", "POTHOLE"] as const
+
 const trendRef = ref<HTMLElement>()
 const typeRef = ref<HTMLElement>()
 const severityRef = ref<HTMLElement>()
@@ -126,6 +128,25 @@ const kpiCards = computed(() => [
   { label: t("report.totalWorkOrders"), value: dashboard.value.totalWorkOrders ?? "—", color: "#10b981", bg: "#ecfdf5",
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
 ])
+
+const displayCrackTypeData = computed(() => {
+  const countMap = new Map<string, number>()
+  for (const type of DISPLAY_DAMAGE_TYPES) {
+    countMap.set(type, 0)
+  }
+
+  for (const item of crackTypeData.value) {
+    if (!DISPLAY_DAMAGE_TYPES.includes(item.type as any)) continue
+    countMap.set(item.type, (countMap.get(item.type) || 0) + item.count)
+  }
+
+  const total = DISPLAY_DAMAGE_TYPES.reduce((sum, type) => sum + (countMap.get(type) || 0), 0)
+  return DISPLAY_DAMAGE_TYPES.map((type) => ({
+    type,
+    count: countMap.get(type) || 0,
+    percentage: total > 0 ? ((countMap.get(type) || 0) * 100) / total : 0,
+  }))
+})
 
 const analysisConclusions = computed(() => {
   const conclusions: { type: string; title: string; desc: string }[] = []
@@ -196,8 +217,8 @@ const analysisConclusions = computed(() => {
   }
 
   // Crack type analysis
-  if (crackTypeData.value.length > 0) {
-    const top = [...crackTypeData.value].sort((a, b) => b.count - a.count)[0]
+  if (displayCrackTypeData.value.some(item => item.count > 0)) {
+    const top = [...displayCrackTypeData.value].sort((a, b) => b.count - a.count)[0]
     conclusions.push({
       type: "info",
       title: t("conclusion.topType", { type: damageTypeLabel(top.type) }),
@@ -220,7 +241,7 @@ function deptName(code: string) {
   return ({ ROAD_ADMIN: t("report.deptRoadAdmin"), SANIT_ADMIN: t("report.deptSanitAdmin"), TRAFFIC_ADMIN: t("report.deptTrafficAdmin") } as any)[code] || code
 }
 function damageTypeLabel(type: string) {
-  return ({ CRACK: t("damage.crack"), POTHOLE: t("damage.pothole"), ALLIGATOR: t("damage.alligator"), BLOCK: t("damage.block"), RUTTING: t("damage.rutting"), REPAIR: t("damage.repair") } as any)[type] || type
+  return ({ CRACK: t("damage.crack"), TRANSVERSE_CRACK: t("damage.transverseCrack"), LONGITUDINAL_CRACK: t("damage.longitudinalCrack"), NET_CRACK: t("damage.netCrack"), POTHOLE: t("damage.pothole"), ALLIGATOR: t("damage.alligator"), BLOCK: t("damage.block"), RUTTING: t("damage.rutting"), REPAIR: t("damage.repair") } as any)[type] || type
 }
 
 async function loadData() {
@@ -297,7 +318,7 @@ function renderCharts() {
         radius: ["40%", "65%"],
         center: ["50%", "45%"],
         label: { show: false },
-        data: crackTypeData.value.map(c => ({
+        data: displayCrackTypeData.value.map(c => ({
           name: damageTypeLabel(c.type),
           value: c.count,
         })),

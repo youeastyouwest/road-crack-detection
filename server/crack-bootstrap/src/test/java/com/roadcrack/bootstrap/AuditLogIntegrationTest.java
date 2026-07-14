@@ -88,6 +88,7 @@ class AuditLogIntegrationTest {
                                 "http://example.com/audit-log-road-crack.jpg",
                                 "Changsha Yuelu Avenue",
                                 "audit log test",
+                                null,
                                 null
                         ))))
                 .andExpect(status().isOk())

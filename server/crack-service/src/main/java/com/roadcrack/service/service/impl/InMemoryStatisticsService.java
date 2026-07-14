@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
 @org.springframework.context.annotation.Primary
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryStatisticsService implements StatisticsService {
+    private static final List<String> DISPLAY_DAMAGE_TYPES = List.of(
+            "NET_CRACK", "LONGITUDINAL_CRACK", "TRANSVERSE_CRACK", "POTHOLE"
+    );
 
     private final DetectionTaskService detectionTaskService;
 
@@ -95,11 +98,15 @@ public class InMemoryStatisticsService implements StatisticsService {
     @Override
     public CrackTypeDistributionResponse getCrackTypeDistribution() {
         List<DetectionTaskResponse> tasks = getAllTasks();
-        Map<String, Integer> countByType = new HashMap<>();
+        Map<String, Integer> countByType = new java.util.LinkedHashMap<>();
+        for (String type : DISPLAY_DAMAGE_TYPES) {
+            countByType.put(type, 0);
+        }
         for (DetectionTaskResponse task : tasks) {
             if (task.result() != null && task.result().items() != null) {
                 for (DetectionItemResponse item : task.result().items()) {
                     String type = item.damageType() != null ? item.damageType().name() : "UNKNOWN";
+                    if (!DISPLAY_DAMAGE_TYPES.contains(type)) continue;
                     countByType.merge(type, 1, Integer::sum);
                 }
             }

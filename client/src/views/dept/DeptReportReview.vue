@@ -172,6 +172,7 @@ import { ElMessage } from "element-plus"
 import { reportApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
 import type { MaintenanceReportResponse, WorkOrderResponse } from "@/types"
+import { splitReportImageUrls } from "@/utils/reportImages"
 
 const authStore = useAuthStore()
 const activeTab = ref("pending")
@@ -229,20 +230,7 @@ function reportStatusColor(s?: string) {
 }
 
 function getImageUrls(urlStr?: string): string[] {
-  if (!urlStr) return []
-  return urlStr.split(",").map(u => {
-    const trimmed = u.trim()
-    if (!trimmed) return ""
-    // 后端返回 /api/file/download/xxx，转成 /uploads/xxx 通过 Vite 静态服务访问（无需认证）
-    if (trimmed.startsWith("/api/file/download/")) {
-      return "/uploads/" + trimmed.replace("/api/file/download/", "")
-    }
-    // 兼容其他格式的相对路径
-    if (trimmed.startsWith("/api/")) {
-      return window.location.origin + trimmed
-    }
-    return trimmed
-  }).filter(Boolean)
+  return splitReportImageUrls(urlStr)
 }
 
 function previewImage(url: string) {

@@ -179,7 +179,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "crowd-report",
         name: "CrowdReport",
-        component: () => import("@/views/crowd/CrowdReport.vue"),
+        redirect: "/upload-data",
         meta: { title: "上报问题", icon: "Upload", roles: [RoleCode.CROWDSOURCE] },
       },
       {
@@ -219,7 +219,7 @@ router.beforeEach((to, _from, next) => {
       if (!hasAccess) {
         const firstRole = userRoles[0]
         if (firstRole === RoleCode.ADMIN) return next("/dashboard")
-        if (RoleCode.CROWDSOURCE === firstRole) return next("/crowd-report")
+        if (RoleCode.CROWDSOURCE === firstRole) return next("/upload-data")
         if (RoleCode.MAINTAINER === firstRole) return next("/my-work-orders")
         if ([RoleCode.ROAD_ADMIN, RoleCode.SANIT_ADMIN, RoleCode.TRAFFIC_ADMIN].includes(firstRole)) return next("/dept-orders")
         if (firstRole === RoleCode.VIEWER) return next("/dashboard")

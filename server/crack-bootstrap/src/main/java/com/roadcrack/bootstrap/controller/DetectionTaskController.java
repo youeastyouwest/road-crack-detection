@@ -44,8 +44,18 @@ public class DetectionTaskController {
 
     @PostMapping
     public ApiResponse<DetectionTaskResponse> createTask(
-            @RequestBody CreateDetectionTaskRequest request) {
-        DetectionTaskResponse task = detectionTaskService.createTask(request);
+            @RequestBody CreateDetectionTaskRequest request,
+            HttpServletRequest httpRequest) {
+        CreateDetectionTaskRequest payload = new CreateDetectionTaskRequest(
+                request.dataSourceType(),
+                request.fileName(),
+                request.fileUrl(),
+                request.location(),
+                request.remark(),
+                request.roadName(),
+                resolveSubmittedBy(httpRequest)
+        );
+        DetectionTaskResponse task = detectionTaskService.createTask(payload);
         detectionTaskService.executeTask(task.id());
         return ApiResponse.success(task);
     }
@@ -56,7 +66,8 @@ public class DetectionTaskController {
             @RequestParam("location") String location,
             @RequestParam(value = "remark", required = false) String remark,
             @RequestParam(value = "roadName", required = false) String roadName,
-            @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            HttpServletRequest request) throws IOException {
 
         String fileName = file != null ? file.getOriginalFilename() : "unknown";
         String fileUrl = "";
@@ -71,7 +82,7 @@ public class DetectionTaskController {
         }
 
         CreateDetectionTaskRequest req = new CreateDetectionTaskRequest(
-                dataSourceType, fileName, fileUrl, location, remark, roadName
+                dataSourceType, fileName, fileUrl, location, remark, roadName, resolveSubmittedBy(request)
         );
         DetectionTaskResponse task = detectionTaskService.createTask(req);
         detectionTaskService.executeTask(task.id());
@@ -162,5 +173,17 @@ public class DetectionTaskController {
     private String getOperatorName(HttpServletRequest request) {
         String username = (String) request.getAttribute("username");
         return username != null ? username : "admin";
+    }
+
+    private String resolveSubmittedBy(HttpServletRequest request) {
+        String userNameHeader = request.getHeader("X-User-Name");
+        if (userNameHeader != null && !userNameHeader.isBlank()) {
+            return userNameHeader;
+        }
+        String username = (String) request.getAttribute("username");
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        return "admin";
     }
 }

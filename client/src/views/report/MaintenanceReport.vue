@@ -85,13 +85,13 @@
               <div class="detail-item"><label>{{ t('mr.submittedAt') }}</label><span>{{ formatDate(detailTarget.createdAt) }}</span></div>
               <div class="detail-item"><label>{{ t('mr.materials') }}</label><span>{{ detailTarget.materials || '--' }}</span></div>
               <div class="detail-item" style="grid-column:1/-1"><label>{{ t('mr.description') }}</label><span style="line-height:1.6">{{ detailTarget.description || '--' }}</span></div>
-              <div class="detail-item" v-if="detailTarget.beforeImageUrl" style="grid-column:1/-1">
+              <div class="detail-item" v-if="resolvedBeforeImageUrl" style="grid-column:1/-1">
                 <label>{{ t('mr.beforeImg') }}</label>
-                <img :src="detailTarget.beforeImageUrl" class="report-img" :alt="t('mr.beforeImg')" />
+                <img :src="resolvedBeforeImageUrl" class="report-img" :alt="t('mr.beforeImg')" />
               </div>
-              <div class="detail-item" v-if="detailTarget.afterImageUrl" style="grid-column:1/-1">
+              <div class="detail-item" v-if="resolvedAfterImageUrl" style="grid-column:1/-1">
                 <label>{{ t('mr.afterImg') }}</label>
-                <img :src="detailTarget.afterImageUrl" class="report-img" :alt="t('mr.afterImg')" />
+                <img :src="resolvedAfterImageUrl" class="report-img" :alt="t('mr.afterImg')" />
               </div>
             </div>
           </template>
@@ -112,6 +112,7 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { t } from "@/i18n"
 import { reportApi, workOrderApi } from "@/api"
 import type { MaintenanceReportResponse, WorkOrderResponse } from "@/types"
+import { resolveReportImageUrl } from "@/utils/reportImages"
 
 const activeTab = ref("pending")
 const reports = ref<MaintenanceReportResponse[]>([])
@@ -121,6 +122,8 @@ const reviewing = ref(false)
 const showDetail = ref(false)
 const detailTarget = ref<MaintenanceReportResponse | null>(null)
 const detailLoading = ref(false)
+const resolvedBeforeImageUrl = computed(() => resolveReportImageUrl(detailTarget.value?.beforeImageUrl))
+const resolvedAfterImageUrl = computed(() => resolveReportImageUrl(detailTarget.value?.afterImageUrl))
 
 // 判断报告是否已归档：报告自身状态为 APPROVED
 function isArchived(r: MaintenanceReportResponse): boolean {

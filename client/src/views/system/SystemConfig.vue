@@ -107,10 +107,6 @@
             <div class="cfg-label">{{ t('sys.sessionTimeout') }}<div class="cfg-hint">{{ t('sys.sessionTimeoutHint') }}</div></div>
             <input v-model.number="config.sessionTimeout" type="number" class="cfg-input cfg-input-num" min="5" max="1440" />
           </div>
-          <div class="cfg-row cfg-row-switch">
-            <div class="cfg-label">{{ t('sys.captchaEnabled') }}<div class="cfg-hint">{{ t('sys.captchaEnabledHint') }}</div></div>
-            <label class="toggle"><input type="checkbox" v-model="config.captchaEnabled" /><span class="toggle-slider"></span></label>
-          </div>
         </div>
       </div>
     </div>

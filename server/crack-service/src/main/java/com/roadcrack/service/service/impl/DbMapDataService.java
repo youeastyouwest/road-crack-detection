@@ -31,6 +31,9 @@ import java.util.Map;
 @Service
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class DbMapDataService implements MapDataService {
+    private static final List<String> DISPLAY_DAMAGE_TYPES = List.of(
+            "NET_CRACK", "LONGITUDINAL_CRACK", "TRANSVERSE_CRACK", "POTHOLE"
+    );
 
     private final DetectionTaskMapper taskMapper;
     private final DetectionResultItemMapper resultItemMapper;
@@ -158,9 +161,13 @@ public class DbMapDataService implements MapDataService {
     public List<MapDamageTypeRatioResponse> getDamageTypeRatios() {
         List<MapDamageTypeRatioResponse> ratios = new ArrayList<>();
         List<DetectionResultItemEntity> allItems = resultItemMapper.selectList(null);
-        Map<String, Integer> countByType = new HashMap<>();
+        Map<String, Integer> countByType = new java.util.LinkedHashMap<>();
+        for (String type : DISPLAY_DAMAGE_TYPES) {
+            countByType.put(type, 0);
+        }
         for (DetectionResultItemEntity item : allItems) {
             String type = item.getDamageType() != null ? item.getDamageType() : "UNKNOWN";
+            if (!DISPLAY_DAMAGE_TYPES.contains(type)) continue;
             countByType.merge(type, 1, Integer::sum);
         }
         int total = countByType.values().stream().mapToInt(Integer::intValue).sum();

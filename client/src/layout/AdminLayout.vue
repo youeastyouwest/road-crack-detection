@@ -120,7 +120,6 @@ const maintainerNav = computed<NavGroup[]>(() => [
 const crowdsourceNav = computed<NavGroup[]>(() => [
   coreGroup.value,
   { label: t("nav.myReports"), items: [
-    { path: "/crowd-report", title: t("nav.reportProblem"), icon: "Upload" },
     { path: "/crowd-records", title: t("nav.reportRecords"), icon: "List" },
   ]},
   { label: t("nav.userProfile"), items: [

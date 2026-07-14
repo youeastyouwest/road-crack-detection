@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
 @Service
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "memory", matchIfMissing = true)
 public class InMemoryMapDataService implements MapDataService {
+    private static final List<String> DISPLAY_DAMAGE_TYPES = List.of(
+            "NET_CRACK", "LONGITUDINAL_CRACK", "TRANSVERSE_CRACK", "POTHOLE"
+    );
 
     private final DetectionTaskService detectionTaskService;
 
@@ -127,11 +130,15 @@ public class InMemoryMapDataService implements MapDataService {
     public List<MapDamageTypeRatioResponse> getDamageTypeRatios() {
         List<MapDamageTypeRatioResponse> ratios = new ArrayList<>();
         PageResponse<DetectionTaskResponse> page = detectionTaskService.listTasks(1, Integer.MAX_VALUE, null, null, null, null);
-        Map<String, Integer> countByType = new HashMap<>();
+        Map<String, Integer> countByType = new java.util.LinkedHashMap<>();
+        for (String type : DISPLAY_DAMAGE_TYPES) {
+            countByType.put(type, 0);
+        }
         for (DetectionTaskResponse task : page.records()) {
             if (task.result() != null && task.result().items() != null) {
                 for (DetectionItemResponse item : task.result().items()) {
                     String type = item.damageType() != null ? item.damageType().name() : "UNKNOWN";
+                    if (!DISPLAY_DAMAGE_TYPES.contains(type)) continue;
                     countByType.merge(type, 1, Integer::sum);
                 }
             }

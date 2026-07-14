@@ -25,6 +25,9 @@ import java.util.*;
 @Service
 @ConditionalOnProperty(name = "crack.persistence.mode", havingValue = "db")
 public class DbStatisticsService implements StatisticsService {
+    private static final List<String> DISPLAY_DAMAGE_TYPES = List.of(
+            "NET_CRACK", "LONGITUDINAL_CRACK", "TRANSVERSE_CRACK", "POTHOLE"
+    );
 
     private final DetectionTaskMapper taskMapper;
     private final DetectionResultItemMapper itemMapper;
@@ -94,9 +97,16 @@ public class DbStatisticsService implements StatisticsService {
     @Override
     public CrackTypeDistributionResponse getCrackTypeDistribution() {
         List<DetectionResultItemEntity> items = itemMapper.selectList(null);
-        Map<String, Integer> m = new HashMap<>();
-        for (DetectionResultItemEntity i : items) m.merge(i.getDamageType() != null ? i.getDamageType() : "UNKNOWN", 1, Integer::sum);
-        int total = items.size();
+        Map<String, Integer> m = new LinkedHashMap<>();
+        for (String type : DISPLAY_DAMAGE_TYPES) {
+            m.put(type, 0);
+        }
+        for (DetectionResultItemEntity i : items) {
+            String type = i.getDamageType() != null ? i.getDamageType() : "UNKNOWN";
+            if (!DISPLAY_DAMAGE_TYPES.contains(type)) continue;
+            m.merge(type, 1, Integer::sum);
+        }
+        int total = m.values().stream().mapToInt(Integer::intValue).sum();
         List<CrackTypeDistributionResponse.TypeItem> result = new ArrayList<>();
         for (Map.Entry<String, Integer> e : m.entrySet()) {
             double pct = total > 0 ? (e.getValue() * 100.0 / total) : 0.0;

@@ -96,13 +96,13 @@
                 <label>{{ t("myreport.reviewOpinion") }}</label>
                 <span style="line-height:1.6;color:#dc2626">{{ detailTarget.reviewRemark }}</span>
               </div>
-              <div class="detail-item" v-if="detailTarget.beforeImageUrl" style="grid-column:1/-1">
+              <div class="detail-item" v-if="resolvedBeforeImageUrl" style="grid-column:1/-1">
                 <label>{{ t("myreport.beforeImg") }}</label>
-                <img :src="detailTarget.beforeImageUrl" class="report-img" :alt="t('myreport.beforeImg')" />
+                <img :src="resolvedBeforeImageUrl" class="report-img" :alt="t('myreport.beforeImg')" />
               </div>
-              <div class="detail-item" v-if="detailTarget.afterImageUrl" style="grid-column:1/-1">
+              <div class="detail-item" v-if="resolvedAfterImageUrl" style="grid-column:1/-1">
                 <label>{{ t("myreport.afterImg") }}</label>
-                <img :src="detailTarget.afterImageUrl" class="report-img" :alt="t('myreport.afterImg')" />
+                <img :src="resolvedAfterImageUrl" class="report-img" :alt="t('myreport.afterImg')" />
               </div>
             </div>
           </template>
@@ -124,6 +124,7 @@ import { reportApi, workOrderApi } from "@/api"
 import { useAuthStore } from "@/stores/auth"
 import { t } from "@/i18n"
 import type { MaintenanceReportResponse, WorkOrderResponse } from "@/types"
+import { resolveReportImageUrl } from "@/utils/reportImages"
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -134,6 +135,8 @@ const loading = ref(false)
 const showDetail = ref(false)
 const detailTarget = ref<MaintenanceReportResponse | null>(null)
 const detailLoading = ref(false)
+const resolvedBeforeImageUrl = computed(() => resolveReportImageUrl(detailTarget.value?.beforeImageUrl))
+const resolvedAfterImageUrl = computed(() => resolveReportImageUrl(detailTarget.value?.afterImageUrl))
 
 const pendingReports = computed(() => reports.value.filter(r => r.status === "PENDING" || r.status === "DEPT_APPROVED"))
 const approvedReports = computed(() => reports.value.filter(r => r.status === "APPROVED"))

@@ -141,7 +141,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="d in damageTypes" :key="d.damageType">
+              <tr v-for="d in displayDamageTypes" :key="d.damageType">
                 <td class="td-title">{{ damageTypeLabel(d.damageType) }}</td>
                 <td><span class="num-tag">{{ d.count }}</span></td>
                 <td>{{ (d.ratio * 100).toFixed(1) }}%</td>
@@ -151,7 +151,7 @@
                   </div>
                 </td>
               </tr>
-              <tr v-if="!loading && damageTypes.length === 0">
+              <tr v-if="!loading && displayDamageTypes.length === 0">
                 <td colspan="4" class="empty-row">{{ t('st.noDamageTypeData') }}</td>
               </tr>
             </tbody>
@@ -246,6 +246,8 @@ const mapStats = ref<MapStatisticsResponse | null>(null)
 const mapTrend = ref<MapTrendPointResponse[]>([])
 const damageTypes = ref<MapDamageTypeRatioResponse[]>([])
 const roadDisease = ref<RoadDiseaseSummaryResponse[]>([])
+
+const DISPLAY_DAMAGE_TYPES = ["NET_CRACK", "LONGITUDINAL_CRACK", "TRANSVERSE_CRACK", "POTHOLE"] as const
 
 const trendTabs = [
   { key: 7, label: t('st.last7days') },
@@ -345,6 +347,36 @@ const roadTop5 = computed(() => {
     .sort((a, b) => b.totalCount - a.totalCount)
     .slice(0, 5)
 })
+
+function buildDisplayDamageTypeRows<T extends { count: number }>(
+  source: T[],
+  getType: (item: T) => string
+) {
+  const countMap = new Map<string, number>()
+  for (const item of source) {
+    const type = getType(item)
+    if (!DISPLAY_DAMAGE_TYPES.includes(type as any)) continue
+    countMap.set(type, (countMap.get(type) || 0) + (item.count || 0))
+  }
+
+  const total = DISPLAY_DAMAGE_TYPES.reduce((sum, type) => sum + (countMap.get(type) || 0), 0)
+  return DISPLAY_DAMAGE_TYPES.map((type) => {
+    const count = countMap.get(type) || 0
+    return {
+      damageType: type,
+      count,
+      ratio: total > 0 ? count / total : 0,
+    }
+  })
+}
+
+const displayCrackTypes = computed(() =>
+  buildDisplayDamageTypeRows(crackTypes.value, (item) => item.type)
+)
+
+const displayDamageTypes = computed(() =>
+  buildDisplayDamageTypeRows(damageTypes.value, (item) => item.damageType)
+)
 
 // --- Helpers ---
 function damageTypeLabel(tp: string) {
@@ -495,8 +527,8 @@ function renderTrend() {
 function renderTypePie() {
   if (!typePieRef.value) return
   if (!typePieChart) typePieChart = echarts.init(typePieRef.value)
-  const data = crackTypes.value.map(d => ({
-    name: damageTypeLabel(d.type),
+  const data = displayCrackTypes.value.map(d => ({
+    name: damageTypeLabel(d.damageType),
     value: d.count,
   }))
   const colors = ["#4361ee", "#16a34a", "#d97706", "#dc2626", "#e11d48", "#475569", "#2563eb", "#94a3b8"]

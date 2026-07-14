@@ -236,19 +236,6 @@
               <span class="ds-health-badge" :style="{ background: healthBg(r.overallSeverity), color: healthColor(r.overallSeverity) }">{{ healthLabel(r.overallSeverity) }}</span>
             </div>
           </div>
-          <!-- 实时告警列表 -->
-          <div class="ds-an-section" style="border-top:1px solid #eef0f4;padding-top:16px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <span class="ds-sb-section-title" style="margin-bottom:0">实时告警</span>
-              <span v-if="alertMarkers.length > 0" style="font-size:10px;color:#ef4444;font-weight:600">{{ alertMarkers.length }}条</span>
-            </div>
-            <div v-if="alertMarkers.length === 0" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">暂无告警</div>
-            <div v-for="(am, ai) in alertMarkers.slice(0, 8)" :key="am.id" class="ds-rank-item" style="display:flex;align-items:center;gap:8px;animation:rowIn .35s ease both" :style="{ animationDelay: ai * 0.05 + 's' }" @click="focusAlert(am)">
-              <span class="ds-alert-dot" :style="{ background: sevDotColor(am.severity) }"></span>
-              <span style="flex:1;font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ am.roadName || am.address || (am.longitude ? '(' + Number(am.longitude).toFixed(4) + ', ' + Number(am.latitude).toFixed(4) + ')' : '--') }}</span>
-              <span class="ds-alert-type" :style="{ background: sevBgColor(am.severity), color: sevTextColor(am.severity) }">{{ damageTypeLabel(am.damageType) }}</span>
-            </div>
-          </div>
         </div>
         <div v-if="activeTab === 'chat'" class="ds-tab-panel ds-chat-panel" style="display:flex;flex-direction:column;overflow:hidden;">
           <div class="ds-sb-header" style="flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI 助手<button class="ds-chat-clear" @click="chatMessages = [{role:'ai', text:'您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。'}]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div>
@@ -274,6 +261,7 @@ import { detectionApi, statisticsApi, mapApi, agentApi } from "@/api"
 import * as echarts from "echarts"
 import DiseaseMarkerLayer from "@/components/DiseaseMarkerLayer.vue"
 import { useRouter } from "vue-router"
+import { ElMessage } from "element-plus"
 import { DetectionTaskStatus } from "@/types"
 
 import { getBatchGeocoder, disposeBatchGeocoder, type BatchGeocoderOptions } from "@/utils/batchGeocoder"
@@ -521,7 +509,6 @@ const layers = ref([
   { id: "sev_low", label: "轻微", color: "#22c55e", count: 0, visible: true },
 ])
 const selectedDisease = ref<any>(null)
-const currentPoints = ref(0)
 const maxPoints = ref(5000)
 const chatMessages = ref([{ role: "ai", text: "您好！我是道路病害AI助手，可以为您分析检测数据、查询病害详情或生成报告。" }])
 const chatInput = ref("")
@@ -570,7 +557,58 @@ const lowCount = computed(() => {
   }
   return count
 })
-const roadRanking = computed(() => [...(roadDiseaseData.value || [])].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0)).slice(0, 5))
+
+function buildActiveRoadSummary(road: any) {
+  const activePoints = (road.diseasePoints || []).filter((dp: any) => normalizeWoStatus(dp.workOrderNo) !== "completed")
+  if (activePoints.length === 0) return null
+
+  let highCount = 0
+  let mediumCount = 0
+  let lowCount = 0
+  let sumLng = 0
+  let sumLat = 0
+
+  for (const dp of activePoints) {
+    const severity = dp.severity || "MEDIUM"
+    if (severity === "HIGH") highCount++
+    else if (severity === "MEDIUM") mediumCount++
+    else lowCount++
+
+    sumLng += Number(dp.lng || 0)
+    sumLat += Number(dp.lat || 0)
+  }
+
+  return {
+    ...road,
+    diseasePoints: activePoints,
+    totalCount: activePoints.length,
+    highCount,
+    mediumCount,
+    lowCount,
+    overallSeverity: highCount > 0 ? "HIGH" : mediumCount > 0 ? "MEDIUM" : "LOW",
+    centerLng: road.centerLng || (activePoints.length > 0 ? sumLng / activePoints.length : 0),
+    centerLat: road.centerLat || (activePoints.length > 0 ? sumLat / activePoints.length : 0),
+  }
+}
+
+function compareRoadSeverity(a: any, b: any) {
+  const severityOrder: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
+  return (
+    (severityOrder[b.overallSeverity] ?? 0) - (severityOrder[a.overallSeverity] ?? 0) ||
+    (b.highCount || 0) - (a.highCount || 0) ||
+    (b.mediumCount || 0) - (a.mediumCount || 0) ||
+    (b.lowCount || 0) - (a.lowCount || 0) ||
+    (b.totalCount || 0) - (a.totalCount || 0)
+  )
+}
+
+const activeRoadSummaries = computed(() =>
+  (roadDiseaseData.value || [])
+    .map((road: any) => buildActiveRoadSummary(road))
+    .filter((road: any) => !!road)
+)
+
+const roadRanking = computed(() => [...activeRoadSummaries.value].sort(compareRoadSeverity).slice(0, 5))
 
 /**
  * 地图上实际绘制的病害标注点数量（按坐标去重后的数量，只统计未修复的点）
@@ -585,6 +623,17 @@ const diseasePointTotal = computed(() => {
         if (woStatus !== "completed") {
           coordSet.add(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`)
         }
+      }
+    }
+  }
+  return coordSet.size
+})
+const currentPoints = computed(() => {
+  const coordSet = new Set<string>()
+  for (const road of (roadDiseaseData.value || [])) {
+    for (const dp of (road.diseasePoints || [])) {
+      if (dp.lng && dp.lat) {
+        coordSet.add(`${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`)
       }
     }
   }
@@ -618,10 +667,7 @@ const mapStatsData = ref<any>(null)
 const damageTypeRatios = ref<any[]>([])
 const alertMarkers = ref<any[]>([])
 const roadHealthList = computed(() => {
-  return [...(roadDiseaseData.value || [])].sort((a: any, b: any) => {
-    const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
-    return (order[a.overallSeverity] ?? 3) - (order[b.overallSeverity] ?? 3)
-  }).slice(0, 8)
+  return [...activeRoadSummaries.value].sort(compareRoadSeverity).slice(0, 8)
 })
 
 /** 道路名称解析状态：true 表示所有"未知道路"已通过逆地理完成兜底 */
@@ -838,13 +884,114 @@ function refreshChartsFromData() {
     })
   }
 }
-function refreshMapData() {
-  loadStats()
-  loadDiseaseData()
-  loadRoadDiseaseData()
-  loadMapAnalysisData()
+function getVisibleDiseasePoints() {
+  const sevRank: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 }
+  const coordMap = new Map<string, { roadName: string; dp: any }>()
+
+  for (const road of (roadDiseaseData.value || [])) {
+    const baseRoadName = roadNameCn(road.roadName || road.name || "")
+    for (const dp of (road.diseasePoints || [])) {
+      if (!dp.lng || !dp.lat) continue
+      const key = `${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`
+      const existing = coordMap.get(key)
+      const currentSeverity = dp.severity || "MEDIUM"
+      const existingSeverity = existing?.dp?.severity || "MEDIUM"
+      if (!existing || (sevRank[currentSeverity] ?? 0) > (sevRank[existingSeverity] ?? 0)) {
+        coordMap.set(key, { roadName: baseRoadName, dp })
+      }
+    }
+  }
+
+  return Array.from(coordMap.values()).filter(({ dp }) => {
+    const severity = dp.severity || "MEDIUM"
+    const workOrderStatus = normalizeWoStatus(dp.workOrderNo)
+
+    if (filterSeverity.value && severity !== filterSeverity.value) return false
+    if (filterDate.value && (dp.detectionTime || "").slice(0, 10) !== filterDate.value) return false
+    if (filterStatus.value === "PENDING" && workOrderStatus !== "pending") return false
+    if (filterStatus.value === "ASSIGNED" && workOrderStatus !== "assigned") return false
+    if (filterStatus.value === "COMPLETED" && workOrderStatus !== "completed") return false
+
+    const severityLayer = layers.value.find((layer) => layer.id === `sev_${severity.toLowerCase()}`)
+    if (severityLayer && !severityLayer.visible) return false
+    if (!workOrderVis.value[workOrderStatus]) return false
+
+    return true
+  })
 }
-function exportReport() { selectedDisease.value = null; showCapacity.value = false }
+
+function escapeCsvCell(value: unknown) {
+  return `"${String(value ?? "").replace(/"/g, "\"\"")}"`
+}
+
+function downloadCsvFile(headers: string[], rows: Array<Array<string | number>>) {
+  const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(",")).join("\n")
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" })
+  const link = document.createElement("a")
+  const href = URL.createObjectURL(blob)
+  link.href = href
+  link.download = `map_disease_export_${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(href)
+}
+
+function formatConfidence(confidence?: number) {
+  return typeof confidence === "number" ? `${(confidence * 100).toFixed(1)}%` : "--"
+}
+
+function formatArea(area?: number) {
+  return typeof area === "number" ? area.toFixed(2) : "--"
+}
+
+async function refreshMapData() {
+  const results = await Promise.all([
+    loadStats(),
+    loadDiseaseData(),
+    loadRoadDiseaseData(),
+    loadMapAnalysisData(),
+  ])
+
+  if (results.every(Boolean)) {
+    ElMessage.success("地图数据已刷新")
+    return
+  }
+
+  ElMessage.warning("部分数据刷新失败，请稍后重试")
+}
+
+function exportReport() {
+  const visiblePoints = getVisibleDiseasePoints()
+  if (visiblePoints.length === 0) {
+    ElMessage.warning("当前没有可导出的地图数据")
+    return
+  }
+
+  const headers = ["道路", "病害类型", "严重等级", "工单状态", "检测时间", "置信度", "经度", "纬度", "位置", "工单编号", "面积"]
+  const rows = visiblePoints.map(({ roadName, dp }) => {
+    const key = `${Number(dp.lng).toFixed(6)},${Number(dp.lat).toFixed(6)}`
+    const resolvedRoadName = geocodeCache.get(key) || roadName
+    const workOrderStatus = normalizeWoStatus(dp.workOrderNo)
+
+    return [
+      resolvedRoadName,
+      damageTypeLabel(dp.damageType),
+      SEV_LABEL[dp.severity || "MEDIUM"] || dp.severity || "--",
+      workOrderStatusLabel(workOrderStatus),
+      dp.detectionTime || "--",
+      formatConfidence(dp.confidence),
+      dp.lng ?? "--",
+      dp.lat ?? "--",
+      dp.address || resolvedRoadName || "--",
+      dp.workOrderNo || "--",
+      formatArea(dp.area),
+    ]
+  })
+
+  downloadCsvFile(headers, rows)
+  selectedDisease.value = null
+  showCapacity.value = false
+  ElMessage.success(`已导出 ${rows.length} 条地图数据`)
+}
 
 
 function startTimeUpdate() {
@@ -924,7 +1071,10 @@ async function loadStats() {
         }]
       })
     }
-  } catch {}
+    return true
+  } catch {
+    return false
+  }
 }
 
 async function loadDiseaseData() {
@@ -939,8 +1089,10 @@ async function loadDiseaseData() {
       mapMarkers.forEach((m) => { try { map?.remove(m) } catch(e) {} })
       mapMarkers.length = 0
     })
+    return true
   } catch(e) {
     console.error("loadDiseaseData error:", e)
+    return false
   }
 }
 
@@ -1446,8 +1598,10 @@ async function loadRoadDiseaseData() {
 
       console.log("Drew", roadPolylines.length, "disease markers and circles")
     })
+    return true
   } catch(e) {
     console.warn("[DiseaseLayer] 加载道路病害数据失败:", e)
+    return false
   }
 }
 
@@ -1752,7 +1906,10 @@ async function loadMapAnalysisData() {
         }
       }
     }
-  } catch {}
+    return true
+  } catch {
+    return false
+  }
 }
 
 async function sendChat() {
@@ -1771,7 +1928,7 @@ async function sendChat() {
 
     // 如果后端没有返回有效回复，基于当前地图数据生成本地回复
     if (!reply || reply.trim() === "") {
-      const rd = roadDiseaseData.value || []
+      const rd = activeRoadSummaries.value || []
       const total = rd.reduce((s: number, r: any) => s + (r.totalCount || 0), 0)
       const high = rd.reduce((s: number, r: any) => s + (r.highCount || 0), 0)
       const medium = rd.reduce((s: number, r: any) => s + (r.mediumCount || 0), 0)
@@ -1779,7 +1936,7 @@ async function sendChat() {
       const m = msg.toLowerCase()
 
       if (m.includes("最多") || m.includes("top") || m.includes("排行")) {
-        const sorted = [...rd].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0))
+        const sorted = [...rd].sort(compareRoadSeverity)
         reply = "病害最多的道路排行：<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + "：" + r.totalCount + "处（严重" + r.highCount + "处）").join("<br>")
       } else if (m.includes("严重") || m.includes("high")) {
         const hasHigh = rd.filter((r: any) => (r.highCount || 0) > 0)
@@ -1794,7 +1951,7 @@ async function sendChat() {
     chatMessages.value.push({ role: "ai", text: reply })
   } catch(e) {
     // 后端不可用时，基于地图数据生成本地回复
-    const rd = roadDiseaseData.value || []
+    const rd = activeRoadSummaries.value || []
     const total = rd.reduce((s: number, r: any) => s + (r.totalCount || 0), 0)
     const high = rd.reduce((s: number, r: any) => s + (r.highCount || 0), 0)
     const medium = rd.reduce((s: number, r: any) => s + (r.mediumCount || 0), 0)
@@ -1803,7 +1960,7 @@ async function sendChat() {
 
     let reply = ""
     if (m.includes("最多") || m.includes("top") || m.includes("排行")) {
-      const sorted = [...rd].sort((a: any, b: any) => (b.totalCount || 0) - (a.totalCount || 0))
+      const sorted = [...rd].sort(compareRoadSeverity)
       reply = sorted.length > 0
         ? "病害最多的道路排行：<br>" + sorted.slice(0, 5).map((r: any, i: number) => (i + 1) + ". " + roadNameCn(r.roadName) + "：" + r.totalCount + "处（严重" + r.highCount + "处）").join("<br>")
         : "暂无道路病害数据"
