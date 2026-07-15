@@ -136,16 +136,28 @@ public class DbStatisticsService implements StatisticsService {
         List<WorkOrderEntity> orders = woMapper.selectList(null);
         Map<String, int[]> m = new HashMap<>();
         for (WorkOrderEntity o : orders) {
+            String status = o.getStatus();
+            if ("CANCELLED".equals(status)) {
+                continue;
+            }
             String dept = o.getDepartmentCode() != null ? o.getDepartmentCode() : "UNKNOWN";
             int[] counts = m.computeIfAbsent(dept, k -> new int[]{0, 0, 0});
             counts[0]++;
-            if ("FINISHED".equals(o.getStatus()) || "COMPLETED".equals(o.getStatus())) counts[1]++;
-            else counts[2]++;
+            if ("CLOSED".equals(status) || "FINISHED".equals(status)) {
+                counts[1]++;
+            } else {
+                counts[2]++;
+            }
         }
-        List<DepartmentWorkloadResponse.DeptItem> result = new ArrayList<>();
-        for (Map.Entry<String, int[]> e : m.entrySet()) {
-            result.add(new DepartmentWorkloadResponse.DeptItem(e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2]));
-        }
+        List<DepartmentWorkloadResponse.DeptItem> result = m.entrySet().stream()
+                .map(e -> new DepartmentWorkloadResponse.DeptItem(
+                        e.getKey(),
+                        e.getValue()[0],
+                        e.getValue()[1],
+                        e.getValue()[2]
+                ))
+                .sorted(Comparator.comparingInt(DepartmentWorkloadResponse.DeptItem::total).reversed())
+                .toList();
         return new DepartmentWorkloadResponse(result);
     }
 }

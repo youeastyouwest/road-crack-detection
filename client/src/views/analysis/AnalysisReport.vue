@@ -238,7 +238,12 @@ const analysisConclusions = computed(() => {
 })
 
 function deptName(code: string) {
-  return ({ ROAD_ADMIN: t("report.deptRoadAdmin"), SANIT_ADMIN: t("report.deptSanitAdmin"), TRAFFIC_ADMIN: t("report.deptTrafficAdmin") } as any)[code] || code
+  return ({
+    ROAD_ADMIN: t("report.deptRoadAdmin"),
+    SANITATION: t("report.deptSanitAdmin"),
+    TRAFFIC_POLICE: t("report.deptTrafficAdmin"),
+    UNKNOWN: t("report.unknownDept"),
+  } as any)[code] || code || "--"
 }
 function damageTypeLabel(type: string) {
   return ({ CRACK: t("damage.crack"), TRANSVERSE_CRACK: t("damage.transverseCrack"), LONGITUDINAL_CRACK: t("damage.longitudinalCrack"), NET_CRACK: t("damage.netCrack"), POTHOLE: t("damage.pothole"), ALLIGATOR: t("damage.alligator"), BLOCK: t("damage.block"), RUTTING: t("damage.rutting"), REPAIR: t("damage.repair") } as any)[type] || type

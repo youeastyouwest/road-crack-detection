@@ -128,15 +128,15 @@
           <div v-else-if="resultData" class="res-detail">
             <div class="res-summary">{{ resultData.summary }}</div>
             <!-- Main Result: Damage Type + Severity -->
-            <div v-if="resultData.items?.[0]" class="res-main">
+            <div v-if="primaryResultItem" class="res-main">
               <div class="res-main-left">
-                <div class="res-main-type">{{ damageTypeLabel(resultData.items[0].damageType) }}</div>
-                <div class="res-main-desc">{{ damageTypeDesc(resultData.items[0].damageType) }}</div>
+                <div class="res-main-type">{{ damageTypeLabel(primaryResultItem.damageType) }}</div>
+                <div class="res-main-desc">{{ damageTypeDesc(primaryResultItem.damageType) }}</div>
               </div>
-              <div :class="['res-main-sev', 'sev-'+resultData.items[0].severityLevel.toLowerCase()]">
+              <div :class="['res-main-sev', 'sev-'+primaryResultItem.severityLevel.toLowerCase()]">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15 9 22 9 16 14 18 21 12 17 6 21 8 14 2 9 9 9"/></svg>
-                <span class="res-sev-label">{{ severityLabel(resultData.items[0].severityLevel) }}</span>
-                <span class="res-sev-desc">{{ severityDesc(resultData.items[0].severityLevel) }}</span>
+                <span class="res-sev-label">{{ severityLabel(primaryResultItem.severityLevel) }}</span>
+                <span class="res-sev-desc">{{ severityDesc(primaryResultItem.severityLevel) }}</span>
               </div>
             </div>
             <!-- File Preview -->
@@ -456,6 +456,7 @@ const showModal = ref(false)
 const resultLoading = ref(false)
 const modalTask = ref<DetectionTaskResponse | null>(null)
 const resultData = ref<DetectionResultResponse | null>(null)
+const primaryResultItem = computed(() => getPrimaryDetectionItem(resultData.value))
 
 async function viewResult(t: DetectionTaskResponse) {
   showModal.value = true
@@ -500,6 +501,18 @@ function damageTypeLabel(t: string) {
   return { CRACK: "裂缝", TRANSVERSE_CRACK: "横向裂缝", LONGITUDINAL_CRACK: "纵向裂缝", NET_CRACK: "网状裂缝", POTHOLE: "坑槽", MARKING_DAMAGE: "标线损坏", ROAD_SPILL: "路面抛洒", UNKNOWN: "未知", OTHER: "其他" }[t] || t
 }
 
+function severityScore(level?: string) {
+  return ({ HIGH: 3, MEDIUM: 2, LOW: 1, NORMAL: 0 } as Record<string, number>)[level || ""] || 0
+}
+
+function getPrimaryDetectionItem(data: DetectionResultResponse | null) {
+  const items = data?.items || []
+  if (!items.length) return null
+  return items.reduce((top, item) =>
+    severityScore(item.severityLevel) > severityScore(top.severityLevel) ? item : top
+  )
+}
+
 function canDispatch(data: DetectionResultResponse) {
   if (!authStore.isAdmin) return false
   return !!data.items?.length
@@ -521,14 +534,19 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
     ElMessage.info("由于检测出严重病害，系统已自动生成工单，请前往工单管理查看")
     return
   }
-  ElMessageBox.confirm("此检测结果包含严重病害，确认派发维修工单？", "派单确认", { confirmButtonText: "确认派单", cancelButtonText: "取消", type: "warning" })
-    .then(async () => {
+  const primaryItem = getPrimaryDetectionItem(data)
+  if (!primaryItem) {
+    ElMessage.warning("当前检测结果缺少病害明细，暂时无法生成工单")
+    return
+  }
+  const confirmDispatch = ElMessageBox.confirm("检测结果已包含病害信息，确认派发维修工单？", "派单确认", { confirmButtonText: "确认派单", cancelButtonText: "取消", type: "warning" })
+  confirmDispatch.then(async () => {
       try {
         const res = await workOrderApi.create({
           detectionTaskId: taskId,
           title: "病害维修工单",
-          damageType: data.items[0]?.damageType as any,
-          severityLevel: data.items[0]?.severityLevel as any,
+          damageType: primaryItem.damageType as any,
+          severityLevel: primaryItem.severityLevel as any,
           departmentCode: "ROAD_ADMIN" as any,
           location: modalTask.value?.location || "",
           description: data.summary || "",

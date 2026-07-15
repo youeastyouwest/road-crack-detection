@@ -455,8 +455,9 @@ class CrackDetector:
                 img_area = img_w * img_h
                 box_area = max(x2 - x1, 1) * max(y2 - y1, 1)
                 area_ratio = box_area / img_area if img_area > 0 else 0
-                area_boost = area_ratio * 15.0 + 0.15
-                adjusted_conf = min(max(conf + area_boost, conf * 1.5), 1.0)
+                # 演示场景下保留“大病害略微加分”，但避免小幅检测被整体抬到 HIGH。
+                area_boost = min(area_ratio * 4.0 + 0.04, 0.24)
+                adjusted_conf = min(max(conf + area_boost, conf * 1.25), 1.0)
 
                 class_name = self.class_names[cls_id] if cls_id < len(self.class_names) else f"class_{cls_id}"
                 class_name_cn = self.class_names_cn[cls_id] if cls_id < len(self.class_names_cn) else "??"

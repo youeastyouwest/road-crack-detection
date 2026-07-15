@@ -107,7 +107,7 @@
             </thead>
             <tbody>
               <tr v-for="d in deptWorkload" :key="d.deptName">
-                <td class="td-dept">{{ d.deptName }}</td>
+                <td class="td-dept">{{ deptNameLabel(d.deptName) }}</td>
                 <td><span class="num-tag">{{ d.total }}</span></td>
                 <td><span class="num-tag num-success">{{ d.completed }}</span></td>
                 <td><span class="num-tag num-warn">{{ d.pending }}</span></td>
@@ -393,6 +393,15 @@ function severityClass(s: string) {
 
 function rankClass(idx: number) {
   return ["rank-1", "rank-2", "rank-3", "rank-4", "rank-5"][idx] || "rank-5"
+}
+
+function deptNameLabel(code: string) {
+  return ({
+    ROAD_ADMIN: t("report.deptRoadAdmin"),
+    SANITATION: t("report.deptSanitAdmin"),
+    TRAFFIC_POLICE: t("report.deptTrafficAdmin"),
+    UNKNOWN: t("report.unknownDept"),
+  } as any)[code] || code || "--"
 }
 
 function deptRate(d: DeptWorkloadItem) {

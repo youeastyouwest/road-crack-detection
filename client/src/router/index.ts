@@ -104,12 +104,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/analysis/AnalysisReport.vue"),
         meta: { title: "分析报告", icon: "DataLine", roles: [RoleCode.ADMIN] },
       },
-      {
-        path: "alerts",
-        name: "AlertManagement",
-        component: () => import("@/views/alert/AlertManagement.vue"),
-        meta: { title: "预警管理", icon: "WarningFilled", roles: [RoleCode.ADMIN] },
-      },
       // Admin system management
       {
         path: "user-management",

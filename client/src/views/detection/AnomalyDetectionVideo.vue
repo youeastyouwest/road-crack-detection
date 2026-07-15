@@ -173,6 +173,18 @@ function hasHighSeverity(data: DetectionResultResponse | null) {
   return !!data?.items?.some(i => i.severityLevel === "HIGH")
 }
 
+function severityScore(level?: string) {
+  return ({ HIGH: 3, MEDIUM: 2, LOW: 1, NORMAL: 0 } as Record<string, number>)[level || ""] || 0
+}
+
+function getPrimaryDetectionItem(data: DetectionResultResponse | null) {
+  const items = data?.items || []
+  if (!items.length) return null
+  return items.reduce((top, item) =>
+    severityScore(item.severityLevel) > severityScore(top.severityLevel) ? item : top
+  )
+}
+
 async function handleDispatch(taskId: number, data: DetectionResultResponse) {
   if (!taskId) return
   if (data?.generatedWorkOrderId) {
@@ -182,8 +194,8 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
     return
   }
 
-  const firstItem = data.items?.[0]
-  if (!firstItem) {
+  const primaryItem = getPrimaryDetectionItem(data)
+  if (!primaryItem) {
     ElMessage.warning("当前检测结果缺少病害明细，暂时无法生成工单")
     return
   }
@@ -198,8 +210,8 @@ async function handleDispatch(taskId: number, data: DetectionResultResponse) {
         const res = await workOrderApi.create({
           detectionTaskId: taskId,
           title: "病害维修工单",
-          damageType: firstItem.damageType as any,
-          severityLevel: firstItem.severityLevel as any,
+          damageType: primaryItem.damageType as any,
+          severityLevel: primaryItem.severityLevel as any,
           location: selectedTask.value?.location || "",
           departmentCode: "ROAD_ADMIN" as any,
           evidenceUrl: selectedTask.value?.fileUrl || "",

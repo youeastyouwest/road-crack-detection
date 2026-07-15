@@ -82,7 +82,6 @@ const adminNav = computed<NavGroup[]>(() => [
   ]},
   { label: t("nav.analysisIntelligence"), items: [
     { path: "/analysis-report", title: t("nav.analysisReport"), icon: "DataLine" },
-    { path: "/alerts", title: t("nav.alertManagement"), icon: "WarningFilled" },
   ]},
   { label: t("nav.systemManagement"), items: [
     { path: "/user-management", title: t("nav.userManagement"), icon: "UserFilled" },

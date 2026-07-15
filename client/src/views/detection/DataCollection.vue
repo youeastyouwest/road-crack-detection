@@ -131,15 +131,15 @@
           <div v-if="resultLoading" class="modal-loading">加载中...</div>
           <div v-else-if="resultData" class="result-content">
             <div class="result-summary">{{ resultData.summary }}</div>
-            <div v-if="resultData.items?.[0]" class="res-main">
+            <div v-if="primaryResultItem" class="res-main">
               <div class="res-main-left">
-                <div class="res-main-type">{{ damageTypeLabel(resultData.items[0].damageType) }}</div>
-                <div class="res-main-desc">{{ damageTypeDesc(resultData.items[0].damageType) }}</div>
+                <div class="res-main-type">{{ damageTypeLabel(primaryResultItem.damageType) }}</div>
+                <div class="res-main-desc">{{ damageTypeDesc(primaryResultItem.damageType) }}</div>
               </div>
-              <div :class="['res-main-sev', 'sev-'+resultData.items[0].severityLevel.toLowerCase()]">
+              <div :class="['res-main-sev', 'sev-'+primaryResultItem.severityLevel.toLowerCase()]">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15 9 22 9 16 14 18 21 12 17 6 21 8 14 2 9 9 9"/></svg>
-                <span class="res-sev-label">{{ severityLabel(resultData.items[0].severityLevel) }}</span>
-                <span class="res-sev-desc">{{ severityDesc(resultData.items[0].severityLevel) }}</span>
+                <span class="res-sev-label">{{ severityLabel(primaryResultItem.severityLevel) }}</span>
+                <span class="res-sev-desc">{{ severityDesc(primaryResultItem.severityLevel) }}</span>
               </div>
             </div>
             <div v-if="resultImageUrl" class="res-file-preview">
@@ -204,6 +204,7 @@ const showResultModal = ref(false)
 const resultLoading = ref(false)
 const resultTask = ref<any>(null)
 const resultData = ref<any>(null)
+const primaryResultItem = computed(() => getPrimaryDetectionItem(resultData.value))
 const authStore = useAuthStore()
 const pollingTaskId = ref<number | null>(null)
 
@@ -526,6 +527,18 @@ function severityDesc(s: string) {
   return ({ HIGH: "需要立即处理", MEDIUM: "建议尽快修复", LOW: "可安排常规养护" })[s] || ""
 }
 
+function severityScore(level?: string) {
+  return ({ HIGH: 3, MEDIUM: 2, LOW: 1, NORMAL: 0 } as Record<string, number>)[level || ""] || 0
+}
+
+function getPrimaryDetectionItem(data: any) {
+  const items = data?.items || []
+  if (!items.length) return null
+  return items.reduce((top: any, item: any) =>
+    severityScore(item.severityLevel) > severityScore(top.severityLevel) ? item : top
+  )
+}
+
 function canDispatch(data: any) {
   return !!data?.items?.length
 }
@@ -542,8 +555,8 @@ async function handleDispatch(taskId: number, data: any) {
     return
   }
 
-  const firstItem = data?.items?.[0]
-  if (!firstItem) {
+  const primaryItem = getPrimaryDetectionItem(data)
+  if (!primaryItem) {
     ElMessage.warning("当前检测结果缺少病害明细，暂时无法生成工单")
     return
   }
@@ -558,8 +571,8 @@ async function handleDispatch(taskId: number, data: any) {
         const res = await workOrderApi.create({
           detectionTaskId: taskId,
           title: "病害维修工单",
-          damageType: firstItem.damageType,
-          severityLevel: firstItem.severityLevel,
+          damageType: primaryItem.damageType,
+          severityLevel: primaryItem.severityLevel,
           location: resultTask.value?.location || "",
           departmentCode: "ROAD_ADMIN" as any,
           evidenceUrl: resultTask.value?.fileUrl || "",
